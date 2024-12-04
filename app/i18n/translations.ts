@@ -52,6 +52,10 @@ export const translations = {
     enterYourName: 'Enter Your Name',
     yourName: 'Your Name',
     continue: 'Continue',
+
+    // Favorites
+    favorites: 'Favorites',
+    noFavorites: 'No favorite notes yet',
   },
   el: {
     // Settings
@@ -105,7 +109,11 @@ export const translations = {
     // Username modal
     enterYourName: 'Εισάγετε το Όνομά σας',
     yourName: 'Το Όνομά σας',
-    continue: 'Συν��χεια',
+    continue: 'Συνέχεια',
+
+    // Favorites
+    favorites: 'Αγαπημένα',
+    noFavorites: 'Δεν υπάρχουν αγαπημένες σημειώσεις',
   },
 }; 
 

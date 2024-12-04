@@ -1,25 +1,16 @@
-import { UserProvider } from './app/context/UserContext';
-import { ThemeProvider } from './app/context/ThemeContext';
-import { LanguageProvider } from './app/context/LanguageContext';
-import { NotesProvider } from './app/NotesContext';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 import RootLayout from './app/_layout';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <UserProvider>
-          <LanguageProvider>
-            <ThemeProvider>
-              <NotesProvider>
-                <RootLayout />
-              </NotesProvider>
-            </ThemeProvider>
-          </LanguageProvider>
-        </UserProvider>
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <RootLayout />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 } 

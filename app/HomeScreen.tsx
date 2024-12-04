@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNotes } from './NotesContext';
@@ -22,12 +22,13 @@ import type { TaskItem } from './NotesContext';
 import SettingsModal from './components/SettingsModal';
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
-import { useUser } from './context/UserContext';
 import UsernameModal from './components/UsernameModal';
+import NavigationMenu from './components/NavigationMenu';
 
 type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
+  Favorites: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -67,7 +68,7 @@ export default function HomeScreen() {
 
   const toggleChecklistItem = async (noteId: string, itemIndex: number) => {
     const noteToUpdate = notes.find(note => note.id === noteId);
-    if (noteToUpdate?.type === 'task' && noteToUpdate.tasks) {
+    if (noteToUpdate?.type === 'checklist' && noteToUpdate.tasks) {
       const newItems = noteToUpdate.tasks.map((task, index) => {
         if (index === itemIndex) {
           return { ...task, isCompleted: !task.isCompleted };
@@ -78,9 +79,16 @@ export default function HomeScreen() {
     }
   };
 
-  const handleShare = (note: any) => {
-    // Implement share functionality
-    console.log('Sharing note:', note.title);
+  const handleFavorite = async (note: any) => {
+    try {
+      const updatedNote = { 
+        ...note, 
+        isFavorite: !note.isFavorite 
+      };
+      await updateNote(updatedNote);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const handleDelete = async (noteId: string | undefined) => {
@@ -177,6 +185,10 @@ export default function HomeScreen() {
     }
   };
 
+  const handleNavigateToFavorites = () => {
+    navigation.navigate('Favorites');
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -186,32 +198,49 @@ export default function HomeScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.secondaryBackground,
-      margin: 8,
+      marginHorizontal: 20,
       marginBottom: 16,
-      borderRadius: 12,
-      paddingHorizontal: 10,
-      height: 45,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 50,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
     },
     searchInput: {
       flex: 1,
       color: theme.textColor,
-      fontSize: 15,
-      marginLeft: 8,
+      fontSize: 16,
+      marginLeft: 12,
+      fontWeight: '400',
     },
     notesContainer: {
       flex: 1,
-      paddingHorizontal: 8,
+      paddingHorizontal: 20,
       paddingTop: 8,
     },
     noteCard: {
       backgroundColor: theme.secondaryBackground,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 16,
       marginBottom: 16,
-      height: 190,
+      height: 175,
       flexDirection: 'column',
       borderLeftWidth: 3,
       borderLeftColor: theme.accentColor,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
     },
     noteHeader: {
       flexDirection: 'row',
@@ -227,13 +256,12 @@ export default function HomeScreen() {
     noteContent: {
       flex: 1,
       justifyContent: 'flex-start',
-      paddingVertical: 2,
     },
     noteTitle: {
       color: theme.textColor,
-      fontSize: 17,
+      fontSize: 18,
       fontWeight: '600',
-      marginBottom: 4,
+      marginBottom: 6,
     },
     noteDescription: {
       color: theme.placeholderColor,
@@ -286,10 +314,11 @@ export default function HomeScreen() {
     },
     actionContainer: {
       width: 80,
-      height: 190,
+      height: 175,
       marginBottom: 16,
       justifyContent: 'center',
       alignItems: 'center',
+      paddingLeft: 8,
     },
     deleteButton: {
       flex: 1,
@@ -297,10 +326,16 @@ export default function HomeScreen() {
       backgroundColor: '#FF4E4E',
       justifyContent: 'center',
       alignItems: 'center',
-      borderRadius: 12,
-      height: 190,
-      borderLeftWidth: 3,
-      borderLeftColor: '#FF4E4E',
+      borderRadius: 16,
+      height: 175,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
     },
     header: {
       flexDirection: 'row',
@@ -329,6 +364,50 @@ export default function HomeScreen() {
       backgroundColor: theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    bottomNavigation: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 65,
+      backgroundColor: theme.secondaryBackground,
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      paddingBottom: 10,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderColor,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: -2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 5,
+    },
+    navItem: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 50,
+      height: 50,
+    },
+    addButton: {
+      width: 45,
+      height: 45,
+      borderRadius: 15,
+      backgroundColor: theme.accentColor,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 3,
+      elevation: 5,
     },
   });
 
@@ -359,7 +438,7 @@ export default function HomeScreen() {
       
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={24} color={theme.placeholderColor} />
+        <Ionicons name="search-outline" size={22} color={theme.placeholderColor} />
         <TextInput
           style={styles.searchInput}
           placeholder={t('searchHere')}
@@ -370,8 +449,11 @@ export default function HomeScreen() {
           autoCorrect={false}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={24} color={theme.placeholderColor} />
+          <TouchableOpacity 
+            onPress={() => setSearchQuery('')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close-circle" size={20} color={theme.placeholderColor} />
           </TouchableOpacity>
         )}
       </View>
@@ -387,7 +469,7 @@ export default function HomeScreen() {
                   style={styles.deleteButton}
                   onPress={() => handleDelete(note.id)}
                 >
-                  <Ionicons name="trash-outline" size={24} color="#fff" />
+                  <Ionicons name="trash-outline" size={22} color="#fff" />
                 </TouchableOpacity>
               </View>
             )}
@@ -406,8 +488,12 @@ export default function HomeScreen() {
                     month: 'short' 
                   })}
                 </Text>
-                <TouchableOpacity onPress={() => handleShare(note)}>
-                  <Ionicons name="share-outline" size={24} color={theme.placeholderColor} />
+                <TouchableOpacity onPress={() => handleFavorite(note)}>
+                  <Ionicons 
+                    name={note.isFavorite ? "heart" : "heart-outline"}
+                    size={24} 
+                    color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -444,13 +530,9 @@ export default function HomeScreen() {
         ))}
       </ScrollView>
 
-      {/* FAB */}
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => setIsModalVisible(true)}
-      >
-        <Ionicons name="add" size={32} color="#fff" />
-      </TouchableOpacity>
+      <NavigationMenu 
+        onAddPress={() => setIsModalVisible(true)}
+      />
 
       <AddNoteModal
         visible={isModalVisible}
@@ -465,10 +547,8 @@ export default function HomeScreen() {
         onUpdateUsername={handleUsernameSubmit}
       />
 
-      <UsernameModal
-        visible={showUsernameModal}
-        onSubmit={handleUsernameSubmit}
-      />
+
+
     </View>
   );
 } 

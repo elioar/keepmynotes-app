@@ -7,15 +7,13 @@ export interface TaskItem {
 }
 
 interface Note {
-  id?: string;
+  id: string;
   title: string;
   description?: string;
+  type: 'text' | 'checklist';
   tasks?: TaskItem[];
-  dueDate?: string;
-  reminder?: boolean;
-  type: 'text' | 'task';
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  isFavorite?: boolean;
 }
 
 interface NotesContextType {
@@ -61,7 +59,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       ...note,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
     const updatedNotes = [newNote, ...notes];
     await saveNotes(updatedNotes);

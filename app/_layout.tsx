@@ -1,21 +1,48 @@
-import { Stack } from 'expo-router';
-import { NotesProvider } from './NotesContext';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import ThemeContext from './context/ThemeContext';
-import LanguageContext from './context/LanguageContext';
+import HomeScreen from './HomeScreen';
+import AddEditNoteScreen from './AddEditNoteScreen';
+import FavoritesScreen from './components/FavoritesScreen';
+import { NotesProvider } from './NotesContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
+import { UserProvider } from './context/UserContext';
+
+const Stack = createNativeStackNavigator();
+
+function Navigation() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ animation: 'none' }}
+      />
+      <Stack.Screen 
+        name="Favorites" 
+        component={FavoritesScreen}
+        options={{ animation: 'none' }}
+      />
+      <Stack.Screen name="AddEditNote" component={AddEditNoteScreen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function RootLayout() {
   return (
-    <LanguageContext.Provider>
-      <ThemeContext.Provider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <NotesProvider>
-            <Stack screenOptions={{
-              headerShown: false
-            }} />
-          </NotesProvider>
-        </GestureHandlerRootView>
-      </ThemeContext.Provider>
-    </LanguageContext.Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NotesProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            <UserProvider>
+              <View style={{ flex: 1 }}>
+                <Navigation />
+              </View>
+            </UserProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </NotesProvider>
+    </GestureHandlerRootView>
   );
 }

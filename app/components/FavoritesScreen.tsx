@@ -88,7 +88,7 @@ export default function FavoritesScreen() {
       borderRadius: 16,
       padding: 16,
       marginBottom: 16,
-      height: 175,
+      minHeight: 100,
       borderLeftWidth: 3,
       borderLeftColor: theme.accentColor,
       shadowColor: '#000',
@@ -99,18 +99,22 @@ export default function FavoritesScreen() {
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 3,
+      overflow: 'hidden',
     },
     noteHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 6,
+      alignItems: 'flex-start',
+      marginBottom: 8,
+      width: '100%',
     },
     noteTitle: {
       color: theme.textColor,
       fontSize: 18,
       fontWeight: '600',
       marginBottom: 6,
+      flex: 1,
+      marginRight: 16,
     },
     noteDescription: {
       color: theme.placeholderColor,
@@ -191,7 +195,10 @@ export default function FavoritesScreen() {
                 <Text style={styles.noteTitle} numberOfLines={1}>
                   {note.title}
                 </Text>
-                <TouchableOpacity onPress={() => handleFavorite(note)}>
+                <TouchableOpacity 
+                  onPress={() => handleFavorite(note)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
                   <Ionicons 
                     name="heart" 
                     size={24} 

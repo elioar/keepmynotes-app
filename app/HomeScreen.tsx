@@ -8,6 +8,10 @@ import {
   TouchableOpacity,
   Pressable,
   StatusBar,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +28,7 @@ import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import UsernameModal from './components/UsernameModal';
 import NavigationMenu from './components/NavigationMenu';
+import FilterModal from './components/FilterModal';
 
 type RootStackParamList = {
   Home: undefined;
@@ -43,6 +48,9 @@ export default function HomeScreen() {
   const { t } = useLanguage();
   const [localUsername, setLocalUsername] = useState('');
   const [showUsernameModal, setShowUsernameModal] = useState(true);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   useEffect(() => {
     const loadSavedUsername = async () => {
@@ -100,30 +108,55 @@ export default function HomeScreen() {
     }
   };
 
-  const filteredNotes = notes.filter(note => {
-    const searchLower = searchQuery.toLowerCase().trim();
-    
-    // Αν δεν υπάρχει κείμενο αναζήτησης, επέστρεψε όλες τις σημειώσεις
-    if (!searchLower) return true;
-    
-    // Έλεγχος τίτλου
-    if (note.title.toLowerCase().includes(searchLower)) return true;
-    
-    // Έλεγχος περιγραφής
-    if (note.description?.toLowerCase().includes(searchLower)) return true;
-    
-    // Έλεγχος στοιχείων λίστας
-    if (note.tasks?.some((task: TaskItem) => 
-      task.text.toLowerCase().includes(searchLower)
-    )) return true;
-    
-    return false;
-  });
+  const getFilteredNotes = () => {
+    let filtered = notes;
 
-  // Βοηθητική συνάρτηση για περικοπή κειμένου
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(note => {
+        const searchLower = searchQuery.toLowerCase().trim();
+        if (note.title.toLowerCase().includes(searchLower)) return true;
+        if (note.description?.toLowerCase().includes(searchLower)) return true;
+        return false;
+      });
+    }
+
+    // Apply date filters
+    if (activeFilters.includes('today')) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(note => new Date(note.createdAt) >= today);
+    }
+    if (activeFilters.includes('week')) {
+      const thisWeek = new Date();
+      thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay());
+      thisWeek.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(note => new Date(note.createdAt) >= thisWeek);
+    }
+    if (activeFilters.includes('month')) {
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      thisMonth.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(note => new Date(note.createdAt) >= thisMonth);
+    }
+
+    // Apply type filters
+    if (activeFilters.includes('tasks')) {
+      filtered = filtered.filter(note => note.type === 'checklist');
+    }
+    if (activeFilters.includes('notes')) {
+      filtered = filtered.filter(note => note.type === 'text');
+    }
+    if (activeFilters.includes('favorites')) {
+      filtered = filtered.filter(note => note.isFavorite);
+    }
+    if (activeFilters.includes('recent')) {
+      filtered = filtered.sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }).slice(0, 10);
+    }
+
+    return filtered;
   };
 
   const handleOptionSelect = (type: string) => {
@@ -189,10 +222,16 @@ export default function HomeScreen() {
     navigation.navigate('Favorites');
   };
 
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.backgroundColor,
+      position: 'relative',
     },
     searchContainer: {
       flexDirection: 'row',
@@ -208,9 +247,11 @@ export default function HomeScreen() {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
+      shadowOpacity: isSearchFocused ? 0.2 : 0.1,
+      shadowRadius: isSearchFocused ? 6 : 3,
+      elevation: isSearchFocused ? 5 : 3,
+      borderWidth: 2,
+      borderColor: isSearchFocused ? theme.accentColor : 'transparent',
     },
     searchInput: {
       flex: 1,
@@ -223,6 +264,7 @@ export default function HomeScreen() {
       flex: 1,
       paddingHorizontal: 20,
       paddingTop: 8,
+      paddingBottom: 90,
     },
     noteCard: {
       backgroundColor: theme.secondaryBackground,
@@ -364,6 +406,7 @@ export default function HomeScreen() {
       backgroundColor: theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
+      marginTop: 60,
     },
     bottomNavigation: {
       position: 'absolute',
@@ -409,146 +452,190 @@ export default function HomeScreen() {
       shadowRadius: 3,
       elevation: 5,
     },
+    filterDot: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: '#FF4E4E',
+      borderWidth: 1,
+      borderColor: theme.backgroundColor,
+    },
   });
 
   return (
-    <View style={styles.container}>
-      <StatusBar 
-        backgroundColor={theme.backgroundColor} 
-        barStyle={theme.isDarkMode ? "light-content" : "dark-content"} 
-      />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerGreeting}>
-            {t('hello')},
-          </Text>
-          <Text style={styles.headerName}>
-            {localUsername ? `${localUsername} 👋` : ''}
-          </Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.menuButton}
-          onPress={() => setIsSettingsVisible(true)}
-        >
-          <Ionicons name="menu" size={28} color={theme.textColor} />
-        </TouchableOpacity>
-      </View>
-      
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={22} color={theme.placeholderColor} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t('searchHere')}
-          placeholderTextColor={theme.placeholderColor}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
+    <TouchableWithoutFeedback onPress={() => {
+      Keyboard.dismiss();
+      setIsSearchFocused(false);
+    }}>
+      <View style={styles.container}>
+        <StatusBar 
+          backgroundColor={theme.backgroundColor} 
+          barStyle={theme.isDarkMode ? "light-content" : "dark-content"} 
         />
-        {searchQuery.length > 0 && (
+        
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerGreeting}>
+              {t('hello')},
+            </Text>
+            <Text style={styles.headerName}>
+              {localUsername ? `${localUsername} 👋` : ''}
+            </Text>
+          </View>
           <TouchableOpacity 
-            onPress={() => setSearchQuery('')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.menuButton}
+            onPress={() => setIsFilterModalVisible(true)}
           >
-            <Ionicons name="close-circle" size={20} color={theme.placeholderColor} />
+            <View>
+              <Ionicons 
+                name="funnel-outline" 
+                size={24} 
+                color={activeFilters.length > 0 ? theme.accentColor : theme.textColor} 
+              />
+              {activeFilters.length > 0 && (
+                <View style={styles.filterDot} />
+              )}
+            </View>
           </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Notes List */}
-      <ScrollView style={styles.notesContainer}>
-        {filteredNotes.map((note) => (
-          <Swipeable
-            key={note.id}
-            renderRightActions={(progress, dragX) => (
-              <View style={styles.actionContainer}>
-                <TouchableOpacity 
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(note.id)}
-                >
-                  <Ionicons name="trash-outline" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            )}
-            overshootRight={false}
-            friction={2}
-            rightThreshold={40}
-          >
-            <Pressable 
-              style={styles.noteCard}
-              onPress={() => handleNotePress(note)}
+        </View>
+        
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons 
+            name="search-outline" 
+            size={22} 
+            color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('searchHere')}
+            placeholderTextColor={theme.placeholderColor}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <View style={styles.noteHeader}>
-                <Text style={styles.noteDate}>
-                  {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
-                    day: 'numeric', 
-                    month: 'short' 
-                  })}
-                </Text>
-                <TouchableOpacity onPress={() => handleFavorite(note)}>
-                  <Ionicons 
-                    name={note.isFavorite ? "heart" : "heart-outline"}
-                    size={24} 
-                    color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                  />
-                </TouchableOpacity>
-              </View>
+              <Ionicons 
+                name="close-circle" 
+                size={20} 
+                color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
 
-              <View style={styles.noteContent}>
-                <Text style={styles.noteTitle} numberOfLines={1}>
-                  <HighlightText 
-                    text={note.title}
-                    highlight={searchQuery}
-                    style={styles.noteTitle}
-                  />
-                </Text>
+        {/* Notes List */}
+        <ScrollView 
+          style={styles.notesContainer}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+        >
+          {getFilteredNotes().map((note) => (
+            <Swipeable
+              key={note.id}
+              renderRightActions={(progress, dragX) => (
+                <View style={styles.actionContainer}>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(note.id)}
+                  >
+                    <Ionicons name="trash-outline" size={22} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              overshootRight={false}
+              friction={2}
+              rightThreshold={40}
+            >
+              <Pressable 
+                style={styles.noteCard}
+                onPress={() => handleNotePress(note)}
+              >
+                <View style={styles.noteHeader}>
+                  <Text style={styles.noteDate}>
+                    {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
+                      day: 'numeric', 
+                      month: 'short' 
+                    })}
+                  </Text>
+                  <TouchableOpacity onPress={() => handleFavorite(note)}>
+                    <Ionicons 
+                      name={note.isFavorite ? "heart" : "heart-outline"}
+                      size={24} 
+                      color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                    />
+                  </TouchableOpacity>
+                </View>
 
-                {note.description && (
-                  <Text style={styles.noteDescription} numberOfLines={2}>
+                <View style={styles.noteContent}>
+                  <Text style={styles.noteTitle} numberOfLines={1}>
                     <HighlightText 
-                      text={truncateText(note.description, 100)}
+                      text={note.title}
                       highlight={searchQuery}
-                      style={styles.noteDescription}
+                      style={styles.noteTitle}
                     />
                   </Text>
-                )}
-              </View>
 
-              <View style={styles.noteFooter}>
-                <View style={styles.statusContainer}>
-                  <View style={styles.statusDot} />
-                  <Text style={styles.statusText}>
-                    {getTimeAgo(note.createdAt || new Date().toISOString())}
-                  </Text>
+                  {note.description && (
+                    <Text style={styles.noteDescription} numberOfLines={2}>
+                      <HighlightText 
+                        text={truncateText(note.description, 100)}
+                        highlight={searchQuery}
+                        style={styles.noteDescription}
+                      />
+                    </Text>
+                  )}
                 </View>
-              </View>
-            </Pressable>
-          </Swipeable>
-        ))}
-      </ScrollView>
 
-      <NavigationMenu 
-        onAddPress={() => setIsModalVisible(true)}
-      />
+                <View style={styles.noteFooter}>
+                  <View style={styles.statusContainer}>
+                    <View style={styles.statusDot} />
+                    <Text style={styles.statusText}>
+                      {getTimeAgo(note.createdAt || new Date().toISOString())}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            </Swipeable>
+          ))}
+        </ScrollView>
 
-      <AddNoteModal
-        visible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        onSelectOption={handleOptionSelect}
-      />
+        <NavigationMenu 
+          onAddPress={() => setIsModalVisible(true)}
+        />
 
-      <SettingsModal
-        visible={isSettingsVisible}
-        onClose={() => setIsSettingsVisible(false)}
-        username={localUsername}
-        onUpdateUsername={handleUsernameSubmit}
-      />
+        <AddNoteModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSelectOption={handleOptionSelect}
+        />
 
+        <SettingsModal
+          visible={isSettingsVisible}
+          onClose={() => setIsSettingsVisible(false)}
+          username={localUsername}
+          onUpdateUsername={handleUsernameSubmit}
+        />
 
-
-    </View>
+        <FilterModal
+          visible={isFilterModalVisible}
+          onClose={() => setIsFilterModalVisible(false)}
+          onSelectFilter={setActiveFilters}
+          activeFilters={activeFilters}
+          filteredCount={getFilteredNotes().length}
+        />
+      </View>
+    </TouchableWithoutFeedback>
   );
 } 

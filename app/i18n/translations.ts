@@ -15,6 +15,8 @@ export const translations = {
     greek: 'Greek',
     username: 'Username',
     changeUsername: 'Change Username',
+    favorite: "favorite",
+    appTheme: 'App Theme',
 
     // Home
     hello: 'Hello',
@@ -56,6 +58,21 @@ export const translations = {
     // Favorites
     favorites: 'Favorites',
     noFavorites: 'No favorite notes yet',
+
+    // Filter
+    filterBy: 'Filter by',
+    allNotes: 'All Notes',
+    today: 'Today',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+
+    textNotes: 'Text Notes',
+    recentlyEdited: 'Recently Edited',
+    tasks: 'Tasks',
+
+    clearFilter: 'Clear',
+
+    showingResults: 'Showing',
   },
   el: {
     // Settings
@@ -73,6 +90,8 @@ export const translations = {
     greek: 'Ελληνικά',
     username: 'Όνομα Χρήστη',
     changeUsername: 'Αλλαγή Ονόματος',
+    favorite: "αγαπημένο",
+    appTheme: 'Χρώμα Εφαρμογής',
 
     // Home
     hello: 'Γεια σου',
@@ -113,7 +132,22 @@ export const translations = {
 
     // Favorites
     favorites: 'Αγαπημένα',
-    noFavorites: 'Δεν υπάρχουν αγαπημένες σημειώσεις',
+    noFavorites: 'Δεν υπάρχουν αγαπημένες σημειώσεις ακόμα',
+
+    // Filter
+    filterBy: 'Φίλτρο',
+    allNotes: 'Όλες οι σημειώσεις',
+    today: 'Σήμερα',
+    thisWeek: 'Αυτή την εβδομάδα',
+    thisMonth: 'Αυτό το μήνα',
+
+    textNotes: 'Σημειώσεις Κειμένου',
+    recentlyEdited: 'Πρόσφατα Επεξεργασμένα',
+    tasks: 'Εργασίες',
+
+    clearFilter: 'Καθαρισμός',
+
+    showingResults: 'Εμφάνιση',
   },
 }; 
 

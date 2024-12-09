@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import SettingsModal from './SettingsModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Home: undefined;
@@ -20,6 +22,19 @@ interface Props {
 export default function NavigationMenu({ onAddPress }: Props) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const [username, setUsername] = useState('');
+  
+  useEffect(() => {
+    AsyncStorage.getItem('@username').then(saved => {
+      if (saved) setUsername(saved);
+    });
+  }, []);
+
+  const handleUpdateUsername = async (newUsername: string) => {
+    await AsyncStorage.setItem('@username', newUsername);
+    setUsername(newUsername);
+  };
 
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   
@@ -36,23 +51,27 @@ export default function NavigationMenu({ onAddPress }: Props) {
   const styles = StyleSheet.create({
     container: {
       position: 'absolute',
-      bottom: 20,
-      left: 20,
-      right: 20,
-      height: 60,
-      backgroundColor: theme.secondaryBackground,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 70,
+      backgroundColor: theme.isDarkMode 
+        ? 'rgba(45, 45, 45, 0.98)'  // Πιο σκούρο για dark mode
+        : 'rgba(245, 245, 245, 0.98)', // Πιο ανοιχτό για light mode
       flexDirection: 'row',
       justifyContent: 'space-around',
       alignItems: 'center',
-      borderRadius: 30,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: -2,
       },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
       elevation: 5,
+      paddingBottom: 10,
     },
     navItem: {
       alignItems: 'center',
@@ -79,43 +98,55 @@ export default function NavigationMenu({ onAddPress }: Props) {
   });
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('Home')}
-      >
-        <Ionicons 
-          name={isActive('Home') ? "home" : "home-outline"} 
-          size={24} 
-          color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
-        />
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('Favorites')}
-      >
-        <Ionicons 
-          name={isActive('Favorites') ? "heart" : "heart-outline"} 
-          size={24} 
-          color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
-        />
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.addButton}
-        onPress={handleAddPress}
-      >
-        <Ionicons name="add" size={24} color="#fff" />
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.navItem}>
-        <Ionicons name="lock-closed-outline" size={24} color={theme.placeholderColor} />
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.navItem}>
-        <Ionicons name="person-outline" size={24} color={theme.placeholderColor} />
-      </TouchableOpacity>
-    </View>
+    <>
+      <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Home')}
+        >
+          <Ionicons 
+            name={isActive('Home') ? "home" : "home-outline"} 
+            size={24} 
+            color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Favorites')}
+        >
+          <Ionicons 
+            name={isActive('Favorites') ? "heart" : "heart-outline"} 
+            size={24} 
+            color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={handleAddPress}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.navItem}>
+          <Ionicons name="lock-closed-outline" size={24} color={theme.placeholderColor} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => setIsSettingsVisible(true)}
+        >
+          <Ionicons name="person-outline" size={24} color={theme.placeholderColor} />
+        </TouchableOpacity>
+      </View>
+
+      <SettingsModal
+        visible={isSettingsVisible}
+        onClose={() => setIsSettingsVisible(false)}
+        username={username}
+        onUpdateUsername={handleUpdateUsername}
+      />
+    </>
   );
 } 

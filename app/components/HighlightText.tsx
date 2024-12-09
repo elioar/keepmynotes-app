@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, TextProps } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 interface Props extends TextProps {
   text: string;
@@ -7,7 +8,17 @@ interface Props extends TextProps {
   style?: any;
 }
 
-function HighlightText({ text, highlight, style, numberOfLines, ...props }: Props) {
+export default function HighlightText({ text, highlight, style, numberOfLines, ...props }: Props) {
+  const { theme } = useTheme();
+
+  const styles = StyleSheet.create({
+    highlight: {
+      backgroundColor: `${theme.accentColor}30`,
+      color: theme.accentColor,
+      borderRadius: 3,
+    },
+  });
+
   if (!highlight.trim()) {
     return <Text style={style} numberOfLines={numberOfLines} {...props}>{text}</Text>;
   }
@@ -25,13 +36,4 @@ function HighlightText({ text, highlight, style, numberOfLines, ...props }: Prop
       )}
     </Text>
   );
-}
-
-const styles = StyleSheet.create({
-  highlight: {
-    backgroundColor: '#6B4EFF40',
-    color: '#6B4EFF',
-  },
-});
-
-export default HighlightText; 
+} 

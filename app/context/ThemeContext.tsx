@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -8,6 +8,8 @@ interface ThemeContextType {
   theme: Theme;
   themeMode: 'system' | 'light' | 'dark';
   setThemeMode: (mode: 'system' | 'light' | 'dark') => void;
+  appTheme: AppTheme;
+  setAppTheme: (theme: AppTheme) => void;
 }
 
 interface Theme {
@@ -42,10 +44,21 @@ const darkTheme: Theme = {
 
 const ThemeContextInternal = createContext<ThemeContextType | undefined>(undefined);
 
+export const appThemes = {
+  purple: '#7C4DFF',  // Default
+  blue: '#2196F3',
+  green: '#4CAF50',
+  orange: '#FF9800',
+  pink: '#E91E63',
+};
+
+type AppTheme = keyof typeof appThemes;
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useColorScheme();
   const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
   const [isDarkMode, setIsDarkMode] = useState(systemColorScheme === 'dark');
+  const [appTheme, setAppTheme] = useState<AppTheme>('purple');
 
   useEffect(() => {
     loadThemePreference();
@@ -97,7 +110,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const theme = isDarkMode ? darkTheme : lightTheme;
+  const theme = useMemo(() => ({
+    ...(isDarkMode ? darkTheme : lightTheme),
+    accentColor: appThemes[appTheme],
+  }), [isDarkMode, appTheme]);
 
   return (
     <ThemeContextInternal.Provider 
@@ -106,7 +122,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         toggleTheme, 
         theme, 
         themeMode, 
-        setThemeMode: handleSetThemeMode 
+        setThemeMode: handleSetThemeMode,
+        appTheme,
+        setAppTheme,
       }}
     >
       {children}

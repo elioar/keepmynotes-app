@@ -5,16 +5,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
+  StatusBar,
+  TextInput,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotes } from '../NotesContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import NavigationMenu from './NavigationMenu';
 import AddNoteModal from './AddNoteModal';
+import { StackNavigationProp } from '@react-navigation/stack';
+import HighlightText from './HighlightText';
 
 type RootStackParamList = {
   Home: undefined;
@@ -22,7 +26,7 @@ type RootStackParamList = {
   Favorites: undefined;
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 export default function FavoritesScreen() {
   const { notes, updateNote } = useNotes();
@@ -30,8 +34,21 @@ export default function FavoritesScreen() {
   const { t } = useLanguage();
   const navigation = useNavigation<NavigationProp>();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const favoriteNotes = notes.filter(note => note.isFavorite);
+
+  const filteredFavoriteNotes = favoriteNotes.filter(note => {
+    const searchLower = searchQuery.toLowerCase().trim();
+    if (!searchLower) return true;
+    
+    if (note.title.toLowerCase().includes(searchLower)) return true;
+    if (note.description?.toLowerCase().includes(searchLower)) return true;
+    if (note.tasks?.some((task: any) => task.text.toLowerCase().includes(searchLower))) return true;
+    
+    return false;
+  });
 
   const handleFavorite = async (note: any) => {
     try {
@@ -61,6 +78,10 @@ export default function FavoritesScreen() {
     }
   };
 
+  const handleNotePress = (note: any) => {
+    navigation.navigate('AddEditNote', { note });
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -70,27 +91,12 @@ export default function FavoritesScreen() {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: 20,
-      paddingTop: 60,
-    },
-    title: {
-      fontSize: 32,
-      fontWeight: '600',
-      color: theme.textColor,
-    },
-    notesContainer: {
-      flex: 1,
-      paddingHorizontal: 20,
-      paddingBottom: 80, // Space for bottom navigation
-    },
-    noteCard: {
+      paddingHorizontal: 24,
+      paddingTop: 50,
+      paddingBottom: 20,
       backgroundColor: theme.secondaryBackground,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
-      minHeight: 100,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.accentColor,
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
@@ -99,27 +105,73 @@ export default function FavoritesScreen() {
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 3,
-      overflow: 'hidden',
     },
-    noteHeader: {
+    headerLeft: {
+      flex: 1,
+    },
+    filterButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.backgroundColor,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 12,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: theme.textColor,
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.placeholderColor,
+    },
+    notesContainer: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 24,
+      paddingBottom: 100,
+    },
+    noteCard: {
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 16,
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 8,
-      width: '100%',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    noteContent: {
+      flex: 1,
+      marginRight: 16,
     },
     noteTitle: {
       color: theme.textColor,
       fontSize: 18,
       fontWeight: '600',
-      marginBottom: 6,
-      flex: 1,
-      marginRight: 16,
+      marginBottom: 8,
     },
     noteDescription: {
       color: theme.placeholderColor,
       fontSize: 14,
-      lineHeight: 18,
+      lineHeight: 20,
+    },
+    favoriteButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 78, 78, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     emptyState: {
       flex: 1,
@@ -127,115 +179,182 @@ export default function FavoritesScreen() {
       alignItems: 'center',
       paddingBottom: 100,
     },
+    emptyStateIcon: {
+      backgroundColor: 'rgba(255, 78, 78, 0.1)',
+      padding: 20,
+      borderRadius: 30,
+      marginBottom: 16,
+    },
     emptyStateText: {
       color: theme.placeholderColor,
       fontSize: 16,
-      marginTop: 16,
+      textAlign: 'center',
+      maxWidth: '80%',
     },
-    bottomNavigation: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 65,
-      backgroundColor: theme.secondaryBackground,
+    searchContainer: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
       alignItems: 'center',
-      paddingBottom: 10,
-      borderTopWidth: 1,
-      borderTopColor: theme.borderColor,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: -2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 5,
-    },
-    navItem: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 50,
+      backgroundColor: theme.secondaryBackground,
+      marginHorizontal: 20,
+      marginTop: 16,
+      marginBottom: 16,
+      borderRadius: 16,
+      paddingHorizontal: 16,
       height: 50,
-    },
-    addButton: {
-      width: 45,
-      height: 45,
-      borderRadius: 15,
-      backgroundColor: theme.accentColor,
-      justifyContent: 'center',
-      alignItems: 'center',
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.25,
-      shadowRadius: 3,
-      elevation: 5,
+      shadowOpacity: isSearchFocused ? 0.2 : 0.1,
+      shadowRadius: isSearchFocused ? 6 : 3,
+      elevation: isSearchFocused ? 5 : 3,
+      borderWidth: 2,
+      borderColor: isSearchFocused ? theme.accentColor : 'transparent',
+    },
+    searchIcon: {
+      color: isSearchFocused ? theme.accentColor : theme.placeholderColor,
+    },
+    searchInput: {
+      flex: 1,
+      color: theme.textColor,
+      fontSize: 16,
+      marginLeft: 12,
+      fontWeight: '400',
     },
   });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('favorites')}</Text>
-      </View>
-
-      {favoriteNotes.length > 0 ? (
-        <ScrollView style={styles.notesContainer}>
-          {favoriteNotes.map((note) => (
-            <Pressable 
-              key={note.id}
-              style={styles.noteCard}
-            >
-              <View style={styles.noteHeader}>
-                <Text style={styles.noteTitle} numberOfLines={1}>
-                  {note.title}
-                </Text>
-                <TouchableOpacity 
-                  onPress={() => handleFavorite(note)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons 
-                    name="heart" 
-                    size={24} 
-                    color="#FF4E4E" 
-                  />
-                </TouchableOpacity>
-              </View>
-              {note.description && (
-                <Text style={styles.noteDescription} numberOfLines={3}>
-                  {note.description}
-                </Text>
-              )}
-            </Pressable>
-          ))}
-        </ScrollView>
-      ) : (
-        <View style={styles.emptyState}>
-          <Ionicons 
-            name="heart-outline" 
-            size={48} 
-            color={theme.placeholderColor} 
-          />
-          <Text style={styles.emptyStateText}>
-            {t('noFavorites')}
-          </Text>
+    <TouchableWithoutFeedback onPress={() => {
+      Keyboard.dismiss();
+      setIsSearchFocused(false);
+    }}>
+      <View style={styles.container}>
+        <StatusBar
+          backgroundColor={theme.secondaryBackground}
+          barStyle={theme.isDarkMode ? "light-content" : "dark-content"}
+        />
+        
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>{t('favorites')}</Text>
+            <Text style={styles.subtitle}>
+              {favoriteNotes.length} {favoriteNotes.length === 1 ? t('favorite') : t('favorites')}
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => {/* TODO: Add filter functionality */}}
+          >
+            <Ionicons 
+              name="funnel-outline" 
+              size={20} 
+              color={theme.textColor}
+            />
+          </TouchableOpacity>
         </View>
-      )}
 
-      <NavigationMenu 
-        onAddPress={() => setIsModalVisible(true)}
-      />
+        <View style={styles.searchContainer}>
+          <Ionicons 
+            name="search-outline" 
+            size={22} 
+            color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('searchHere')}
+            placeholderTextColor={theme.placeholderColor}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons 
+                name="close-circle" 
+                size={20} 
+                color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
 
-      <AddNoteModal
-        visible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-        onSelectOption={handleOptionSelect}
-      />
-    </View>
+        {filteredFavoriteNotes.length > 0 ? (
+          <ScrollView 
+            style={styles.notesContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {filteredFavoriteNotes.map((note) => (
+              <TouchableOpacity 
+                key={note.id}
+                onPress={() => handleNotePress(note)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.noteCard}>
+                  <View style={styles.noteContent}>
+                    <Text style={styles.noteTitle} numberOfLines={1}>
+                      <HighlightText 
+                        text={note.title}
+                        highlight={searchQuery}
+                        style={styles.noteTitle}
+                      />
+                    </Text>
+                    {note.description && (
+                      <Text style={styles.noteDescription} numberOfLines={2}>
+                        <HighlightText 
+                          text={note.description}
+                          highlight={searchQuery}
+                          style={styles.noteDescription}
+                        />
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.favoriteButton}
+                    onPress={() => handleFavorite(note)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons 
+                      name="heart"
+                      size={22} 
+                      color="#FF4E4E"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyStateIcon}>
+              <Ionicons 
+                name="heart-outline" 
+                size={48} 
+                color="#FF4E4E"
+              />
+            </View>
+            <Text style={styles.emptyStateText}>
+              {t('noFavorites')}
+            </Text>
+          </View>
+        )}
+
+        <NavigationMenu 
+          onAddPress={() => setIsModalVisible(true)}
+        />
+
+        <AddNoteModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSelectOption={handleOptionSelect}
+        />
+      </View>
+    </TouchableWithoutFeedback>
   );
 } 

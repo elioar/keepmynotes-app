@@ -29,6 +29,7 @@ import { useLanguage } from './context/LanguageContext';
 import UsernameModal from './components/UsernameModal';
 import NavigationMenu from './components/NavigationMenu';
 import FilterModal from './components/FilterModal';
+import NoteActionMenu from './components/NoteActionMenu';
 
 type RootStackParamList = {
   Home: undefined;
@@ -51,6 +52,8 @@ export default function HomeScreen() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [selectedNote, setSelectedNote] = useState<any>(null);
+  const [showActionMenu, setShowActionMenu] = useState(false);
 
   useEffect(() => {
     const loadSavedUsername = async () => {
@@ -109,54 +112,53 @@ export default function HomeScreen() {
   };
 
   const getFilteredNotes = () => {
-    let filtered = notes;
+    let filteredNotes = notes.filter(note => !note.isHidden);
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(note => {
-        const searchLower = searchQuery.toLowerCase().trim();
-        if (note.title.toLowerCase().includes(searchLower)) return true;
-        if (note.description?.toLowerCase().includes(searchLower)) return true;
-        return false;
-      });
+    if (searchQuery) {
+      filteredNotes = filteredNotes.filter(note => 
+        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
-    // Apply date filters
-    if (activeFilters.includes('today')) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(note => new Date(note.createdAt) >= today);
-    }
-    if (activeFilters.includes('week')) {
-      const thisWeek = new Date();
-      thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay());
-      thisWeek.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(note => new Date(note.createdAt) >= thisWeek);
-    }
-    if (activeFilters.includes('month')) {
-      const thisMonth = new Date();
-      thisMonth.setDate(1);
-      thisMonth.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(note => new Date(note.createdAt) >= thisMonth);
+    if (activeFilters.length > 0) {
+      // Apply date filters
+      if (activeFilters.includes('today')) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= today);
+      }
+      if (activeFilters.includes('week')) {
+        const thisWeek = new Date();
+        thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay());
+        thisWeek.setHours(0, 0, 0, 0);
+        filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= thisWeek);
+      }
+      if (activeFilters.includes('month')) {
+        const thisMonth = new Date();
+        thisMonth.setDate(1);
+        thisMonth.setHours(0, 0, 0, 0);
+        filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= thisMonth);
+      }
+
+      // Apply type filters
+      if (activeFilters.includes('tasks')) {
+        filteredNotes = filteredNotes.filter(note => note.type === 'checklist');
+      }
+      if (activeFilters.includes('notes')) {
+        filteredNotes = filteredNotes.filter(note => note.type === 'text');
+      }
+      if (activeFilters.includes('favorites')) {
+        filteredNotes = filteredNotes.filter(note => note.isFavorite);
+      }
+      if (activeFilters.includes('recent')) {
+        filteredNotes = filteredNotes.sort((a, b) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }).slice(0, 10);
+      }
     }
 
-    // Apply type filters
-    if (activeFilters.includes('tasks')) {
-      filtered = filtered.filter(note => note.type === 'checklist');
-    }
-    if (activeFilters.includes('notes')) {
-      filtered = filtered.filter(note => note.type === 'text');
-    }
-    if (activeFilters.includes('favorites')) {
-      filtered = filtered.filter(note => note.isFavorite);
-    }
-    if (activeFilters.includes('recent')) {
-      filtered = filtered.sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }).slice(0, 10);
-    }
-
-    return filtered;
+    return filteredNotes;
   };
 
   const handleOptionSelect = (type: string) => {
@@ -225,6 +227,39 @@ export default function HomeScreen() {
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  };
+
+  const handleLongPress = (note: any) => {
+    console.log('Selected note:', note);
+    setSelectedNote(note);
+    setShowActionMenu(true);
+  };
+
+  const handleNoteAction = async (action: 'edit' | 'delete' | 'hide') => {
+    if (!selectedNote?.id) return;
+
+    try {
+      switch (action) {
+        case 'edit':
+          navigation.navigate('AddEditNote', { note: selectedNote });
+          break;
+        case 'delete':
+          await deleteNote(selectedNote.id);
+          break;
+        case 'hide':
+          const updatedNote = {
+            ...selectedNote,
+            isHidden: true,
+            updatedAt: new Date().toISOString()
+          };
+          await updateNote(updatedNote);
+          break;
+      }
+      setShowActionMenu(false);
+      setSelectedNote(null);
+    } catch (error) {
+      console.error(`Error performing ${action} action:`, error);
+    }
   };
 
   const styles = StyleSheet.create({
@@ -561,6 +596,8 @@ export default function HomeScreen() {
               <Pressable 
                 style={styles.noteCard}
                 onPress={() => handleNotePress(note)}
+                onLongPress={() => handleLongPress(note)}
+                delayLongPress={300}
               >
                 <View style={styles.noteHeader}>
                   <Text style={styles.noteDate}>
@@ -634,6 +671,18 @@ export default function HomeScreen() {
           onSelectFilter={setActiveFilters}
           activeFilters={activeFilters}
           filteredCount={getFilteredNotes().length}
+        />
+
+        <NoteActionMenu
+          visible={showActionMenu}
+          onClose={() => {
+            setShowActionMenu(false);
+            setSelectedNote(null);
+          }}
+          onEdit={() => handleNoteAction('edit')}
+          onDelete={() => handleNoteAction('delete')}
+          onHide={() => handleNoteAction('hide')}
+          isHidden={false}
         />
       </View>
     </TouchableWithoutFeedback>

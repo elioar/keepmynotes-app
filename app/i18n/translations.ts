@@ -17,6 +17,9 @@ export const translations = {
     changeUsername: 'Change Username',
     favorite: "favorite",
     appTheme: 'App Theme',
+    security: 'Security',
+    changePin: 'Change PIN Code',
+    changePinDescription: 'Change your security PIN code',
 
     // Home
     hello: 'Hello',
@@ -73,6 +76,41 @@ export const translations = {
     clearFilter: 'Clear',
 
     showingResults: 'Showing',
+
+    hiddenNotes: 'Hidden Notes',
+    noHiddenNotes: 'No hidden notes yet',
+
+    authenticateToView: 'Authenticate to view hidden notes',
+    usePasscode: 'Use passcode',
+    deviceNotSupported: 'Device does not support biometric authentication',
+
+    setPinCode: 'Set New PIN Code',
+    enterPinCode: 'Enter PIN Code',
+    choosePinCode: 'Choose a 4-digit PIN code',
+    confirmPinCode: 'Confirm your PIN code',
+    pinsDontMatch: 'PINs do not match. Please try again',
+    incorrectPin: 'Incorrect PIN. Please try again',
+    error: 'Error',
+
+    enterCurrentPin: 'Enter Current PIN',
+    pinChanged: 'PIN code changed successfully',
+
+    success: 'Success',
+
+    useBiometrics: 'Use Fingerprint/Face ID',
+    biometricsNotAvailable: 'Biometric authentication not available',
+
+    biometricAuth: 'Biometric Authentication',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+
+    faceIdAuth: 'Face ID Authentication',
+
+    noteOptions: 'Note Options',
+    edit: 'Edit',
+    hide: 'Hide Note',
+    unhide: 'Unhide Note',
+    delete: 'Delete',
   },
   el: {
     // Settings
@@ -92,6 +130,9 @@ export const translations = {
     changeUsername: 'Αλλαγή Ονόματος',
     favorite: "αγαπημένο",
     appTheme: 'Χρώμα Εφαρμογής',
+    security: 'Ασφάλεια',
+    changePin: 'Αλλαγή κωδικού PIN',
+    changePinDescription: 'Αλλάξτε τον κωδικό ασφαλείας σας',
 
     // Home
     hello: 'Γεια σου',
@@ -141,13 +182,48 @@ export const translations = {
     thisWeek: 'Αυτή την εβδομάδα',
     thisMonth: 'Αυτό το μήνα',
 
-    textNotes: 'Σημειώσεις Κειμένου',
+    textNotes: 'Σημειώσεις ��ειμένου',
     recentlyEdited: 'Πρόσφατα Επεξεργασμένα',
     tasks: 'Εργασίες',
 
     clearFilter: 'Καθαρισμός',
 
     showingResults: 'Εμφάνιση',
+
+    hiddenNotes: 'Κρυφές Σημειώσεις',
+    noHiddenNotes: 'Δεν υπάρχουν κρυφές σημειώσεις',
+
+    authenticateToView: 'Επαληθεύστε για να δείτε τις κρυφές σημειώσεις',
+    usePasscode: 'Χρήση κωδικού',
+    deviceNotSupported: 'Η συσκευή δεν υποστηρίζει βιομετρική επαλήθευση',
+
+    setPinCode: 'Ορισμός νέου κωδικού PIN',
+    enterPinCode: 'Εισάγετε PIN',
+    choosePinCode: 'Επιλέξτε έναν 4ψήφιο κωδικό PIN',
+    confirmPinCode: 'Επιβεβαιώστε τον κωδικό PIN',
+    pinsDontMatch: 'Οι κωδικοί PIN δεν ταιριάζουν. Προσπαθήστε ξανά',
+    incorrectPin: 'Λάθος κωδικός PIN. Προσπαθήστε ξανά',
+    error: 'Σφάλμα',
+
+    enterCurrentPin: 'Εισάγετε τον τρέχοντα κωδικό PIN',
+    pinChanged: 'Ο κωδικός PIN άλλαξε με επιτυχία',
+
+    success: 'Επιτυχία',
+
+    useBiometrics: 'Χρήση Δακτυλικού/Face ID',
+    biometricsNotAvailable: 'Η βιο��ετρική επαλήθευση δεν είναι διαθέσιμη',
+
+    biometricAuth: 'Επαλήθευση Δακτυλικού Αποτυπώματος',
+    enabled: 'Ενεργοποιημένη',
+    disabled: 'Απενεργοποιημένη',
+
+    faceIdAuth: 'Επαλήθευση Face ID',
+
+    noteOptions: 'Επιλογές Σημείωσης',
+    edit: 'Επεξεργασία',
+    hide: 'Απόκρυψη',
+    unhide: 'Εμφάνιση',
+    delete: 'Διαγραφή',
   },
 }; 
 

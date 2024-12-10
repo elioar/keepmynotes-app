@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import SettingsModal from './SettingsModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 type RootStackParamList = {
   Home: undefined;
-  Favorites: undefined;
   AddEditNote: { note?: any };
+  Favorites: undefined;
+  HiddenNotes: undefined;
+  PinScreen: { isChangingPin?: boolean };
+  SecurityCheck: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -129,7 +133,10 @@ export default function NavigationMenu({ onAddPress }: Props) {
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('PinScreen', { isChangingPin: false })}
+        >
           <Ionicons name="lock-closed-outline" size={24} color={theme.placeholderColor} />
         </TouchableOpacity>
         

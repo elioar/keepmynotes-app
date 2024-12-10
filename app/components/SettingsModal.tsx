@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Switch,
   Dimensions,
   Animated,
+  BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +17,9 @@ import { useTheme, appThemes } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import UsernameModal from './UsernameModal';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 interface SettingsModalProps {
   visible: boolean;
@@ -23,6 +27,14 @@ interface SettingsModalProps {
   username: string;
   onUpdateUsername: (name: string) => void;
 }
+
+type RootStackParamList = {
+  Home: undefined;
+  AddEditNote: { note?: any };
+  Favorites: undefined;
+  HiddenNotes: undefined;
+  PinScreen: { isChangingPin?: boolean };
+};
 
 export default function SettingsModal({ 
   visible, 
@@ -32,8 +44,49 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const { theme, themeMode, setThemeMode, appTheme, setAppTheme } = useTheme();
   const { locale, setLocale, t } = useLanguage();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const slideAnim = React.useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
+  const [hasBiometrics, setHasBiometrics] = useState(false);
+  const [biometricType, setBiometricType] = useState<'fingerprint' | null>(null);
+
+  useEffect(() => {
+    checkBiometrics();
+    loadBiometricsPreference();
+  }, []);
+
+  const checkBiometrics = async () => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      
+      console.log('Biometrics check:', { hasHardware, isEnrolled, supportedTypes });
+      
+      const hasBiometricSupport = hasHardware && isEnrolled && 
+        supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+      
+      setHasBiometrics(hasBiometricSupport);
+      if (hasBiometricSupport) {
+        setBiometricType('fingerprint');
+      }
+    } catch (error) {
+      console.error('Error checking biometrics:', error);
+    }
+  };
+
+  const loadBiometricsPreference = async () => {
+    const enabled = await AsyncStorage.getItem('@biometrics_enabled');
+    setBiometricsEnabled(enabled === 'true');
+  };
+
+  const toggleBiometrics = async () => {
+    const newValue = !biometricsEnabled;
+    await AsyncStorage.setItem('@biometrics_enabled', newValue.toString());
+    setBiometricsEnabled(newValue);
+  };
 
   const handleClose = () => {
     Animated.spring(slideAnim, {
@@ -54,6 +107,17 @@ export default function SettingsModal({
         tension: 65,
         friction: 11,
       }).start();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible) {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        handleClose();
+        return true;
+      });
+
+      return () => backHandler.remove();
     }
   }, [visible]);
 
@@ -111,9 +175,13 @@ export default function SettingsModal({
       elevation: 2,
     },
     content: {
-      flex: 1,
+      flexGrow: 1,
       paddingHorizontal: 16,
+    },
+    contentContainer: {
       paddingTop: 16,
+      paddingBottom: 32,
+      flexGrow: 1,
     },
     section: {
       marginBottom: 24,
@@ -216,7 +284,8 @@ export default function SettingsModal({
       borderColor: `${theme.accentColor}30`,
     },
     switch: {
-      transform: [{ scale: 0.9 }],
+      marginLeft: 12,
+      transform: [{ scale: 1.1 }],
     },
     version: {
       marginTop: 16,
@@ -266,10 +335,10 @@ export default function SettingsModal({
     infoItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 12,
+      padding: 16,
       backgroundColor: theme.secondaryBackground,
-      borderRadius: 16,
-      gap: 12,
+      borderRadius: 12,
+      marginBottom: 8,
     },
     infoIcon: {
       width: 36,
@@ -281,6 +350,7 @@ export default function SettingsModal({
     },
     infoContent: {
       flex: 1,
+      marginLeft: 12,
     },
     infoLabel: {
       fontSize: 15,
@@ -346,7 +416,17 @@ export default function SettingsModal({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
+            <ScrollView 
+              style={styles.content}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+              bounces={true}
+              alwaysBounceVertical={true}
+              scrollEventThrottle={16}
+              decelerationRate="normal"
+              overScrollMode="always"
+              keyboardShouldPersistTaps="handled"
+            >
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>👤 {t('information')}</Text>
                 <TouchableOpacity 
@@ -457,10 +537,64 @@ export default function SettingsModal({
                 </View>
               </View>
 
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>🔒 {t('security')}</Text>
+                <TouchableOpacity 
+                  style={styles.infoItem}
+                  onPress={() => {
+                    handleClose();
+                    navigation.navigate('PinScreen', { isChangingPin: true });
+                  }}
+                >
+                  <View style={styles.infoIcon}>
+                    <Ionicons name="key-outline" size={22} color={theme.accentColor} />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t('changePin')}</Text>
+                    <Text style={styles.infoValue}>{t('changePinDescription')}</Text>
+                  </View>
+                  <View style={styles.chevronContainer}>
+                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+                  </View>
+                </TouchableOpacity>
+
+                {hasBiometrics && (
+                  <TouchableOpacity 
+                    style={[styles.infoItem, { marginTop: 8 }]}
+                    onPress={toggleBiometrics}
+                  >
+                    <View style={styles.infoIcon}>
+                      <Ionicons 
+                        name="finger-print-outline"
+                        size={22} 
+                        color={theme.accentColor} 
+                      />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>{t('biometricAuth')}</Text>
+                      <Text style={styles.infoValue}>
+                        {biometricsEnabled ? t('enabled') : t('disabled')}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={biometricsEnabled}
+                      onValueChange={toggleBiometrics}
+                      trackColor={{ 
+                        false: `${theme.placeholderColor}40`,
+                        true: `${theme.accentColor}80`
+                      }}
+                      thumbColor={biometricsEnabled ? theme.accentColor : theme.backgroundColor}
+                      ios_backgroundColor={`${theme.placeholderColor}40`}
+                      style={styles.switch}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               <View style={styles.version}>
                 <Text style={styles.versionText}>📱 Version 1.0.0</Text>
               </View>
-            </View>
+            </ScrollView>
           </SafeAreaView>
         </Animated.View>
       </View>

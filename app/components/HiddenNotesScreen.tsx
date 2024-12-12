@@ -5,8 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Pressable,
+  StatusBar,
+  TextInput,
+  TouchableWithoutFeedback,
+  Keyboard,
   BackHandler,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -32,6 +36,8 @@ export default function HiddenNotesScreen() {
   const { t } = useLanguage();
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   React.useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -58,12 +64,32 @@ export default function HiddenNotesScreen() {
 
   const handleUnhide = async (note: any) => {
     try {
-      const updatedNote = {
-        ...note,
-        isHidden: false,
-        updatedAt: new Date().toISOString()
-      };
-      await updateNote(updatedNote);
+      Alert.alert(
+        t('unhideNote'),
+        t('unhideNoteConfirm'),
+        [
+          {
+            text: t('cancel'),
+            style: 'cancel',
+            onPress: () => {},
+          },
+          {
+            text: t('unhide'),
+            style: 'default',
+            onPress: async () => {
+              const updatedNote = {
+                ...note,
+                isHidden: false,
+                updatedAt: new Date().toISOString()
+              };
+              await updateNote(updatedNote);
+            }
+          }
+        ],
+        {
+          cancelable: true,
+        }
+      );
     } catch (error) {
       console.error('Error unhiding note:', error);
     }
@@ -113,6 +139,17 @@ export default function HiddenNotesScreen() {
     }
   };
 
+  const filteredHiddenNotes = hiddenNotes.filter(note => {
+    const searchLower = searchQuery.toLowerCase().trim();
+    if (!searchLower) return true;
+    
+    if (note.title.toLowerCase().includes(searchLower)) return true;
+    if (note.description?.toLowerCase().includes(searchLower)) return true;
+    if (note.tasks?.some((task: any) => task.text.toLowerCase().includes(searchLower))) return true;
+    
+    return false;
+  });
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -120,30 +157,14 @@ export default function HiddenNotesScreen() {
     },
     header: {
       flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      padding: 20,
-      paddingTop: 60,
-    },
-    backButton: {
-      marginRight: 16,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: '600',
-      color: theme.textColor,
-    },
-    notesContainer: {
-      flex: 1,
-      padding: 20,
-    },
-    noteCard: {
+      paddingHorizontal: 24,
+      paddingTop: 50,
+      paddingBottom: 20,
       backgroundColor: theme.secondaryBackground,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
-      height: 175,
-      borderLeftWidth: 3,
-      borderLeftColor: theme.accentColor,
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
@@ -153,172 +174,263 @@ export default function HiddenNotesScreen() {
       shadowRadius: 3,
       elevation: 3,
     },
-    noteHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 6,
+    headerLeft: {
+      flex: 1,
     },
-    noteDate: {
+    filterButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.backgroundColor,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: 12,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: theme.textColor,
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 14,
       color: theme.placeholderColor,
-      fontSize: 12,
-      fontWeight: '500',
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.secondaryBackground,
+      marginHorizontal: 20,
+      marginTop: 16,
+      marginBottom: 16,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      height: 50,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: isSearchFocused ? 0.2 : 0.1,
+      shadowRadius: isSearchFocused ? 6 : 3,
+      elevation: isSearchFocused ? 5 : 3,
+      borderWidth: 2,
+      borderColor: isSearchFocused ? theme.accentColor : 'transparent',
+    },
+    searchInput: {
+      flex: 1,
+      color: theme.textColor,
+      fontSize: 16,
+      marginLeft: 12,
+      fontWeight: '400',
+    },
+    notesContainer: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 24,
+      paddingBottom: 100,
+    },
+    noteCard: {
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: 20,
+      padding: 20,
+      marginBottom: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
     },
     noteContent: {
       flex: 1,
+      marginRight: 16,
     },
     noteTitle: {
       color: theme.textColor,
       fontSize: 18,
       fontWeight: '600',
-      marginBottom: 6,
+      marginBottom: 8,
     },
     noteDescription: {
       color: theme.placeholderColor,
       fontSize: 14,
-      lineHeight: 18,
+      lineHeight: 20,
     },
-    noteFooter: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
+    unhideButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(78, 203, 113, 0.1)',
+      justifyContent: 'center',
       alignItems: 'center',
-      paddingTop: 4,
     },
-    emptyContainer: {
+    emptyState: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
       paddingBottom: 100,
     },
-    emptyText: {
+    emptyStateIcon: {
+      backgroundColor: 'rgba(78, 203, 113, 0.1)',
+      padding: 20,
+      borderRadius: 30,
+      marginBottom: 16,
+    },
+    emptyStateText: {
       color: theme.placeholderColor,
       fontSize: 16,
       textAlign: 'center',
-      marginTop: 16,
-    },
-    actionContainer: {
-      width: 80,
-      height: 175,
-      marginBottom: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingLeft: 8,
-    },
-    deleteButton: {
-      flex: 1,
-      width: '100%',
-      backgroundColor: '#FF4E4E',
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRadius: 16,
+      maxWidth: '80%',
     },
   });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Ionicons 
-            name="chevron-back" 
-            size={28} 
-            color={theme.textColor} 
-          />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('hiddenNotes')}</Text>
-      </View>
-
-      {hiddenNotes.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons 
-            name="eye-off-outline" 
-            size={48} 
-            color={theme.placeholderColor} 
-          />
-          <Text style={styles.emptyText}>{t('noHiddenNotes')}</Text>
+    <TouchableWithoutFeedback onPress={() => {
+      Keyboard.dismiss();
+      setIsSearchFocused(false);
+    }}>
+      <View style={styles.container}>
+        <StatusBar
+          backgroundColor={theme.secondaryBackground}
+          barStyle={theme.isDarkMode ? "light-content" : "dark-content"}
+        />
+        
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.title}>{t('hiddenNotes')}</Text>
+            <Text style={styles.subtitle}>
+              {hiddenNotes.length} {hiddenNotes.length === 1 ? t('hiddenNote') : t('hiddenNotes')}
+            </Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => navigation.navigate('Home')}
+          >
+            <Ionicons 
+              name="close-outline" 
+              size={24} 
+              color={theme.textColor}
+            />
+          </TouchableOpacity>
         </View>
-      ) : (
-        <ScrollView style={styles.notesContainer}>
-          {hiddenNotes.map((note) => (
-            <Swipeable
-              key={note.id}
-              renderRightActions={() => (
-                <View style={styles.actionContainer}>
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(note.id)}
-                  >
-                    <Ionicons name="trash-outline" size={22} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              )}
+
+        <View style={styles.searchContainer}>
+          <Ionicons 
+            name="search-outline" 
+            size={22} 
+            color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('searchHere')}
+            placeholderTextColor={theme.placeholderColor}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Pressable 
-                style={styles.noteCard}
+              <Ionicons 
+                name="close-circle" 
+                size={20} 
+                color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {filteredHiddenNotes.length > 0 ? (
+          <ScrollView 
+            style={styles.notesContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {filteredHiddenNotes.map((note) => (
+              <TouchableOpacity 
+                key={note.id}
                 onPress={() => handleNotePress(note)}
-                onLongPress={() => handleLongPress(note)}
-                delayLongPress={300}
+                activeOpacity={0.7}
               >
-                <View style={styles.noteHeader}>
-                  <Text style={styles.noteDate}>
-                    {new Date(note.createdAt).toLocaleDateString('en-US', { 
-                      day: 'numeric', 
-                      month: 'short' 
-                    })}
-                  </Text>
-                  <TouchableOpacity onPress={() => handleUnhide(note)}>
+                <View style={styles.noteCard}>
+                  <View style={styles.noteContent}>
+                    <Text style={styles.noteTitle} numberOfLines={1}>
+                      <HighlightText 
+                        text={note.title}
+                        highlight={searchQuery}
+                        style={styles.noteTitle}
+                      />
+                    </Text>
+                    {note.description && (
+                      <Text style={styles.noteDescription} numberOfLines={2}>
+                        <HighlightText 
+                          text={note.description}
+                          highlight={searchQuery}
+                          style={styles.noteDescription}
+                        />
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.unhideButton}
+                    onPress={() => handleUnhide(note)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
                     <Ionicons 
                       name="eye-outline"
-                      size={24} 
-                      color={theme.placeholderColor} 
+                      size={22} 
+                      color="#4ECB71"
                     />
                   </TouchableOpacity>
                 </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyStateIcon}>
+              <Ionicons 
+                name="eye-off-outline" 
+                size={48} 
+                color="#4ECB71"
+              />
+            </View>
+            <Text style={styles.emptyStateText}>
+              {t('noHiddenNotes')}
+            </Text>
+          </View>
+        )}
 
-                <View style={styles.noteContent}>
-                  <Text style={styles.noteTitle} numberOfLines={1}>
-                    {note.title}
-                  </Text>
-                  {note.description && (
-                    <Text style={styles.noteDescription} numberOfLines={3}>
-                      {note.description}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.noteFooter}>
-                  <Text style={styles.noteDate}>
-                    {getTimeAgo(note.createdAt)}
-                  </Text>
-                </View>
-              </Pressable>
-            </Swipeable>
-          ))}
-        </ScrollView>
-      )}
-
-      <NoteActionMenu
-        visible={showActionMenu}
-        onClose={() => {
-          setShowActionMenu(false);
-          setSelectedNote(null);
-        }}
-        onEdit={() => {
-          setShowActionMenu(false);
-          handleNotePress(selectedNote);
-        }}
-        onDelete={async () => {
-          if (selectedNote?.id) {
-            await handleDelete(selectedNote.id);
+        <NoteActionMenu
+          visible={showActionMenu}
+          onClose={() => {
             setShowActionMenu(false);
             setSelectedNote(null);
-          }
-        }}
-        onHide={handleHideNote}
-        isHidden={true}
-      />
-    </View>
+          }}
+          onEdit={() => {
+            setShowActionMenu(false);
+            handleNotePress(selectedNote);
+          }}
+          onDelete={async () => {
+            if (selectedNote?.id) {
+              await handleDelete(selectedNote.id);
+              setShowActionMenu(false);
+              setSelectedNote(null);
+            }
+          }}
+          onHide={handleHideNote}
+          isHidden={true}
+        />
+      </View>
+    </TouchableWithoutFeedback>
   );
 } 

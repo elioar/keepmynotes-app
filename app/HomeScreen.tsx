@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,11 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Animated,
+  LayoutAnimation,
+  UIManager,
+  Easing,
+  ToastAndroid,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +35,7 @@ import UsernameModal from './components/UsernameModal';
 import NavigationMenu from './components/NavigationMenu';
 import FilterModal from './components/FilterModal';
 import NoteActionMenu from './components/NoteActionMenu';
+import * as Haptics from 'expo-haptics';
 
 type RootStackParamList = {
   Home: undefined;
@@ -38,6 +44,13 @@ type RootStackParamList = {
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -54,6 +67,8 @@ export default function HomeScreen() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [fadingNoteId, setFadingNoteId] = useState<string | null>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const loadSavedUsername = async () => {
@@ -105,7 +120,37 @@ export default function HomeScreen() {
   const handleDelete = async (noteId: string | undefined) => {
     if (!noteId) return;
     try {
-      await deleteNote(noteId);
+      setFadingNoteId(noteId);
+      
+      // Configure layout animation
+      LayoutAnimation.configureNext({
+        duration: 500,
+        create: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+          property: LayoutAnimation.Properties.opacity,
+          springDamping: 0.7,
+        },
+        update: {
+          type: LayoutAnimation.Types.spring,
+          springDamping: 0.7,
+        },
+        delete: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+          property: LayoutAnimation.Properties.opacity,
+        }
+      });
+
+      // Fade out animation
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      }).start(async () => {
+        await deleteNote(noteId);
+        setFadingNoteId(null);
+        fadeAnim.setValue(1);
+      });
     } catch (error) {
       console.error('Error deleting note:', error);
     }
@@ -230,7 +275,6 @@ export default function HomeScreen() {
   };
 
   const handleLongPress = (note: any) => {
-    console.log('Selected note:', note);
     setSelectedNote(note);
     setShowActionMenu(true);
   };
@@ -243,16 +287,98 @@ export default function HomeScreen() {
         case 'edit':
           navigation.navigate('AddEditNote', { note: selectedNote });
           break;
+
         case 'delete':
-          await deleteNote(selectedNote.id);
+          setFadingNoteId(selectedNote.id);
+          
+          // Configure layout animation with slower timing
+          LayoutAnimation.configureNext({
+            duration: 500,
+            create: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              property: LayoutAnimation.Properties.opacity,
+              springDamping: 0.7,
+            },
+            update: {
+              type: LayoutAnimation.Types.spring,
+              springDamping: 0.7,
+            },
+            delete: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              property: LayoutAnimation.Properties.opacity,
+            }
+          });
+
+          // Slower fade out animation
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+          }).start(async () => {
+            await deleteNote(selectedNote.id);
+            setFadingNoteId(null);
+            fadeAnim.setValue(1);
+          });
           break;
+
         case 'hide':
-          const updatedNote = {
-            ...selectedNote,
-            isHidden: true,
-            updatedAt: new Date().toISOString()
-          };
-          await updateNote(updatedNote);
+          // Προσθήκη haptic feedback
+          if (Platform.OS === 'ios') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }
+
+          setFadingNoteId(selectedNote.id);
+          
+          // Βελτιωμένο animation για την απόκρυψη
+          LayoutAnimation.configureNext({
+            duration: 300,
+            create: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              property: LayoutAnimation.Properties.opacity,
+            },
+            update: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              springDamping: 0.7,
+            },
+            delete: {
+              type: LayoutAnimation.Types.easeInEaseOut,
+              property: LayoutAnimation.Properties.opacity,
+            }
+          });
+
+          // Ομαλότερο animation εξαφάνισης
+          Animated.sequence([
+            Animated.timing(fadeAnim, {
+              toValue: 0.5,
+              duration: 150,
+              useNativeDriver: true,
+              easing: Easing.out(Easing.ease),
+            }),
+            Animated.timing(fadeAnim, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: true,
+              easing: Easing.in(Easing.ease),
+            })
+          ]).start(async () => {
+            const updatedNote = {
+              ...selectedNote,
+              isHidden: true,
+              updatedAt: new Date().toISOString(),
+              hideDate: new Date().toISOString() // Προσθήκη ημερομηνίας απόκρυψης
+            };
+            await updateNote(updatedNote);
+            
+            // Εμφάνιση toast μηνύματος
+            ToastAndroid.show(
+              t('noteHidden'),
+              ToastAndroid.SHORT
+            );
+            
+            setFadingNoteId(null);
+            fadeAnim.setValue(1);
+          });
           break;
       }
       setShowActionMenu(false);
@@ -299,7 +425,6 @@ export default function HomeScreen() {
       flex: 1,
       paddingHorizontal: 20,
       paddingTop: 8,
-      paddingBottom: 90,
     },
     noteCard: {
       backgroundColor: theme.secondaryBackground,
@@ -498,6 +623,27 @@ export default function HomeScreen() {
       borderWidth: 1,
       borderColor: theme.backgroundColor,
     },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    hidingNote: {
+      transform: [
+        {
+          scale: fadeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1],
+          })
+        },
+        {
+          translateX: fadeAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [-50, 0],
+          })
+        }
+      ],
+      opacity: fadeAnim
+    },
   });
 
   return (
@@ -573,78 +719,114 @@ export default function HomeScreen() {
         {/* Notes List */}
         <ScrollView 
           style={styles.notesContainer}
+          contentContainerStyle={{ paddingBottom: 100 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="none"
+          showsVerticalScrollIndicator={true}
+          overScrollMode="always"
+          bounces={true}
         >
           {getFilteredNotes().map((note) => (
-            <Swipeable
+            <Animated.View
               key={note.id}
-              renderRightActions={(progress, dragX) => (
-                <View style={styles.actionContainer}>
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(note.id)}
-                  >
-                    <Ionicons name="trash-outline" size={22} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              )}
-              overshootRight={false}
-              friction={2}
-              rightThreshold={40}
+              style={[
+                fadingNoteId === note.id && [
+                  styles.hidingNote,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{
+                      scale: fadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                      })
+                    }]
+                  }
+                ]
+              ]}
             >
-              <Pressable 
-                style={styles.noteCard}
-                onPress={() => handleNotePress(note)}
-                onLongPress={() => handleLongPress(note)}
-                delayLongPress={300}
+              <Swipeable
+                renderRightActions={(progress, dragX) => (
+                  <View style={styles.actionContainer}>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDelete(note.id)}
+                    >
+                      <Ionicons name="trash-outline" size={22} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                overshootRight={false}
+                friction={2}
+                rightThreshold={40}
               >
-                <View style={styles.noteHeader}>
-                  <Text style={styles.noteDate}>
-                    {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
-                      day: 'numeric', 
-                      month: 'short' 
-                    })}
-                  </Text>
-                  <TouchableOpacity onPress={() => handleFavorite(note)}>
-                    <Ionicons 
-                      name={note.isFavorite ? "heart" : "heart-outline"}
-                      size={24} 
-                      color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                    />
-                  </TouchableOpacity>
-                </View>
+                <Pressable 
+                  style={styles.noteCard}
+                  onPress={() => handleNotePress(note)}
+                  onLongPress={() => handleLongPress(note)}
+                  delayLongPress={300}
+                >
+                  <View style={styles.noteHeader}>
+                    <Text style={styles.noteDate}>
+                      {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
+                        day: 'numeric', 
+                        month: 'short' 
+                      })}
+                    </Text>
+                    <View style={styles.headerActions}>
+                      <TouchableOpacity onPress={() => handleFavorite(note)}>
+                        <Ionicons 
+                          name={note.isFavorite ? "heart" : "heart-outline"}
+                          size={24} 
+                          color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => {
+                          setSelectedNote(note);
+                          setShowActionMenu(true);
+                        }}
+                        style={{ marginLeft: 12 }}
+                      >
+                        <Ionicons 
+                          name="ellipsis-vertical" 
+                          size={24} 
+                          color={theme.placeholderColor} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
 
-                <View style={styles.noteContent}>
-                  <Text style={styles.noteTitle} numberOfLines={1}>
-                    <HighlightText 
-                      text={note.title}
-                      highlight={searchQuery}
-                      style={styles.noteTitle}
-                    />
-                  </Text>
-
-                  {note.description && (
-                    <Text style={styles.noteDescription} numberOfLines={2}>
+                  <View style={styles.noteContent}>
+                    <Text style={styles.noteTitle} numberOfLines={1}>
                       <HighlightText 
-                        text={truncateText(note.description, 100)}
+                        text={note.title}
                         highlight={searchQuery}
-                        style={styles.noteDescription}
+                        style={styles.noteTitle}
                       />
                     </Text>
-                  )}
-                </View>
 
-                <View style={styles.noteFooter}>
-                  <View style={styles.statusContainer}>
-                    <View style={styles.statusDot} />
-                    <Text style={styles.statusText}>
-                      {getTimeAgo(note.createdAt || new Date().toISOString())}
-                    </Text>
+                    {note.description && (
+                      <Text style={styles.noteDescription} numberOfLines={2}>
+                        <HighlightText 
+                          text={truncateText(note.description, 100)}
+                          highlight={searchQuery}
+                          style={styles.noteDescription}
+                        />
+                      </Text>
+                    )}
                   </View>
-                </View>
-              </Pressable>
-            </Swipeable>
+
+                  <View style={styles.noteFooter}>
+                    <View style={styles.statusContainer}>
+                      <View style={styles.statusDot} />
+                      <Text style={styles.statusText}>
+                        {getTimeAgo(note.createdAt || new Date().toISOString())}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              </Swipeable>
+            </Animated.View>
           ))}
         </ScrollView>
 

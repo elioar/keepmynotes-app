@@ -111,6 +111,19 @@ export const translations = {
     hide: 'Hide Note',
     unhide: 'Unhide Note',
     delete: 'Delete',
+
+    unhideNote: 'Unhide Note',
+    unhideNoteConfirm: 'Are you sure you want to unhide this note?',
+    cancel: 'Cancel',
+
+    // Note actions
+    noteHidden: 'Note hidden',
+    noteUnhidden: 'Note unhidden',
+    unhideNoteAction: 'Unhide Note',
+    unhideNoteConfirmAction: 'Are you sure you want to unhide this note?',
+    unhideAction: 'Unhide',
+    cancelAction: 'Cancel',
+
   },
   el: {
     // Settings
@@ -182,7 +195,7 @@ export const translations = {
     thisWeek: 'Αυτή την εβδομάδα',
     thisMonth: 'Αυτό το μήνα',
 
-    textNotes: 'Σημειώσεις ��ειμένου',
+    textNotes: 'Σημειώσεις κε��μένου',
     recentlyEdited: 'Πρόσφατα Επεξεργασμένα',
     tasks: 'Εργασίες',
 
@@ -211,7 +224,7 @@ export const translations = {
     success: 'Επιτυχία',
 
     useBiometrics: 'Χρήση Δακτυλικού/Face ID',
-    biometricsNotAvailable: 'Η βιο��ετρική επαλήθευση δεν είναι διαθέσιμη',
+    biometricsNotAvailable: 'Η βιομετρική επαλήθευση δεν είναι διαθέσιμη',
 
     biometricAuth: 'Επαλήθευση Δακτυλικού Αποτυπώματος',
     enabled: 'Ενεργοποιημένη',
@@ -224,6 +237,19 @@ export const translations = {
     hide: 'Απόκρυψη',
     unhide: 'Εμφάνιση',
     delete: 'Διαγραφή',
+
+    unhideNote: 'Εμφάνιση Σημείωσης',
+    unhideNoteConfirm: 'Είστε σίγουροι ότι θέλετε να εμφανίσετε αυτή τη σημείωση;',
+    cancel: 'Ακύρωση',
+
+    // Note actions
+    noteHidden: 'Η σημείωση κρύφτηκε',
+    noteUnhidden: 'Η σημείωση εμφανίστηκε',
+    unhideNoteAction: 'Εμφάνιση Σημείωσης',
+    unhideNoteConfirmAction: 'Είστε σίγουροι ότι θέλετε να εμφανίσετε αυτή τη σημείωση;',
+    unhideAction: 'Εμφάνιση',
+    cancelAction: 'Ακύρωση',
+
   },
 }; 
 

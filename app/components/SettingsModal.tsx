@@ -10,6 +10,7 @@ import {
   Dimensions,
   Animated,
   BackHandler,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,8 +63,6 @@ export default function SettingsModal({
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
       const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      
-      console.log('Biometrics check:', { hasHardware, isEnrolled, supportedTypes });
       
       const hasBiometricSupport = hasHardware && isEnrolled && 
         supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
@@ -422,9 +421,6 @@ export default function SettingsModal({
               showsVerticalScrollIndicator={false}
               bounces={true}
               alwaysBounceVertical={true}
-              scrollEventThrottle={16}
-              decelerationRate="normal"
-              overScrollMode="always"
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.section}>

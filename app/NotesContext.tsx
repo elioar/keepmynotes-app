@@ -74,7 +74,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
   const updateNote = async (updatedNote: Note) => {
     try {
-      console.log('Updating note:', updatedNote);
       const updatedNotes = notes.map(note => 
         note.id === updatedNote.id 
           ? { ...updatedNote, updatedAt: new Date().toISOString() }
@@ -89,7 +88,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
   const deleteNote = async (id: string) => {
     try {
-      console.log('Deleting note:', id);
       const updatedNotes = notes.filter(note => note.id !== id);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
       setNotes(updatedNotes);

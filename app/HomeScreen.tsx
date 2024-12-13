@@ -644,6 +644,25 @@ export default function HomeScreen() {
       ],
       opacity: fadeAnim
     },
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingBottom: 100,
+      paddingTop: 150,
+    },
+    emptyStateText: {
+      color: theme.placeholderColor,
+      fontSize: 16,
+      textAlign: 'center',
+      maxWidth: '80%',
+    },
+    emptyStateIcon: {
+      backgroundColor: `${theme.accentColor}15`,
+      padding: 20,
+      borderRadius: 30,
+      marginBottom: 16,
+    },
   });
 
   return (
@@ -726,108 +745,123 @@ export default function HomeScreen() {
           overScrollMode="always"
           bounces={true}
         >
-          {getFilteredNotes().map((note) => (
-            <Animated.View
-              key={note.id}
-              style={[
-                fadingNoteId === note.id && [
-                  styles.hidingNote,
-                  {
-                    opacity: fadeAnim,
-                    transform: [{
-                      scale: fadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1],
-                      })
-                    }]
-                  }
-                ]
-              ]}
-            >
-              <Swipeable
-                renderRightActions={(progress, dragX) => (
-                  <View style={styles.actionContainer}>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => handleDelete(note.id)}
-                    >
-                      <Ionicons name="trash-outline" size={22} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                overshootRight={false}
-                friction={2}
-                rightThreshold={40}
+          {getFilteredNotes().length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyStateIcon}>
+                <Ionicons 
+                  name="document-text-outline" 
+                  size={48} 
+                  color={theme.accentColor} 
+                />
+              </View>
+              <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
+                {t('noNotes')}
+              </Text>
+            </View>
+          ) : (
+            getFilteredNotes().map((note) => (
+              <Animated.View
+                key={note.id}
+                style={[
+                  fadingNoteId === note.id && [
+                    styles.hidingNote,
+                    {
+                      opacity: fadeAnim,
+                      transform: [{
+                        scale: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                        })
+                      }]
+                    }
+                  ]
+                ]}
               >
-                <Pressable 
-                  style={styles.noteCard}
-                  onPress={() => handleNotePress(note)}
-                  onLongPress={() => handleLongPress(note)}
-                  delayLongPress={300}
-                >
-                  <View style={styles.noteHeader}>
-                    <Text style={styles.noteDate}>
-                      {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
-                        day: 'numeric', 
-                        month: 'short' 
-                      })}
-                    </Text>
-                    <View style={styles.headerActions}>
-                      <TouchableOpacity onPress={() => handleFavorite(note)}>
-                        <Ionicons 
-                          name={note.isFavorite ? "heart" : "heart-outline"}
-                          size={24} 
-                          color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                        />
-                      </TouchableOpacity>
+                <Swipeable
+                  renderRightActions={(progress, dragX) => (
+                    <View style={styles.actionContainer}>
                       <TouchableOpacity 
-                        onPress={() => {
-                          setSelectedNote(note);
-                          setShowActionMenu(true);
-                        }}
-                        style={{ marginLeft: 12 }}
+                        style={styles.deleteButton}
+                        onPress={() => handleDelete(note.id)}
                       >
-                        <Ionicons 
-                          name="ellipsis-vertical" 
-                          size={24} 
-                          color={theme.placeholderColor} 
-                        />
+                        <Ionicons name="trash-outline" size={22} color="#fff" />
                       </TouchableOpacity>
                     </View>
-                  </View>
+                  )}
+                  overshootRight={false}
+                  friction={2}
+                  rightThreshold={40}
+                >
+                  <Pressable 
+                    style={styles.noteCard}
+                    onPress={() => handleNotePress(note)}
+                    onLongPress={() => handleLongPress(note)}
+                    delayLongPress={300}
+                  >
+                    <View style={styles.noteHeader}>
+                      <Text style={styles.noteDate}>
+                        {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
+                          day: 'numeric', 
+                          month: 'short' 
+                        })}
+                      </Text>
+                      <View style={styles.headerActions}>
+                        <TouchableOpacity onPress={() => handleFavorite(note)}>
+                          <Ionicons 
+                            name={note.isFavorite ? "heart" : "heart-outline"}
+                            size={24} 
+                            color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => {
+                            setSelectedNote(note);
+                            setShowActionMenu(true);
+                          }}
+                          style={{ marginLeft: 12 }}
+                        >
+                          <Ionicons 
+                            name="ellipsis-vertical" 
+                            size={24} 
+                            color={theme.placeholderColor} 
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
 
-                  <View style={styles.noteContent}>
-                    <Text style={styles.noteTitle} numberOfLines={1}>
-                      <HighlightText 
-                        text={note.title}
-                        highlight={searchQuery}
-                        style={styles.noteTitle}
-                      />
-                    </Text>
-
-                    {note.description && (
-                      <Text style={styles.noteDescription} numberOfLines={2}>
+                    <View style={styles.noteContent}>
+                      <Text style={styles.noteTitle} numberOfLines={1}>
                         <HighlightText 
-                          text={truncateText(note.description, 100)}
+                          text={note.title}
                           highlight={searchQuery}
-                          style={styles.noteDescription}
+                          style={styles.noteTitle}
                         />
                       </Text>
-                    )}
-                  </View>
 
-                  <View style={styles.noteFooter}>
-                    <View style={styles.statusContainer}>
-                      <View style={styles.statusDot} />
-                      <Text style={styles.statusText}>
-                        {getTimeAgo(note.createdAt || new Date().toISOString())}
-                      </Text>
+                      {note.description && (
+                        <Text style={styles.noteDescription} numberOfLines={2}>
+                          <HighlightText 
+                            text={truncateText(note.description, 100)}
+                            highlight={searchQuery}
+                            style={styles.noteDescription}
+                          />
+                        </Text>
+                      )}
                     </View>
-                  </View>
-                </Pressable>
-              </Swipeable>
-            </Animated.View>
-          ))}
+
+                    <View style={styles.noteFooter}>
+                      <View style={styles.statusContainer}>
+                        <View style={styles.statusDot} />
+                        <Text style={styles.statusText}>
+                          {getTimeAgo(note.createdAt || new Date().toISOString())}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                </Swipeable>
+              </Animated.View>
+            ))
+          )}
         </ScrollView>
 
         <NavigationMenu 

@@ -11,6 +11,7 @@ import {
   Animated,
   BackHandler,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,22 @@ import UsernameModal from './UsernameModal';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
+import { useNotes } from '../NotesContext';
+import { Note } from '../NotesContext';
+
+interface BackupData {
+  notes: Note[];
+  settings?: {
+    username?: string;
+    theme?: string;
+    language?: string;
+  };
+  version: string;
+  backupDate: string;
+}
 
 interface SettingsModalProps {
   visible: boolean;
@@ -52,6 +69,7 @@ export default function SettingsModal({
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [hasBiometrics, setHasBiometrics] = useState(false);
   const [biometricType, setBiometricType] = useState<'fingerprint' | null>(null);
+  const { notes, importNotes } = useNotes();
 
   useEffect(() => {
     checkBiometrics();
@@ -119,6 +137,151 @@ export default function SettingsModal({
       return () => backHandler.remove();
     }
   }, [visible]);
+
+  const handleExportNotes = async () => {
+    try {
+      // Get all data to backup
+      const backupData: BackupData = {
+        notes,
+        settings: {
+          username: username,
+          theme: themeMode,
+          language: locale
+        },
+        version: '1.0.0',
+        backupDate: new Date().toISOString()
+      };
+
+      // Create file path with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const fileUri = `${FileSystem.documentDirectory}notes_backup_${timestamp}.json`;
+      
+      // Write data to file
+      await FileSystem.writeAsStringAsync(
+        fileUri,
+        JSON.stringify(backupData, null, 2)
+      );
+
+      // Share file
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/json',
+          dialogTitle: t('exportNotesTitle'),
+          UTI: 'public.json'
+        });
+      }
+    } catch (error) {
+      console.error('Error exporting notes:', error);
+      Alert.alert(
+        t('error'),
+        t('exportError')
+      );
+    }
+  };
+
+  const handleImportNotes = async () => {
+    try {
+      console.log('🔄 Starting file selection process...');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true
+      });
+
+      console.log('📁 File selection result:', result);
+
+      if (result.assets && result.assets.length > 0) {
+        const selectedFile = result.assets[0];
+        try {
+          console.log('📂 Selected file URI:', selectedFile.uri);
+          Alert.alert(t('importNotesTitle'), t('readingBackupFile'));
+          
+          const fileContent = await FileSystem.readAsStringAsync(selectedFile.uri);
+          console.log('📄 Raw file content:', fileContent.substring(0, 200) + '...');
+          
+          const importedData = JSON.parse(fileContent);
+          console.log('🔍 Parsed backup data:', importedData);
+
+          if (!importedData || typeof importedData !== 'object') {
+            console.error('❌ Invalid backup format');
+            throw new Error(t('invalidBackupFormat'));
+          }
+
+          if (!importedData.notes || !Array.isArray(importedData.notes)) {
+            console.error('❌ Invalid notes format');
+            throw new Error(t('invalidNotesFormat'));
+          }
+
+          // Validate and prepare notes
+          const validatedNotes = importedData.notes.map((note: any) => ({
+            id: String(note.id || Date.now()),
+            title: String(note.title || ''),
+            description: String(note.description || ''),
+            type: note.type === 'checklist' ? 'checklist' : 'text',
+            isFavorite: Boolean(note.isFavorite),
+            isHidden: Boolean(note.isHidden),
+            tasks: Array.isArray(note.tasks) ? note.tasks : [],
+            createdAt: note.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }));
+
+          console.log('✅ Validated notes:', validatedNotes);
+
+          if (validatedNotes.length === 0) {
+            Alert.alert(t('error'), t('noNotesInBackup'));
+            return;
+          }
+
+          // Show confirmation dialog
+          Alert.alert(
+            t('importNotesTitle'),
+            t('backupDetails')
+              .replace('{count}', validatedNotes.length.toString())
+              .replace('{date}', new Date(importedData.backupDate || Date.now()).toLocaleDateString())
+              .replace('{version}', importedData.version || '1.0.0'),
+            [
+              {
+                text: t('cancel'),
+                style: 'cancel'
+              },
+              {
+                text: t('import'),
+                style: 'default',
+                onPress: async () => {
+                  try {
+                    // Update importedData with validated notes
+                    importedData.notes = validatedNotes;
+                    await importNotes(importedData);
+                    Alert.alert(
+                      t('success'),
+                      t('importSuccessDetails')
+                        .replace('{count}', validatedNotes.length.toString())
+                    );
+                    handleClose();
+                  } catch (error) {
+                    console.error('❌ Error during import:', error);
+                    Alert.alert(
+                      t('error'),
+                      typeof error === 'object' && error !== null && 'message' in error 
+                        ? String(error.message)
+                        : t('importError')
+                    );
+                  }
+                }
+              }
+            ]
+          );
+        } catch (error) {
+          console.error('❌ Error processing backup file:', error);
+          Alert.alert(t('error'), t('invalidBackupFile'));
+        }
+      } else {
+        console.log('❌ File selection cancelled or no file selected');
+      }
+    } catch (error) {
+      console.error('❌ Error in file selection:', error);
+      Alert.alert(t('error'), t('fileSelectionError'));
+    }
+  };
 
   const styles = StyleSheet.create({
     modalOverlay: {
@@ -585,6 +748,49 @@ export default function SettingsModal({
                     />
                   </TouchableOpacity>
                 )}
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>💾 {t('backupNotes')}</Text>
+                <TouchableOpacity 
+                  style={styles.infoItem}
+                  onPress={handleExportNotes}
+                >
+                  <View style={styles.infoIcon}>
+                    <Ionicons 
+                      name="download-outline" 
+                      size={22} 
+                      color={theme.accentColor}
+                    />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t('downloadBackup')}</Text>
+                    <Text style={styles.infoValue}>{t('downloadBackupDescription')}</Text>
+                  </View>
+                  <View style={styles.chevronContainer}>
+                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.infoItem, { marginTop: 8 }]}
+                  onPress={handleImportNotes}
+                >
+                  <View style={styles.infoIcon}>
+                    <Ionicons 
+                      name="cloud-upload-outline" 
+                      size={22} 
+                      color={theme.accentColor}
+                    />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t('uploadBackup')}</Text>
+                    <Text style={styles.infoValue}>{t('uploadBackupDescription')}</Text>
+                  </View>
+                  <View style={styles.chevronContainer}>
+                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+                  </View>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.version}>

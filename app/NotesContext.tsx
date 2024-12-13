@@ -6,7 +6,7 @@ export interface TaskItem {
   isCompleted: boolean;
 }
 
-interface Note {
+export interface Note {
   id: string;
   title: string;
   description?: string;
@@ -18,6 +18,17 @@ interface Note {
   tasks?: TaskItem[];
 }
 
+interface BackupData {
+  notes: Note[];
+  settings?: {
+    username?: string;
+    theme?: string;
+    language?: string;
+  };
+  version: string;
+  backupDate: string;
+}
+
 interface NotesContextType {
   notes: Note[];
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -25,6 +36,7 @@ interface NotesContextType {
   deleteNote: (id: string) => Promise<void>;
   hideNote: (id: string) => Promise<void>;
   unhideNote: (id: string) => Promise<void>;
+  importNotes: (importedData: BackupData) => Promise<void>;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -140,6 +152,48 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const importNotes = async (importedData: BackupData) => {
+    try {
+      if (!Array.isArray(importedData.notes)) {
+        throw new Error('Invalid notes data structure');
+      }
+
+      const validatedImportNotes = importedData.notes.map(note => ({
+        id: String(note.id || Date.now()),
+        title: String(note.title || ''),
+        description: String(note.description || ''),
+        type: (note.type === 'checklist' ? 'checklist' : 'text') as 'text' | 'checklist',
+        isFavorite: Boolean(note.isFavorite),
+        isHidden: Boolean(note.isHidden),
+        tasks: Array.isArray(note.tasks) ? note.tasks : [],
+        createdAt: note.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }));
+
+      const existingNotes = [...notes];
+      const mergedNotes = [...existingNotes];
+      
+      validatedImportNotes.forEach(importedNote => {
+        const existingNoteIndex = existingNotes.findIndex(note => note.id === importedNote.id);
+        if (existingNoteIndex === -1) {
+          mergedNotes.push(importedNote);
+        }
+      });
+
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mergedNotes));
+      setNotes(mergedNotes);
+
+      if (importedData.settings?.username) {
+        await AsyncStorage.setItem('@username', importedData.settings.username);
+      }
+
+      console.log('✅ Import completed successfully');
+    } catch (error) {
+      console.error('❌ Import failed:', error);
+      throw error;
+    }
+  };
+
   return (
     <NotesContext.Provider value={{ 
       notes, 
@@ -147,7 +201,8 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       updateNote, 
       deleteNote,
       hideNote,
-      unhideNote
+      unhideNote,
+      importNotes
     }}>
       {children}
     </NotesContext.Provider>

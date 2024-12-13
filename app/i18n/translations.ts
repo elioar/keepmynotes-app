@@ -124,6 +124,34 @@ export const translations = {
     unhideAction: 'Unhide',
     cancelAction: 'Cancel',
 
+    backupNotes: 'Backup Notes',
+    downloadBackup: 'Download Backup',
+    uploadBackup: 'Upload Backup',
+
+    noNotes: 'No notes yet',
+
+    exportNotesTitle: 'Export Notes Backup',
+    importNotesTitle: 'Import Notes Backup',
+    importNotesConfirm: 'This will replace all your current notes with the backup. Are you sure you want to continue?',
+    import: 'Import',
+    exportError: 'Error creating backup',
+    importError: 'Error restoring backup',
+    importSuccess: 'Backup restored successfully',
+
+    noNotesInBackup: 'The backup file contains no notes',
+    importNotesConfirmCount: 'This will replace all your current notes with {count} notes from the backup. Are you sure you want to continue?',
+
+    readingBackupFile: 'Reading backup file...',
+    invalidBackupFormat: 'Invalid backup file format',
+    invalidNotesFormat: 'Invalid notes format in backup file',
+    invalidBackupFile: 'Could not read backup file. Please make sure it is a valid backup file.',
+    fileSelectionError: 'Error selecting file. Please try again.',
+    backupDetails: 'Backup contains {count} notes\nBackup date: {date}\nVersion: {version}\n\nDo you want to restore this backup?',
+    importSuccessDetails: 'Successfully imported {count} notes from backup',
+
+    downloadBackupDescription: 'Create and save a backup of your notes',
+    uploadBackupDescription: 'Restore notes from a backup file',
+
   },
   el: {
     // Settings
@@ -168,7 +196,7 @@ export const translations = {
     newNote: 'Νέα Σημείωση',
     save: 'Αποθήκευση',
     title: 'Τίτλος',
-    writeHere: 'Γράψτε τη σημείωσή σας δώ...',
+    writeHere: 'Γράψτε τη σημεωσή σας δώ...',
     addTask: 'Προσθήκη εργασίας...',
     camera: 'Κάμερα',
     drawingSketch: 'Σχέδιο',
@@ -195,7 +223,7 @@ export const translations = {
     thisWeek: 'Αυτή την εβδομάδα',
     thisMonth: 'Αυτό το μήνα',
 
-    textNotes: 'Σημειώσεις κε��μένου',
+    textNotes: 'Σημειώσεις κεμένου',
     recentlyEdited: 'Πρόσφατα Επεξεργασμένα',
     tasks: 'Εργασίες',
 
@@ -223,7 +251,7 @@ export const translations = {
 
     success: 'Επιτυχία',
 
-    useBiometrics: 'Χρήση Δακτυλικού/Face ID',
+    useBiometrics: 'Χρήση Δακτυλικού Αποτυπώματος/Face ID',
     biometricsNotAvailable: 'Η βιομετρική επαλήθευση δεν είναι διαθέσιμη',
 
     biometricAuth: 'Επαλήθευση Δακτυλικού Αποτυπώματος',
@@ -249,6 +277,34 @@ export const translations = {
     unhideNoteConfirmAction: 'Είστε σίγουροι ότι θέλετε να εμφανίσετε αυτή τη σημείωση;',
     unhideAction: 'Εμφάνιση',
     cancelAction: 'Ακύρωση',
+
+    backupNotes: 'Εφεδρικές Σημειώσεις',
+    downloadBackup: 'Λήψη Εφεδρικών Σημειώσεων',
+    uploadBackup: 'Ανέβασμα Εφεδρικών Σημειώσεων',
+
+    noNotes: 'Δεν υπάρχουν σημειώσεις ακόμα',
+
+    exportNotesTitle: 'Εξαγωγή Αντιγράφου Ασφαλείας',
+    importNotesTitle: 'Εισαγωγή Αντιγράφου Ασφαλείας',
+    importNotesConfirm: 'Αυτό θα αντικαταστήσει όλες τις τρέχουσες σημειώσεις σας με το αντίγραφο ασφαλείας. Είστε σίγουροι ότι θέλετε να συνεχίσετε;',
+    import: 'Εισαγωγή',
+    exportError: 'Σφάλμα δημιουργίας αντιγράφου ασφαλείας',
+    importError: 'Σφάλμα επαναφοράς αντιγράφου ασφαλείας',
+    importSuccess: 'Το αντίγραφο ασφαλείας επαναφέρθηκε με επιτυχία',
+
+    noNotesInBackup: 'Το αρχείο αντιγράφου ασφαλείας δεν περιέχει σημειώσεις',
+    importNotesConfirmCount: 'Αυτό θα αντικαταστήσει όλες τις τρέχουσες σημειώσεις σας με {count} σημειώσεις από το αντίγραφο ασφαλείας. Είστε σίγουροι ότι θέλετε να συνεχίσετε;',
+
+    readingBackupFile: 'Ανάγνωση αρχείου αντιγράφου ασφαλείας...',
+    invalidBackupFormat: 'Μη έγκυρη μορφή αρχείου αντιγράφου ασφαλείας',
+    invalidNotesFormat: 'Μη έγκυρη μορφή σημειώσεων στο αρχείο αντιγράφου ασφαλείας',
+    invalidBackupFile: 'Δεν ήταν δυνατή η ανάγνωση του αρχείου. Βεβαιωθείτε ότι είναι έγκυρο αρχείο αντιγράφου ασφαλείας.',
+    fileSelectionError: 'Σφάλμα επιλογής αρχείου. Παρακαλώ προσπαθήστε ξανά.',
+    backupDetails: 'Το αντίγραφο περιέχει {count} σημειώσεις\nΗμερομηνία: {date}\nΈκδοση: {version}\n\nΘέλετε να γίνει επαναφορά αυτού του αντιγράφου;',
+    importSuccessDetails: 'Εισήχθησαν επιτυχώς {count} σημειώσεις από το αντίγραφο ασφαλείας',
+
+    downloadBackupDescription: 'Δημιουργία και αποθήκευση αντιγράφου ασφαλείας',
+    uploadBackupDescription: 'Επαναφορά σημειώσεων από αντίγραφο ασφαλείας',
 
   },
 }; 

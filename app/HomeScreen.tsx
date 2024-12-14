@@ -41,6 +41,7 @@ type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
   Favorites: undefined;
+  Task: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -213,9 +214,8 @@ export default function HomeScreen() {
         navigation.navigate('AddEditNote', { note: { type: 'text' } });
         break;
       case 'task':
-        navigation.navigate('AddEditNote', { note: { type: 'checklist' } });
+        navigation.navigate('Task');
         break;
-      // Προσθέστε περισσότερες περιπτώσεις όπως χρειάζεται
     }
   };
 

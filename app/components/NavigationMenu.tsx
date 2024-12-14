@@ -15,6 +15,7 @@ type RootStackParamList = {
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
+  Task: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;

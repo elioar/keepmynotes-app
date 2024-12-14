@@ -11,6 +11,7 @@ import { UserProvider } from './context/UserContext';
 import HiddenNotesScreen from './components/HiddenNotesScreen';
 import SecurityCheck from './components/SecurityCheck';
 import PinScreen from './components/PinScreen';
+import TaskScreen from './components/TaskScreen';
 
 type RootStackParamList = {
   Home: undefined;
@@ -19,6 +20,7 @@ type RootStackParamList = {
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
+  Task: undefined;
 };
 
 const Stack = createNativeStackNavigator();
@@ -54,6 +56,14 @@ function Navigation() {
         name="PinScreen"
         component={PinScreen}
         options={{ animation: 'fade' }}
+      />
+      <Stack.Screen 
+        name="Task" 
+        component={TaskScreen}
+        options={{ 
+          animation: 'slide_from_right',
+          presentation: 'card'
+        }}
       />
     </Stack.Navigator>
   );

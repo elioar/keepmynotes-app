@@ -10,6 +10,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+  Task: undefined;
+  // ... άλλα routes
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -20,6 +29,7 @@ interface AddNoteModalProps {
 const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) => {
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
 
   const options = [
     { id: 'camera', icon: 'camera', label: t('camera'), color: '#6B4EFF' },
@@ -134,7 +144,14 @@ const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) =
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.button, { backgroundColor: '#6B4EFF' }]}
-              onPress={() => onSelectOption('task')}
+              onPress={() => {
+                console.log('AddNoteModal: Task button pressed');
+                onClose();
+                setTimeout(() => {
+                  console.log('AddNoteModal: Attempting navigation after delay');
+                  navigation.navigate('Task');
+                }, 100);
+              }}
             >
               <Ionicons name="list" size={20} color="#fff" />
               <Text style={styles.buttonText}>{t('task')}</Text>

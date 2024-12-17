@@ -160,6 +160,11 @@ export const translations = {
 
     enterTitle: 'Enter title here...',
 
+    view: 'View',
+
+    unsavedChanges: 'Unsaved Changes',
+    unsavedChangesMessage: 'You have unsaved changes. Do you want to save them before leaving?',
+    discard: 'Discard',
   },
   el: {
     // Settings
@@ -259,7 +264,7 @@ export const translations = {
 
     success: 'Επιτυχία',
 
-    useBiometrics: 'ρήση Δακτυλικού Αποτυπώματος/Face ID',
+    useBiometrics: '��ήση Δακτυλικού Αποτυπώματος/Face ID',
     biometricsNotAvailable: 'Η βιομετρική επαλήθευση δεν είναι διαθέσιμη',
 
     biometricAuth: 'Επαλήθευση Δακτυλικού Αποτυπώματος',
@@ -287,7 +292,7 @@ export const translations = {
     cancelAction: 'Ακύρωση',
 
     backupNotes: 'Εφεδρικές Σημειώσεις',
-    downloadBackup: 'Λ��ψη Εφεδρικών Σημειώσεων',
+    downloadBackup: 'Λήψη Εφεδρικών Σημειώσεων',
     uploadBackup: 'Ανέβασμα Εφεδρικών Σημειώσεων',
 
     noNotes: 'Δεν υπάρχουν σημειώσεις ακόμα',
@@ -301,7 +306,7 @@ export const translations = {
     importSuccess: 'Το αντίγραφο ασφαλείας επαναφέρθηκε με επιτυχία',
 
     noNotesInBackup: 'Το αρχείο αντιγράφου ασφαλείας δεν περιέχει σημειώσεις',
-    importNotesConfirmCount: 'Αυτό θα αντικαταστήσει όλες τις τρέχουσες σημειώσεις σας με {count} σημειώσεις από το αντίγραφο ασφαλείας. Είστε σίγουροι ότι θέλετε να συνε��ίσετε;',
+    importNotesConfirmCount: 'Αυτό θα αντικαταστήσει όλες τις τρέχουσες σημειώσεις σας με {count} σημειώσεις από το αντίγραφο ασφαλείας. Είστε σίγουροι ότι θέλετε να συνεχίσετε;',
 
     readingBackupFile: 'Ανάγνωση αρχείου αντιγράφου ασφαλείας...',
     invalidBackupFormat: 'Μη έγκυρη μορφή αρχείου αντιγράφου ασφαλείας',
@@ -322,6 +327,11 @@ export const translations = {
 
     enterTitle: 'Εισάγετε τίτλο εδώ...',
 
+    view: 'Προβολή',
+
+    unsavedChanges: 'Μη Αποθηκευμένες Αλλαγές',
+    unsavedChangesMessage: 'Έχετε μη αποθηκευμένες αλλαγές. Θέλετε να τις αποθηκεύσετε πριν φύγετε;',
+    discard: 'Απόρριψη',
   },
 }; 
 

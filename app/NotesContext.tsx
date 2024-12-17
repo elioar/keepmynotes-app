@@ -10,6 +10,7 @@ export interface Note {
   id: string;
   title: string;
   description?: string;
+  content?: string;
   createdAt: string;
   updatedAt: string;
   type: 'text' | 'checklist';
@@ -70,10 +71,20 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const stripHtmlTags = (html: string) => {
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newNote: Note = {
       ...noteData,
       id: Date.now().toString(),
+      content: noteData.content,
+      description: stripHtmlTags(noteData.content || '').substring(0, 100),
       isFavorite: false,
       isHidden: false,
       createdAt: new Date().toISOString(),
@@ -86,13 +97,19 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
   const updateNote = async (updatedNote: Note) => {
     try {
-      const updatedNotes = notes.map(note => 
-        note.id === updatedNote.id 
-          ? { ...updatedNote, updatedAt: new Date().toISOString() }
-          : note
-      );
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
-      setNotes(updatedNotes);
+      const updatedNotes = notes.map(note => {
+        if (note.id === updatedNote.id) {
+          return {
+            ...updatedNote,
+            content: updatedNote.content,
+            description: stripHtmlTags(updatedNote.content || '').substring(0, 100),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return note;
+      });
+      
+      await saveNotes(updatedNotes);
     } catch (error) {
       console.error('Error updating note:', error);
     }

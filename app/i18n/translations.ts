@@ -158,6 +158,8 @@ export const translations = {
     newTask: 'New Task',
     writeYourTask: 'Write your task here...',
 
+    enterTitle: 'Enter title here...',
+
   },
   el: {
     // Settings
@@ -191,7 +193,7 @@ export const translations = {
     hourAgo: 'ώρα πριν',
     hoursAgo: 'ώρες πριν',
     dayAgo: 'ημέρα πριν',
-    daysAgo: 'ημέρε�� πριν',
+    daysAgo: 'ημέρες πριν',
     monthAgo: 'μήνας πριν',
     monthsAgo: 'μήνες πριν',
     yearAgo: 'χρόνος πριν',
@@ -257,7 +259,7 @@ export const translations = {
 
     success: 'Επιτυχία',
 
-    useBiometrics: '��ρήση Δακτυλικού Αποτυπώματος/Face ID',
+    useBiometrics: 'ρήση Δακτυλικού Αποτυπώματος/Face ID',
     biometricsNotAvailable: 'Η βιομετρική επαλήθευση δεν είναι διαθέσιμη',
 
     biometricAuth: 'Επαλήθευση Δακτυλικού Αποτυπώματος',
@@ -285,7 +287,7 @@ export const translations = {
     cancelAction: 'Ακύρωση',
 
     backupNotes: 'Εφεδρικές Σημειώσεις',
-    downloadBackup: 'Λήψη Εφεδρικών Σημειώσεων',
+    downloadBackup: 'Λ��ψη Εφεδρικών Σημειώσεων',
     uploadBackup: 'Ανέβασμα Εφεδρικών Σημειώσεων',
 
     noNotes: 'Δεν υπάρχουν σημειώσεις ακόμα',
@@ -299,9 +301,9 @@ export const translations = {
     importSuccess: 'Το αντίγραφο ασφαλείας επαναφέρθηκε με επιτυχία',
 
     noNotesInBackup: 'Το αρχείο αντιγράφου ασφαλείας δεν περιέχει σημειώσεις',
-    importNotesConfirmCount: 'Αυτό θα αντικαταστήσει όλες τις τρέχουσες σημειώσεις σας με {count} σημειώσεις από το αντίγραφο ασφαλείας. Είστε σίγουροι ότι θέλετε να συνεχίσετε;',
+    importNotesConfirmCount: 'Αυτό θα αντικαταστήσει όλες τις τρέχουσες σημειώσεις σας με {count} σημειώσεις από το αντίγραφο ασφαλείας. Είστε σίγουροι ότι θέλετε να συνε��ίσετε;',
 
-    readingBackupFile: 'Ανάγνωση αρχείου αντιγρ��φου ασφαλείας...',
+    readingBackupFile: 'Ανάγνωση αρχείου αντιγράφου ασφαλείας...',
     invalidBackupFormat: 'Μη έγκυρη μορφή αρχείου αντιγράφου ασφαλείας',
     invalidNotesFormat: 'Μη έγκυρη μορφή σημειώσεων στο αρχείο αντιγράφου ασφαλείας',
     invalidBackupFile: 'Δεν ήταν δυνατή η ανάγνωση του αρχείου. Βεβαιωθείτε ότι είναι έγκυρο αρχείο αντιγράφου ασφαλείας.',
@@ -313,10 +315,12 @@ export const translations = {
     uploadBackupDescription: 'Επαναφορά σημειώσεων από αντίγραφο ασφαλείας',
 
     writeYourContent: 'Γράψτε το περιεχόμενό σας εδώ...',
-    contentEmpty: 'Το περιεχόμε��ο δεν μπορεί να είναι κενό',
+    contentEmpty: 'Το περιεχόμενο δεν μπορεί να είναι κενό',
 
     newTask: 'Νέα Εργασία',
     writeYourTask: 'Γράψτε την εργασία σας εδώ...',
+
+    enterTitle: 'Εισάγετε τίτλο εδώ...',
 
   },
 }; 

@@ -41,7 +41,7 @@ type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
   Favorites: undefined;
-  Task: undefined;
+  Task: { note?: any };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -87,7 +87,7 @@ export default function HomeScreen() {
   }, []);
 
   const handleNotePress = (note: any) => {
-    navigation.navigate('AddEditNote', { note });
+    navigation.navigate('Task', { note });
   };
   const handleAddNote = () => {
     navigation.navigate('AddEditNote', { note: undefined });
@@ -214,7 +214,7 @@ export default function HomeScreen() {
         navigation.navigate('AddEditNote', { note: { type: 'text' } });
         break;
       case 'task':
-        navigation.navigate('Task');
+        navigation.navigate('Task', { note: undefined });
         break;
     }
   };
@@ -366,7 +366,7 @@ export default function HomeScreen() {
               ...selectedNote,
               isHidden: true,
               updatedAt: new Date().toISOString(),
-              hideDate: new Date().toISOString() // Προσθήκη ημερομηνίας απόκρυψης
+              hideDate: new Date().toISOString() // Προσθήκη μερομηνίας απόκρυψης
             };
             await updateNote(updatedNote);
             

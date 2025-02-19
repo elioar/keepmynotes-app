@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,19 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Pressable,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-type RootStackParamList = {
-  Task: undefined;
-  // ... άλλα routes
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+import { BlurView } from 'expo-blur';
 
 interface AddNoteModalProps {
   visible: boolean;
@@ -29,142 +23,212 @@ interface AddNoteModalProps {
 const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) => {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<any>();
+  const slideAnim = React.useRef(new Animated.Value(0)).current;
 
-  const options = [
-    { id: 'camera', icon: 'camera', label: t('camera'), color: '#6B4EFF' },
-    { id: 'drawing', icon: 'brush', label: t('drawingSketch'), color: '#6B4EFF' },
-    { id: 'attach', icon: 'attach', label: t('attachFile'), color: '#6B4EFF' },
-    { id: 'audio', icon: 'mic', label: t('audioFile'), color: '#6B4EFF' },
-    { id: 'private', icon: 'lock-closed', label: t('privateNotes'), color: '#6B4EFF' },
-  ];
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
 
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'transparent',
       justifyContent: 'flex-end',
     },
+    blurContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    },
     modalContent: {
-      backgroundColor: theme.secondaryBackground,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      backgroundColor: theme.isDarkMode ? 
+        theme.secondaryBackground : 
+        '#FFFFFF',
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
       padding: 20,
-      paddingBottom: 40,
+      maxHeight: '50%',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: theme.isDarkMode ? 0.2 : 0.1,
+      shadowRadius: 8,
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: theme.borderColor,
     },
     title: {
       color: theme.textColor,
-      fontSize: 32,
-      fontWeight: '600',
-      marginBottom: 30,
+      fontSize: 28,
+      fontWeight: '700',
+      marginBottom: 20,
+      paddingHorizontal: 4,
     },
-    option: {
+    mainButton: {
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        `${theme.accentColor}10`,
+      borderRadius: 20,
+      padding: 12,
+      marginBottom: 16,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 12,
+      borderLeftWidth: 3,
+      borderLeftColor: theme.accentColor,
+    },
+    mainButtonText: {
+      color: theme.textColor,
+      fontSize: 18,
+      fontWeight: '600',
+      marginLeft: 12,
+    },
+    optionsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    optionButton: {
+      width: '48%',
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        '#F8F9FA',
+      borderRadius: 20,
+      padding: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderLeftWidth: 3,
     },
     iconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
+      width: 36,
+      height: 36,
+      borderRadius: 10,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 16,
+      marginRight: 8,
     },
     optionText: {
       color: theme.textColor,
-      fontSize: 16,
+      fontSize: 14,
+      fontWeight: '600',
       flex: 1,
-    },
-    buttonContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 20,
-      gap: 12,
-    },
-    button: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 12,
-      borderRadius: 12,
-      gap: 8,
-    },
-    buttonText: {
-      color: '#fff',
-      fontSize: 16,
-      fontWeight: '500',
     },
     closeButton: {
       position: 'absolute',
       right: 20,
-      bottom: -60,
+      top: 20,
       width: 40,
       height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.accentColor,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? 
+        theme.secondaryBackground : 
+        '#F8F9FA',
       justifyContent: 'center',
       alignItems: 'center',
     },
+    animatedContent: {
+      transform: [{
+        translateY: slideAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [300, 0],
+        })
+      }],
+    },
   });
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={styles.modalContent}>
-          <Text style={styles.title}>{t('whatNotes')}</Text>
-          
-          {options.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.option}
-              onPress={() => onSelectOption(option.id)}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: option.color }]}>
-                <Ionicons name={option.icon as any} size={24} color="#fff" />
-              </View>
-              <Text style={styles.optionText}>{option.label}</Text>
-              <Ionicons name="chevron-forward" size={24} color={theme.placeholderColor} />
-            </TouchableOpacity>
-          ))}
+  const secondaryOptions = [
+    {
+      id: 'task',
+      icon: 'list-outline' as const,
+      label: t('newTask'),
+      color: '#2196F3',
+      onPress: () => {
+        onClose();
+        setTimeout(() => navigation.navigate('Task', { type: 'task' }), 100);
+      },
+    },
+    {
+      id: 'camera',
+      icon: 'camera-outline' as const,
+      label: t('camera'),
+      color: '#9C27B0',
+      onPress: () => { onClose(); onSelectOption('camera'); },
+    },
+    {
+      id: 'drawing',
+      icon: 'brush-outline' as const,
+      label: t('drawingSketch'),
+      color: '#FF9800',
+      onPress: () => { onClose(); onSelectOption('drawing'); },
+    },
+    {
+      id: 'audio',
+      icon: 'mic-outline' as const,
+      label: t('audioFile'),
+      color: '#00BCD4',
+      onPress: () => { onClose(); onSelectOption('audio'); },
+    },
+  ];
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: '#8BC34A' }]}
-              onPress={() => onSelectOption('note')}
-            >
-              <Ionicons name="document-text" size={20} color="#fff" />
-              <Text style={styles.buttonText}>{t('notes')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: '#6B4EFF' }]}
-              onPress={() => {
-                console.log('AddNoteModal: Task button pressed');
-                onClose();
-                setTimeout(() => {
-                  console.log('AddNoteModal: Attempting navigation after delay');
-                  navigation.navigate('Task');
-                }, 100);
-              }}
-            >
-              <Ionicons name="list" size={20} color="#fff" />
-              <Text style={styles.buttonText}>{t('task')}</Text>
-            </TouchableOpacity>
-          </View>
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <BlurView 
+          intensity={10}
+          tint={theme.isDarkMode ? "dark" : "light"}
+          style={styles.blurContainer}
+        />
+        <Animated.View style={[styles.modalContent, styles.animatedContent]}>
+          <Text style={styles.title}>{t('whatNotes')}</Text>
 
           <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={onClose}
+            style={styles.mainButton}
+            onPress={() => {
+              onClose();
+              navigation.navigate('Task', { type: 'text' });
+            }}
           >
-            <Ionicons name="close" size={28} color="#fff" />
+            <View style={[styles.iconContainer, { backgroundColor: `${theme.accentColor}15` }]}>
+              <Ionicons name="document-text" size={24} color={theme.accentColor} />
+            </View>
+            <Text style={styles.mainButtonText}>{t('addNewNote')}</Text>
           </TouchableOpacity>
-        </View>
+
+          <View style={styles.optionsGrid}>
+            {secondaryOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.optionButton, { borderLeftColor: option.color }]}
+                onPress={option.onPress}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: `${option.color}15` }]}>
+                  <Ionicons name={option.icon} size={20} color={option.color} />
+                </View>
+                <Text style={styles.optionText}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Ionicons name="close" size={24} color={theme.textColor} />
+          </TouchableOpacity>
+        </Animated.View>
       </Pressable>
     </Modal>
   );

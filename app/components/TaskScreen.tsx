@@ -6,15 +6,24 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNotes } from '../NotesContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type RootStackParamList = {
+  Home: undefined;
+  Task: { note?: any };
+  AddEditNote: { note?: any };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TaskScreen({ route }: { route: any }) {
   const editorRef = useRef<WebView>(null);
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { addNote, updateNote } = useNotes();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   
   const existingNote = route.params?.note;
   const [noteContent, setNoteContent] = useState(existingNote?.content || '');
@@ -31,45 +40,6 @@ export default function TaskScreen({ route }: { route: any }) {
       setHasChanges(!!noteContent || !!title);
     }
   }, [noteContent, title]);
-
-  // Χειρισμός του hardware back button
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        if (hasChanges) {
-          Alert.alert(
-            t('unsavedChanges'),
-            t('unsavedChangesMessage'),
-            [
-              {
-                text: t('discard'),
-                style: 'destructive',
-                onPress: () => navigation.goBack()
-              },
-              {
-                text: t('save'),
-                style: 'default',
-                onPress: async () => {
-                  await handleSave();
-                  navigation.goBack();
-                }
-              },
-              {
-                text: t('cancel'),
-                style: 'cancel'
-              },
-            ]
-          );
-          return true; // Prevents default back action
-        }
-        return false; // Allows default back action
-      };
-
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [hasChanges, navigation, handleSave])
-  );
 
   const editorHTML = `
     <!DOCTYPE html>
@@ -123,7 +93,6 @@ export default function TaskScreen({ route }: { route: any }) {
             display: ${isViewMode ? 'none' : 'flex'};
             justify-content: space-between;
             gap: 12px;
-            backdrop-filter: blur(10px);
           }
 
           .toolbar button {
@@ -139,29 +108,13 @@ export default function TaskScreen({ route }: { route: any }) {
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-          }
-
-          .toolbar button:active {
-            transform: scale(0.95);
-            opacity: 0.9;
           }
 
           .toolbar button.active {
             background: ${theme.accentColor};
             color: white;
             box-shadow: 0 2px 5px ${theme.accentColor}40;
-          }
-
-          /* Προσθήκη hover effect για web */
-          @media (hover: hover) {
-            .toolbar button:hover {
-              background: ${theme.accentColor}20;
-            }
-            .toolbar button.active:hover {
-              background: ${theme.accentColor};
-            }
           }
 
           #editor[contenteditable="false"] {
@@ -241,7 +194,6 @@ export default function TaskScreen({ route }: { route: any }) {
             const span = document.createElement('span');
             span.contentEditable = 'true';
             span.textContent = '';
-            span.style.transition = 'all 0.3s ease';
             span.style.fontSize = '16px';
             span.style.flex = '1';
             span.style.outline = 'none';
@@ -300,6 +252,7 @@ export default function TaskScreen({ route }: { route: any }) {
         });
       }
       setHasChanges(false);
+      navigation.navigate('Home');
     } catch (error) {
       console.error('Error saving note:', error);
     }
@@ -321,7 +274,6 @@ export default function TaskScreen({ route }: { route: any }) {
 
   const handleBack = () => {
     if (hasChanges) {
-      // Εμφάνιση alert για μη αποθηκευμένες αλλαγές
       Alert.alert(
         t('unsavedChanges'),
         t('unsavedChangesMessage'),
@@ -329,14 +281,14 @@ export default function TaskScreen({ route }: { route: any }) {
           {
             text: t('discard'),
             style: 'destructive',
-            onPress: () => navigation.goBack()
+            onPress: () => navigation.navigate('Home')
           },
           {
             text: t('save'),
             style: 'default',
             onPress: async () => {
               await handleSave();
-              navigation.goBack();
+              navigation.navigate('Home');
             }
           },
           {
@@ -346,9 +298,48 @@ export default function TaskScreen({ route }: { route: any }) {
         ]
       );
     } else {
-      navigation.goBack();
+      navigation.navigate('Home');
     }
   };
+
+  // Χειρισμός του hardware back button
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (hasChanges) {
+          Alert.alert(
+            t('unsavedChanges'),
+            t('unsavedChangesMessage'),
+            [
+              {
+                text: t('discard'),
+                style: 'destructive',
+                onPress: () => navigation.navigate('Home')
+              },
+              {
+                text: t('save'),
+                style: 'default',
+                onPress: async () => {
+                  await handleSave();
+                  navigation.navigate('Home');
+                }
+              },
+              {
+                text: t('cancel'),
+                style: 'cancel'
+              },
+            ]
+          );
+          return true;
+        }
+        navigation.navigate('Home');
+        return true;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [hasChanges, navigation, handleSave])
+  );
 
   const styles = StyleSheet.create({
     container: {

@@ -2,23 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  Modal,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Switch,
-  Dimensions,
-  Animated,
-  BackHandler,
   StatusBar,
   Alert,
+  TextInput,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme, appThemes } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import UsernameModal from './UsernameModal';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -39,13 +36,6 @@ interface BackupData {
   backupDate: string;
 }
 
-interface SettingsModalProps {
-  visible: boolean;
-  onClose: () => void;
-  username: string;
-  onUpdateUsername: (name: string) => void;
-}
-
 type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
@@ -54,26 +44,21 @@ type RootStackParamList = {
   PinScreen: { isChangingPin?: boolean };
 };
 
-export default function SettingsModal({ 
-  visible, 
-  onClose, 
-  username,
-  onUpdateUsername 
-}: SettingsModalProps) {
+export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode, appTheme, setAppTheme } = useTheme();
-  const { locale, setLocale, t } = useLanguage();
+  const { t, currentLanguage, setLanguage } = useLanguage();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const slideAnim = React.useRef(new Animated.Value(Dimensions.get('window').height)).current;
-  const [showUsernameModal, setShowUsernameModal] = useState(false);
-  const [showPinModal, setShowPinModal] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [hasBiometrics, setHasBiometrics] = useState(false);
   const [biometricType, setBiometricType] = useState<'fingerprint' | null>(null);
   const { notes, importNotes } = useNotes();
+  const [username, setUsername] = useState<string | null>(null);
+  const [showUsernameInput, setShowUsernameInput] = useState(false);
 
   useEffect(() => {
     checkBiometrics();
     loadBiometricsPreference();
+    loadUsername();
   }, []);
 
   const checkBiometrics = async () => {
@@ -105,58 +90,57 @@ export default function SettingsModal({
     setBiometricsEnabled(newValue);
   };
 
-  const handleClose = () => {
-    Animated.spring(slideAnim, {
-      toValue: Dimensions.get('window').height,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 11,
-    }).start(() => {
-      onClose();
-    });
+  const loadUsername = async () => {
+    try {
+      const savedUsername = await AsyncStorage.getItem('@username');
+      setUsername(savedUsername);
+    } catch (error) {
+      console.error('Error loading username:', error);
+    }
   };
 
-  React.useEffect(() => {
-    if (visible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11,
-      }).start();
+  const handleUpdateUsername = async (newUsername: string) => {
+    try {
+      const trimmedUsername = newUsername.trim();
+      if (trimmedUsername) {
+        await AsyncStorage.setItem('@username', trimmedUsername);
+        setUsername(trimmedUsername);
+      }
+      setShowUsernameInput(false);
+    } catch (error) {
+      console.error('Error updating username:', error);
     }
-  }, [visible]);
-
-  useEffect(() => {
-    if (visible) {
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        handleClose();
-        return true;
-      });
-
-      return () => backHandler.remove();
-    }
-  }, [visible]);
+  };
 
   const handleExportNotes = async () => {
     try {
+      // Show progress alert
+      Alert.alert(t('exportNotesTitle'), t('preparingBackup'));
+
       // Get all data to backup
       const backupData: BackupData = {
-        notes,
+        notes: notes.map(note => ({
+          ...note,
+          updatedAt: new Date().toISOString()
+        })),
         settings: {
-          username: username,
           theme: themeMode,
-          language: locale
+          language: currentLanguage
         },
         version: '1.0.0',
         backupDate: new Date().toISOString()
       };
 
+      // Validate backup data
+      if (!Array.isArray(backupData.notes)) {
+        throw new Error('Invalid notes data structure');
+      }
+
       // Create file path with timestamp
-      const timestamp = new Date().toISOString().split('T')[0];
-      const fileUri = `${FileSystem.documentDirectory}notes_backup_${timestamp}.json`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileUri = `${FileSystem.documentDirectory}keepmynotes_backup_${timestamp}.json`;
       
-      // Write data to file
+      // Write data to file with pretty formatting
       await FileSystem.writeAsStringAsync(
         fileUri,
         JSON.stringify(backupData, null, 2)
@@ -169,69 +153,76 @@ export default function SettingsModal({
           dialogTitle: t('exportNotesTitle'),
           UTI: 'public.json'
         });
+
+        // Delete the temporary file after sharing
+        try {
+          await FileSystem.deleteAsync(fileUri);
+        } catch (error) {
+          console.warn('Error deleting temporary backup file:', error);
+        }
+      } else {
+        throw new Error('Sharing is not available on this device');
       }
     } catch (error) {
       console.error('Error exporting notes:', error);
       Alert.alert(
         t('error'),
-        t('exportError')
+        t('exportError'),
+        [{ text: 'OK' }]
       );
     }
   };
 
   const handleImportNotes = async () => {
     try {
-      console.log('🔄 Starting file selection process...');
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/json',
         copyToCacheDirectory: true
       });
 
-      console.log('📁 File selection result:', result);
-
       if (result.assets && result.assets.length > 0) {
         const selectedFile = result.assets[0];
+        
         try {
-          console.log('📂 Selected file URI:', selectedFile.uri);
+          // Show progress
           Alert.alert(t('importNotesTitle'), t('readingBackupFile'));
           
           const fileContent = await FileSystem.readAsStringAsync(selectedFile.uri);
-          console.log('📄 Raw file content:', fileContent.substring(0, 200) + '...');
-          
           const importedData = JSON.parse(fileContent);
-          console.log('🔍 Parsed backup data:', importedData);
 
+          // Validate backup structure
           if (!importedData || typeof importedData !== 'object') {
-            console.error('❌ Invalid backup format');
             throw new Error(t('invalidBackupFormat'));
           }
 
           if (!importedData.notes || !Array.isArray(importedData.notes)) {
-            console.error('❌ Invalid notes format');
             throw new Error(t('invalidNotesFormat'));
           }
 
           // Validate and prepare notes
           const validatedNotes = importedData.notes.map((note: any) => ({
             id: String(note.id || Date.now()),
-            title: String(note.title || ''),
-            description: String(note.description || ''),
-            type: note.type === 'checklist' ? 'checklist' : 'text',
+            title: String(note.title || '').trim(),
+            description: String(note.description || '').trim(),
+            content: String(note.content || note.description || '').trim(),
+            type: ((note.type === 'checklist' || note.type === 'task') ? 'checklist' : 'text') as Note['type'],
             isFavorite: Boolean(note.isFavorite),
             isHidden: Boolean(note.isHidden),
-            tasks: Array.isArray(note.tasks) ? note.tasks : [],
+            tasks: Array.isArray(note.tasks) ? note.tasks.map((task: any) => ({
+              text: String(task.text || '').trim(),
+              isCompleted: Boolean(task.isCompleted)
+            })) : [],
+            color: note.color || null,
             createdAt: note.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }));
-
-          console.log('✅ Validated notes:', validatedNotes);
 
           if (validatedNotes.length === 0) {
             Alert.alert(t('error'), t('noNotesInBackup'));
             return;
           }
 
-          // Show confirmation dialog
+          // Show confirmation with backup details
           Alert.alert(
             t('importNotesTitle'),
             t('backupDetails')
@@ -251,14 +242,18 @@ export default function SettingsModal({
                     // Update importedData with validated notes
                     importedData.notes = validatedNotes;
                     await importNotes(importedData);
+                    
+                    // Show success message
                     Alert.alert(
                       t('success'),
                       t('importSuccessDetails')
                         .replace('{count}', validatedNotes.length.toString())
                     );
-                    handleClose();
+                    
+                    // Close settings modal
+                    navigation.goBack();
                   } catch (error) {
-                    console.error('❌ Error during import:', error);
+                    console.error('Error during import:', error);
                     Alert.alert(
                       t('error'),
                       typeof error === 'object' && error !== null && 'message' in error 
@@ -270,71 +265,53 @@ export default function SettingsModal({
               }
             ]
           );
+
+          // Clean up the temporary file
+          try {
+            await FileSystem.deleteAsync(selectedFile.uri);
+          } catch (error) {
+            console.warn('Error deleting temporary import file:', error);
+          }
         } catch (error) {
-          console.error('❌ Error processing backup file:', error);
+          console.error('Error processing backup file:', error);
           Alert.alert(t('error'), t('invalidBackupFile'));
         }
-      } else {
-        console.log('❌ File selection cancelled or no file selected');
       }
     } catch (error) {
-      console.error('❌ Error in file selection:', error);
+      console.error('Error in file selection:', error);
       Alert.alert(t('error'), t('fileSelectionError'));
     }
   };
 
   const styles = StyleSheet.create({
-    modalOverlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-
-    },
-    animatedContainer: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: theme.backgroundColor,
-      transform: [{ translateY: slideAnim }],
-    },
     container: {
       flex: 1,
       backgroundColor: theme.backgroundColor,
     },
     header: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
+      justifyContent: 'space-between',
       padding: 16,
-      paddingTop: 20,
-      paddingBottom: 20,
       borderBottomWidth: 1,
       borderBottomColor: theme.borderColor,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
     },
     title: {
       fontSize: 24,
       fontWeight: '700',
       color: theme.textColor,
-    },
-    closeButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 12,
-      backgroundColor: `${theme.accentColor}15`,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 2,
     },
     content: {
       flexGrow: 1,
@@ -366,38 +343,6 @@ export default function SettingsModal({
       backgroundColor: theme.secondaryBackground,
       marginBottom: 6,
       borderRadius: 12,
-    },
-    usernameContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    usernameIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: `${theme.accentColor}15`,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    usernameContent: {
-      flex: 1,
-    },
-    usernameLabel: {
-      fontSize: 14,
-      color: theme.textColor,
-      fontWeight: '600',
-    },
-    usernameValue: {
-      fontSize: 12,
-      color: theme.placeholderColor,
-      fontWeight: '500',
-      marginTop: 2,
-    },
-    chevronIcon: {
-      width: 20,
-      height: 20,
-      opacity: 0.5,
     },
     settingIcon: {
       width: 32,
@@ -562,255 +507,347 @@ export default function SettingsModal({
       flex: 1,
       marginLeft: 12,
     },
+    continueButton: {
+      backgroundColor: theme.accentColor,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 16,
+    },
+    continueButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    usernameModal: {
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      top: '40%',
+      padding: 20,
+      borderRadius: 16,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    usernameModalTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: 16,
+    },
+    usernameInput: {
+      height: 48,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      marginBottom: 16,
+    },
+    usernameModalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    usernameModalButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 12,
+    },
+    usernameModalButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
   });
 
-  if (!visible) return null;
-
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <View style={styles.modalOverlay}>
-        <Animated.View style={styles.animatedContainer}>
-          <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-              <Text style={styles.title}>{t('settings')}</Text>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Ionicons name="close" size={20} color={theme.textColor} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              style={styles.content}
-              contentContainerStyle={styles.contentContainer}
-              showsVerticalScrollIndicator={false}
-              bounces={true}
-              alwaysBounceVertical={true}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>👤 {t('information')}</Text>
-                <TouchableOpacity 
-                  style={styles.infoItem}
-                  onPress={() => setShowUsernameModal(true)}
-                >
-                  <View style={styles.infoIcon}>
-                    <Ionicons name="person-outline" size={22} color={theme.accentColor} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t('username')}</Text>
-                    <Text style={styles.infoValue}>{username}</Text>
-                  </View>
-                  <View style={styles.chevronContainer}>
-                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🌍 {t('language')}</Text>
-                <TouchableOpacity 
-                  style={[styles.settingItem, locale === 'en' && styles.activeItem]}
-                  onPress={() => setLocale('en')}
-                >
-                  <View style={styles.settingIcon}>
-                    <Text style={{ fontSize: 18 }}>🇬🇧</Text>
-                  </View>
-                  <View style={styles.settingContent}>
-                    <Text style={styles.settingLabel}>{t('english')}</Text>
-                  </View>
-                  <View style={styles.radioButton}>
-                    {locale === 'en' && <View style={styles.radioButtonInner} />}
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.settingItem, locale === 'el' && styles.activeItem]}
-                  onPress={() => setLocale('el')}
-                >
-                  <View style={styles.settingIcon}>
-                    <Text style={{ fontSize: 18 }}>🇬🇷</Text>
-                  </View>
-                  <View style={styles.settingContent}>
-                    <Text style={styles.settingLabel}>{t('greek')}</Text>
-                  </View>
-                  <View style={styles.radioButton}>
-                    {locale === 'el' && <View style={styles.radioButtonInner} />}
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🎨 {t('display')}</Text>
-                <View style={styles.themeContainer}>
-                  <TouchableOpacity 
-                    style={[styles.themeItem, themeMode === 'system' && styles.themeItemActive]}
-                    onPress={() => setThemeMode('system')}
-                  >
-                    <View style={styles.themeIcon}>
-                      <Ionicons name="sunny-outline" size={24} color={theme.accentColor} />
-                    </View>
-                    <Text style={styles.themeLabel}>{t('systemTheme')}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.themeItem, themeMode === 'light' && styles.themeItemActive]}
-                    onPress={() => setThemeMode('light')}
-                  >
-                    <View style={styles.themeIcon}>
-                      <Ionicons name="sunny" size={24} color={theme.accentColor} />
-                    </View>
-                    <Text style={styles.themeLabel}>{t('lightTheme')}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.themeItem, themeMode === 'dark' && styles.themeItemActive]}
-                    onPress={() => setThemeMode('dark')}
-                  >
-                    <View style={styles.themeIcon}>
-                      <Ionicons name="moon" size={24} color={theme.accentColor} />
-                    </View>
-                    <Text style={styles.themeLabel}>{t('darkTheme')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🎨 {t('appTheme')}</Text>
-                <View style={styles.colorThemeContainer}>
-                  {Object.entries(appThemes).map(([key, color]) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.colorThemeItem,
-                        { backgroundColor: theme.backgroundColor },
-                        appTheme === key && styles.colorThemeActive,
-                      ]}
-                      onPress={() => setAppTheme(key as 'purple' | 'blue' | 'green' | 'orange' | 'pink')}
-                    >
-                      <View 
-                        style={[
-                          styles.colorThemeItemInner,
-                          { backgroundColor: color }
-                        ]} 
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🔒 {t('security')}</Text>
-                <TouchableOpacity 
-                  style={styles.infoItem}
-                  onPress={() => {
-                    handleClose();
-                    navigation.navigate('PinScreen', { isChangingPin: true });
-                  }}
-                >
-                  <View style={styles.infoIcon}>
-                    <Ionicons name="key-outline" size={22} color={theme.accentColor} />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t('changePin')}</Text>
-                    <Text style={styles.infoValue}>{t('changePinDescription')}</Text>
-                  </View>
-                  <View style={styles.chevronContainer}>
-                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
-                  </View>
-                </TouchableOpacity>
-
-                {hasBiometrics && (
-                  <TouchableOpacity 
-                    style={[styles.infoItem, { marginTop: 8 }]}
-                    onPress={toggleBiometrics}
-                  >
-                    <View style={styles.infoIcon}>
-                      <Ionicons 
-                        name="finger-print-outline"
-                        size={22} 
-                        color={theme.accentColor} 
-                      />
-                    </View>
-                    <View style={styles.infoContent}>
-                      <Text style={styles.infoLabel}>{t('biometricAuth')}</Text>
-                      <Text style={styles.infoValue}>
-                        {biometricsEnabled ? t('enabled') : t('disabled')}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={biometricsEnabled}
-                      onValueChange={toggleBiometrics}
-                      trackColor={{ 
-                        false: `${theme.placeholderColor}40`,
-                        true: `${theme.accentColor}80`
-                      }}
-                      thumbColor={biometricsEnabled ? theme.accentColor : theme.backgroundColor}
-                      ios_backgroundColor={`${theme.placeholderColor}40`}
-                      style={styles.switch}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💾 {t('backupNotes')}</Text>
-                <TouchableOpacity 
-                  style={styles.infoItem}
-                  onPress={handleExportNotes}
-                >
-                  <View style={styles.infoIcon}>
-                    <Ionicons 
-                      name="download-outline" 
-                      size={22} 
-                      color={theme.accentColor}
-                    />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t('downloadBackup')}</Text>
-                    <Text style={styles.infoValue}>{t('downloadBackupDescription')}</Text>
-                  </View>
-                  <View style={styles.chevronContainer}>
-                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.infoItem, { marginTop: 8 }]}
-                  onPress={handleImportNotes}
-                >
-                  <View style={styles.infoIcon}>
-                    <Ionicons 
-                      name="cloud-upload-outline" 
-                      size={22} 
-                      color={theme.accentColor}
-                    />
-                  </View>
-                  <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t('uploadBackup')}</Text>
-                    <Text style={styles.infoValue}>{t('uploadBackupDescription')}</Text>
-                  </View>
-                  <View style={styles.chevronContainer}>
-                    <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.version}>
-                <Text style={styles.versionText}>📱 Version 1.0.0</Text>
-              </View>
-            </ScrollView>
-          </SafeAreaView>
-        </Animated.View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar
+        backgroundColor={theme.backgroundColor}
+        barStyle={theme.isDarkMode ? "light-content" : "dark-content"}
+      />
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={theme.textColor} />
+          </TouchableOpacity>
+          <Text style={styles.title}>{t('settings')}</Text>
+        </View>
       </View>
 
-      {showUsernameModal && (
-        <UsernameModal
-          visible={showUsernameModal}
-          onSubmit={(newName: string) => {
-            onUpdateUsername(newName);
-            setShowUsernameModal(false);
-          }}
-          onClose={() => setShowUsernameModal(false)}
-        />
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        alwaysBounceVertical={true}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>👤 {t('information')}</Text>
+          <TouchableOpacity 
+            style={styles.infoItem}
+            onPress={() => setShowUsernameInput(true)}
+          >
+            <View style={styles.infoIcon}>
+              <Ionicons name="person-outline" size={22} color={theme.accentColor} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>{t('username')}</Text>
+              <Text style={styles.infoValue}>{username || t('enterUsername')}</Text>
+            </View>
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🌍 {t('language')}</Text>
+          <TouchableOpacity 
+            style={[styles.settingItem, currentLanguage === 'en' && styles.activeItem]}
+            onPress={() => setLanguage('en')}
+          >
+            <View style={styles.settingIcon}>
+              <Text style={{ fontSize: 18 }}>🇬🇧</Text>
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>{t('english')}</Text>
+            </View>
+            <View style={styles.radioButton}>
+              {currentLanguage === 'en' && <View style={styles.radioButtonInner} />}
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.settingItem, currentLanguage === 'el' && styles.activeItem]}
+            onPress={() => setLanguage('el')}
+          >
+            <View style={styles.settingIcon}>
+              <Text style={{ fontSize: 18 }}>🇬🇷</Text>
+            </View>
+            <View style={styles.settingContent}>
+              <Text style={styles.settingLabel}>{t('greek')}</Text>
+            </View>
+            <View style={styles.radioButton}>
+              {currentLanguage === 'el' && <View style={styles.radioButtonInner} />}
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎨 {t('display')}</Text>
+          <View style={styles.themeContainer}>
+            <TouchableOpacity 
+              style={[styles.themeItem, themeMode === 'system' && styles.themeItemActive]}
+              onPress={() => setThemeMode('system')}
+            >
+              <View style={styles.themeIcon}>
+                <Ionicons name="sunny-outline" size={24} color={theme.accentColor} />
+              </View>
+              <Text style={styles.themeLabel}>{t('systemTheme')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.themeItem, themeMode === 'light' && styles.themeItemActive]}
+              onPress={() => setThemeMode('light')}
+            >
+              <View style={styles.themeIcon}>
+                <Ionicons name="sunny" size={24} color={theme.accentColor} />
+              </View>
+              <Text style={styles.themeLabel}>{t('lightTheme')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.themeItem, themeMode === 'dark' && styles.themeItemActive]}
+              onPress={() => setThemeMode('dark')}
+            >
+              <View style={styles.themeIcon}>
+                <Ionicons name="moon" size={24} color={theme.accentColor} />
+              </View>
+              <Text style={styles.themeLabel}>{t('darkTheme')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎨 {t('appTheme')}</Text>
+          <View style={styles.colorThemeContainer}>
+            {Object.entries(appThemes).map(([key, color]) => (
+              <TouchableOpacity
+                key={key}
+                style={[
+                  styles.colorThemeItem,
+                  { backgroundColor: theme.backgroundColor },
+                  appTheme === key && styles.colorThemeActive,
+                ]}
+                onPress={() => setAppTheme(key as 'purple' | 'blue' | 'green' | 'orange' | 'pink')}
+              >
+                <View 
+                  style={[
+                    styles.colorThemeItemInner,
+                    { backgroundColor: color }
+                  ]} 
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🔒 {t('security')}</Text>
+          <TouchableOpacity 
+            style={styles.infoItem}
+            onPress={() => {
+              navigation.navigate('PinScreen', { isChangingPin: true });
+            }}
+          >
+            <View style={styles.infoIcon}>
+              <Ionicons name="key-outline" size={22} color={theme.accentColor} />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>{t('changePin')}</Text>
+              <Text style={styles.infoValue}>{t('changePinDescription')}</Text>
+            </View>
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+            </View>
+          </TouchableOpacity>
+
+          {hasBiometrics && (
+            <TouchableOpacity 
+              style={[styles.infoItem, { marginTop: 8 }]}
+              onPress={toggleBiometrics}
+            >
+              <View style={styles.infoIcon}>
+                <Ionicons 
+                  name="finger-print-outline"
+                  size={22} 
+                  color={theme.accentColor} 
+                />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>{t('biometricAuth')}</Text>
+                <Text style={styles.infoValue}>
+                  {biometricsEnabled ? t('enabled') : t('disabled')}
+                </Text>
+              </View>
+              <Switch
+                value={biometricsEnabled}
+                onValueChange={toggleBiometrics}
+                trackColor={{ 
+                  false: `${theme.placeholderColor}40`,
+                  true: `${theme.accentColor}80`
+                }}
+                thumbColor={biometricsEnabled ? theme.accentColor : theme.backgroundColor}
+                ios_backgroundColor={`${theme.placeholderColor}40`}
+                style={styles.switch}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💾 {t('backupNotes')}</Text>
+          <TouchableOpacity 
+            style={styles.infoItem}
+            onPress={handleExportNotes}
+          >
+            <View style={styles.infoIcon}>
+              <Ionicons 
+                name="download-outline" 
+                size={22} 
+                color={theme.accentColor}
+              />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>{t('downloadBackup')}</Text>
+              <Text style={styles.infoValue}>{t('downloadBackupDescription')}</Text>
+            </View>
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.infoItem, { marginTop: 8 }]}
+            onPress={handleImportNotes}
+          >
+            <View style={styles.infoIcon}>
+              <Ionicons 
+                name="cloud-upload-outline" 
+                size={22} 
+                color={theme.accentColor}
+              />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>{t('uploadBackup')}</Text>
+              <Text style={styles.infoValue}>{t('uploadBackupDescription')}</Text>
+            </View>
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.version}>
+          <Text style={styles.versionText}>📱 Version 1.0.0</Text>
+        </View>
+      </ScrollView>
+
+      {showUsernameInput && (
+        <Modal
+          visible={showUsernameInput}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowUsernameInput(false)}
+        >
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+            <View style={[styles.usernameModal, { backgroundColor: theme.backgroundColor }]}>
+              <Text style={[styles.usernameModalTitle, { color: theme.textColor }]}>
+                {t('enterUsername')}
+              </Text>
+              <TextInput
+                style={[styles.usernameInput, { 
+                  backgroundColor: theme.secondaryBackground,
+                  color: theme.textColor,
+                  borderColor: theme.borderColor
+                }]}
+                value={username || ''}
+                onChangeText={setUsername}
+                placeholder={t('enterUsername')}
+                placeholderTextColor={theme.placeholderColor}
+              />
+              <View style={styles.usernameModalButtons}>
+                <TouchableOpacity 
+                  style={[styles.usernameModalButton, { backgroundColor: theme.secondaryBackground }]}
+                  onPress={() => setShowUsernameInput(false)}
+                >
+                  <Text style={[styles.usernameModalButtonText, { color: theme.textColor }]}>
+                    {t('cancel')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.usernameModalButton, { backgroundColor: theme.accentColor }]}
+                  onPress={() => handleUpdateUsername(username || '')}
+                >
+                  <Text style={styles.usernameModalButtonText}>
+                    {t('save')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

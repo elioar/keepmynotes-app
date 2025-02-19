@@ -17,16 +17,16 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
 import NavigationMenu from './NavigationMenu';
 import AddNoteModal from './AddNoteModal';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HighlightText from './HighlightText';
 
 type RootStackParamList = {
   Home: undefined;
-  AddEditNote: { note?: any };
+  Task: { note?: any };
   Favorites: undefined;
 };
 
-type NavigationProp = StackNavigationProp<RootStackParamList>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function FavoritesScreen() {
   const { notes, updateNote } = useNotes();
@@ -70,16 +70,20 @@ export default function FavoritesScreen() {
     setIsModalVisible(false);
     switch (type) {
       case 'note':
-        navigation.navigate('AddEditNote', { note: { type: 'text' } });
+        navigation.navigate('Task', { note: { type: 'text' } });
         break;
       case 'task':
-        navigation.navigate('AddEditNote', { note: { type: 'checklist' } });
+        navigation.navigate('Task', { note: { type: 'task' } });
         break;
     }
   };
 
   const handleNotePress = (note: any) => {
-    navigation.navigate('AddEditNote', { note });
+    if (note.type === 'task') {
+      navigation.navigate('Task', { note });
+    } else {
+      navigation.navigate('Task', { note });
+    }
   };
 
   const styles = StyleSheet.create({

@@ -17,6 +17,7 @@ import {
   UIManager,
   Easing,
   ToastAndroid,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,17 +32,27 @@ import type { TaskItem } from './NotesContext';
 import SettingsModal from './components/SettingsModal';
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
-import UsernameModal from './components/UsernameModal';
 import NavigationMenu from './components/NavigationMenu';
 import FilterModal from './components/FilterModal';
 import NoteActionMenu from './components/NoteActionMenu';
 import * as Haptics from 'expo-haptics';
+import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
+
+const TAG_LABELS: Record<TagColor, string> = {
+  none: 'No Category',
+  green: 'Personal',
+  purple: 'Work',
+  blue: 'Study',
+  orange: 'Ideas',
+  red: 'Important'
+};
 
 type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
   Favorites: undefined;
   Task: { note?: any };
+  Settings: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -53,38 +64,119 @@ if (Platform.OS === 'android') {
   }
 }
 
+interface BaseNote {
+  id: string;           // Unique identifier for the note
+  title: string;        // Note title
+  description?: string; // Optional note description
+  createdAt: string;    // When the note was created
+  updatedAt: string;    // When the note was last updated
+  type: 'text' | 'checklist'; // Type of note - either text or checklist
+  isFavorite: boolean;  // Is this a favorite note?
+  isHidden: boolean;    // Is this note hidden?
+  color: TagColor | null; // Tag color for the note
+}
+
+type Note = BaseNote & {
+  tasks?: TaskItem[];  // Optional tasks for checklist type notes
+};
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Responsive sizing utilities
+const wp = (percentage: number) => {
+  return (SCREEN_WIDTH * percentage) / 100;
+};
+
+const hp = (percentage: number) => {
+  return (SCREEN_HEIGHT * percentage) / 100;
+};
+
+const normalize = (size: number) => {
+  const scale = SCREEN_WIDTH / 375; // 375 is standard iPhone width
+  const newSize = size * scale;
+  return Math.round(newSize);
+};
+
+interface TagTranslations {
+  tagColors: {
+    [K in TagColor]: string;
+  };
+}
+
+// Add helper function after imports
+function getBorderColor(color: string | TagColor | null | undefined, defaultColor: string): string {
+  if (!color) return defaultColor;
+  if (Object.keys(TAG_COLORS).includes(color)) {
+    return getTagColorValue(color as TagColor);
+  }
+  return defaultColor;
+}
+
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const { notes, deleteNote, updateNote } = useNotes();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const [localUsername, setLocalUsername] = useState('');
-  const [showUsernameModal, setShowUsernameModal] = useState(true);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [fadingNoteId, setFadingNoteId] = useState<string | null>(null);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [isGridView, setIsGridView] = useState(false);
+  const [isViewPreferenceLoaded, setIsViewPreferenceLoaded] = useState(false);
+  const [localUsername, setLocalUsername] = useState<string | null>(null);
 
+  // Load username from AsyncStorage
   useEffect(() => {
-    const loadSavedUsername = async () => {
+    const loadUsername = async () => {
       try {
-        const saved = await AsyncStorage.getItem('@username');
-        if (saved) {
-          setLocalUsername(saved);
-          setShowUsernameModal(false);
-        }
+        const savedUsername = await AsyncStorage.getItem('@username');
+        setLocalUsername(savedUsername);
       } catch (error) {
         console.error('Error loading username:', error);
       }
     };
-    loadSavedUsername();
+    loadUsername();
   }, []);
+
+  // Load saved view preference
+  useEffect(() => {
+    const loadViewPreference = async () => {
+      try {
+        const savedPreference = await AsyncStorage.getItem('@view_preference');
+        if (savedPreference !== null) {
+          setIsGridView(savedPreference === 'grid');
+        }
+        setIsViewPreferenceLoaded(true);
+      } catch (error) {
+        console.error('Error loading view preference:', error);
+        setIsViewPreferenceLoaded(true);
+      }
+    };
+    loadViewPreference();
+  }, []);
+
+  // Save view preference when it changes
+  const toggleViewMode = async () => {
+    const newMode = !isGridView;
+    try {
+      await AsyncStorage.setItem('@view_preference', newMode ? 'grid' : 'list');
+      setIsGridView(newMode);
+    } catch (error) {
+      console.error('Error saving view preference:', error);
+      setIsGridView(newMode); // Still update the state even if saving fails
+    }
+  };
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: [0, -200],
+    extrapolate: 'clamp'
+  });
 
   const handleNotePress = (note: any) => {
     navigation.navigate('Task', { note });
@@ -142,15 +234,14 @@ export default function HomeScreen() {
       });
 
       // Fade out animation
-      Animated.timing(fadeAnim, {
-        toValue: 0,
+      Animated.timing(scrollY, {
+        toValue: 1,
         duration: 500,
         useNativeDriver: true,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
       }).start(async () => {
         await deleteNote(noteId);
         setFadingNoteId(null);
-        fadeAnim.setValue(1);
+        scrollY.setValue(0);
       });
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -159,6 +250,11 @@ export default function HomeScreen() {
 
   const getFilteredNotes = () => {
     let filteredNotes = notes.filter(note => !note.isHidden);
+
+    // Sort by creation date (newest first)
+    filteredNotes = filteredNotes.sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     if (searchQuery) {
       filteredNotes = filteredNotes.filter(note => 
@@ -187,6 +283,12 @@ export default function HomeScreen() {
         filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= thisMonth);
       }
 
+      // Apply tag filters
+      const tagFilter = activeFilters.find(filter => ['green', 'purple', 'blue', 'orange', 'red'].includes(filter));
+      if (tagFilter) {
+        filteredNotes = filteredNotes.filter(note => note.color === tagFilter);
+      }
+
       // Apply type filters
       if (activeFilters.includes('tasks')) {
         filteredNotes = filteredNotes.filter(note => note.type === 'checklist');
@@ -198,9 +300,7 @@ export default function HomeScreen() {
         filteredNotes = filteredNotes.filter(note => note.isFavorite);
       }
       if (activeFilters.includes('recent')) {
-        filteredNotes = filteredNotes.sort((a, b) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }).slice(0, 10);
+        filteredNotes = filteredNotes.slice(0, 10);
       }
     }
 
@@ -223,7 +323,7 @@ export default function HomeScreen() {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return t('justNow');
+        return t('now');
       }
 
       const now = new Date();
@@ -249,19 +349,6 @@ export default function HomeScreen() {
       }
     } catch (error) {
       return t('justNow');
-    }
-  };
-
-  const handleUsernameSubmit = async (name: string) => {
-    try {
-      const trimmedName = name.trim();
-      if (!trimmedName) return;
-      
-      await AsyncStorage.setItem('@username', trimmedName);
-      setLocalUsername(trimmedName);
-      setShowUsernameModal(false);
-    } catch (error) {
-      console.error('Error saving username:', error);
     }
   };
 
@@ -310,15 +397,14 @@ export default function HomeScreen() {
           });
 
           // Slower fade out animation
-          Animated.timing(fadeAnim, {
-            toValue: 0,
+          Animated.timing(scrollY, {
+            toValue: 1,
             duration: 500,
             useNativeDriver: true,
-            easing: Easing.bezier(0.4, 0, 0.2, 1),
           }).start(async () => {
             await deleteNote(selectedNote.id);
             setFadingNoteId(null);
-            fadeAnim.setValue(1);
+            scrollY.setValue(0);
           });
           break;
 
@@ -349,17 +435,15 @@ export default function HomeScreen() {
 
           // Ομαλότερο animation εξαφάνισης
           Animated.sequence([
-            Animated.timing(fadeAnim, {
+            Animated.timing(scrollY, {
               toValue: 0.5,
               duration: 150,
               useNativeDriver: true,
-              easing: Easing.out(Easing.ease),
             }),
-            Animated.timing(fadeAnim, {
+            Animated.timing(scrollY, {
               toValue: 0,
               duration: 150,
               useNativeDriver: true,
-              easing: Easing.in(Easing.ease),
             })
           ]).start(async () => {
             const updatedNote = {
@@ -377,7 +461,7 @@ export default function HomeScreen() {
             );
             
             setFadingNoteId(null);
-            fadeAnim.setValue(1);
+            scrollY.setValue(0);
           });
           break;
       }
@@ -388,17 +472,70 @@ export default function HomeScreen() {
     }
   };
 
+  const handleColorChange = async (color: TagColor | null) => {
+    if (!selectedNote?.id) return;
+    
+    try {
+      const updatedNote = {
+        ...selectedNote,
+        color,
+        updatedAt: new Date().toISOString(),
+      };
+      await updateNote(updatedNote);
+      setShowActionMenu(false);
+      setSelectedNote(null);
+    } catch (error) {
+      console.error('Error changing note color:', error);
+    }
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.backgroundColor,
       position: 'relative',
     },
+    headerContainer: {
+      position: 'absolute',
+      top: 20,
+      left: 0,
+      right: 0,
+      zIndex: 98,
+      backgroundColor: theme.backgroundColor,
+      paddingTop: Platform.OS === 'ios' ? hp(4) : hp(2),
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingHorizontal: wp(5),
+      paddingBottom: hp(1),
+    },
+    headerGreeting: {
+      fontSize: normalize(20),
+      fontWeight: '600',
+      color: theme.textColor,
+    },
+    headerName: {
+      fontSize: normalize(30),
+      fontWeight: '600',
+      color: theme.textColor,
+      marginTop: hp(0.5),
+    },
+    menuButton: {
+      width: wp(10),
+      height: wp(10),
+      borderRadius: wp(3),
+      backgroundColor: theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: hp(1),
+    },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.secondaryBackground,
-      marginHorizontal: 20,
+      marginTop: 16,
       marginBottom: 16,
       borderRadius: 16,
       paddingHorizontal: 16,
@@ -423,18 +560,18 @@ export default function HomeScreen() {
     },
     notesContainer: {
       flex: 1,
-      paddingHorizontal: 20,
-      paddingTop: 8,
+      paddingHorizontal: wp(5),
+      marginTop: -hp(2),
     },
     noteCard: {
       backgroundColor: theme.secondaryBackground,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
-      height: 175,
+      borderRadius: wp(4),
+      padding: wp(4),
+      marginBottom: hp(2),
+      minHeight: hp(20),
       flexDirection: 'column',
       borderLeftWidth: 3,
-      borderLeftColor: theme.accentColor,
+      borderLeftColor: getBorderColor(selectedNote?.color, theme.borderColor),
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
@@ -444,16 +581,21 @@ export default function HomeScreen() {
       shadowRadius: 3,
       elevation: 3,
     },
+    tagLabel: {
+      fontSize: normalize(12),
+      fontWeight: '500',
+    },
     noteHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 6,
+      alignItems: 'flex-start',
+      marginBottom: hp(1),
     },
     noteDate: {
       color: theme.placeholderColor,
-      fontSize: 12,
+      fontSize: normalize(12),
       fontWeight: '500',
+      marginTop: 4,
     },
     noteContent: {
       flex: 1,
@@ -461,14 +603,14 @@ export default function HomeScreen() {
     },
     noteTitle: {
       color: theme.textColor,
-      fontSize: 18,
+      fontSize: normalize(18),
       fontWeight: '600',
-      marginBottom: 6,
+      marginBottom: hp(0.7),
     },
     noteDescription: {
       color: theme.placeholderColor,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: normalize(14),
+      lineHeight: normalize(18),
       overflow: 'hidden',
     },
     noteFooter: {
@@ -490,7 +632,7 @@ export default function HomeScreen() {
     },
     statusText: {
       color: theme.placeholderColor,
-      fontSize: 11,
+      fontSize: normalize(11),
     },
     fab: {
       position: 'absolute',
@@ -516,20 +658,17 @@ export default function HomeScreen() {
     },
     actionContainer: {
       width: 80,
-      height: 175,
-      marginBottom: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingLeft: 8,
+      marginLeft: 8,
+      marginBottom: hp(2),
+      height: hp(20),
     },
     deleteButton: {
-      flex: 1,
       width: '100%',
+      height: '100%',
       backgroundColor: '#FF4E4E',
       justifyContent: 'center',
       alignItems: 'center',
-      borderRadius: 16,
-      height: 175,
+      borderRadius: wp(4),
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
@@ -538,79 +677,6 @@ export default function HomeScreen() {
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 3,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      paddingHorizontal: 20,
-      paddingTop: 20,
-      paddingBottom: 30,
-    },
-    headerGreeting: {
-      fontSize: 28,
-      fontWeight: '600',
-      color: theme.textColor,
-      paddingTop: 35,
-    },
-    headerName: {
-      fontSize: 32,
-      fontWeight: '600',
-      color: theme.textColor,
-      marginTop: 5,
-    },
-    menuButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.secondaryBackground,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: 60,
-    },
-    bottomNavigation: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 65,
-      backgroundColor: theme.secondaryBackground,
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      paddingBottom: 10,
-      borderTopWidth: 1,
-      borderTopColor: theme.borderColor,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: -2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 5,
-    },
-    navItem: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 50,
-      height: 50,
-    },
-    addButton: {
-      width: 45,
-      height: 45,
-      borderRadius: 15,
-      backgroundColor: theme.accentColor,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 3,
-      elevation: 5,
     },
     filterDot: {
       position: 'absolute',
@@ -630,38 +696,146 @@ export default function HomeScreen() {
     hidingNote: {
       transform: [
         {
-          scale: fadeAnim.interpolate({
+          scale: scrollY.interpolate({
             inputRange: [0, 1],
             outputRange: [0.8, 1],
           })
         },
         {
-          translateX: fadeAnim.interpolate({
+          translateX: scrollY.interpolate({
             inputRange: [0, 1],
             outputRange: [-50, 0],
           })
         }
       ],
-      opacity: fadeAnim
+      opacity: scrollY
     },
     emptyState: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingBottom: 100,
-      paddingTop: 150,
+      paddingBottom: hp(12),
+      paddingTop: hp(18),
     },
     emptyStateText: {
       color: theme.placeholderColor,
-      fontSize: 16,
+      fontSize: normalize(16),
       textAlign: 'center',
       maxWidth: '80%',
     },
     emptyStateIcon: {
       backgroundColor: `${theme.accentColor}15`,
-      padding: 20,
-      borderRadius: 30,
-      marginBottom: 16,
+      padding: wp(5),
+      borderRadius: wp(8),
+      marginBottom: hp(2),
+    },
+    settingsButton: {
+      padding: 4,
+    },
+    headerButtons: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: wp(3),
+      marginTop: hp(2),
+    },
+    iconButton: {
+      width: wp(10),
+      height: wp(10),
+      borderRadius: wp(3),
+      backgroundColor: theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    notesGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    gridCard: {
+      width: '48%',
+      minHeight: hp(18),
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: wp(4),
+      padding: wp(3),
+      marginBottom: hp(2),
+      justifyContent: 'space-between',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    gridCardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: hp(1),
+    },
+    gridCardDate: {
+      fontSize: normalize(12),
+      color: theme.placeholderColor,
+      marginTop: 4,
+    },
+    gridCardContent: {
+      flex: 1,
+      marginTop: hp(0.5),
+    },
+    gridCardTitle: {
+      fontSize: normalize(14),
+      fontWeight: '600',
+      color: theme.textColor,
+      marginBottom: hp(0.5),
+    },
+    gridCardDescription: {
+      fontSize: normalize(12),
+      color: theme.placeholderColor,
+      lineHeight: normalize(16),
+    },
+    gridCardFooter: {
+      marginTop: hp(0.5),
+    },
+    gridCardTime: {
+      fontSize: normalize(11),
+      color: theme.placeholderColor,
+      opacity: 0.8,
+    },
+    gridHeaderActions: {
+      gap: wp(8),
+    },
+    gridNoteFooter: {
+      marginTop: 'auto',
+      paddingTop: 8,
+    },
+    gridActionIcon: {
+      width: normalize(20),
+      height: normalize(20),
+    },
+    addTagButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingLeft: 0,
+      paddingBottom: 10,
+    },
+    categoryContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 2,
+    },
+    addCategoryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      gap: 4,
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        `${theme.secondaryBackground}80`,
+      borderRadius: 8,
+      marginLeft: -14,
     },
   });
 
@@ -676,81 +850,106 @@ export default function HomeScreen() {
           barStyle={theme.isDarkMode ? "light-content" : "dark-content"} 
         />
         
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerGreeting}>
-              {t('hello')},
-            </Text>
-            <Text style={styles.headerName}>
-              {localUsername ? `${localUsername} 👋` : ''}
-            </Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.menuButton}
-            onPress={() => setIsFilterModalVisible(true)}
-          >
-            <View>
-              <Ionicons 
-                name="funnel-outline" 
-                size={24} 
-                color={activeFilters.length > 0 ? theme.accentColor : theme.textColor} 
-              />
-              {activeFilters.length > 0 && (
-                <View style={styles.filterDot} />
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
-        
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons 
-            name="search-outline" 
-            size={22} 
-            color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('searchHere')}
-            placeholderTextColor={theme.placeholderColor}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => setSearchQuery('')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons 
-                name="close-circle" 
-                size={20} 
-                color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-              />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Notes List */}
-        <ScrollView 
-          style={styles.notesContainer}
-          contentContainerStyle={{ paddingBottom: 100 }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="none"
-          showsVerticalScrollIndicator={true}
-          overScrollMode="always"
-          bounces={true}
+        <Animated.View 
+          style={[
+            styles.headerContainer,
+            { transform: [{ translateY: headerTranslateY }] }
+          ]}
         >
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.headerGreeting}>{t('hello')},</Text>
+              <Text style={styles.headerName}>
+                {localUsername ? `${localUsername} 👋` : ''}
+              </Text>
+            </View>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={toggleViewMode}
+              >
+                <Ionicons 
+                  name={isGridView ? "grid-outline" : "list-outline"} 
+                  size={normalize(24)} 
+                  color={theme.textColor} 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => setIsFilterModalVisible(true)}
+              >
+                <View>
+                  <Ionicons 
+                    name="funnel-outline" 
+                    size={normalize(24)} 
+                    color={activeFilters.length > 0 ? theme.accentColor : theme.textColor} 
+                  />
+                  {activeFilters.length > 0 && <View style={styles.filterDot} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => navigation.navigate('Settings')}
+              >
+                <Ionicons 
+                  name="settings-outline" 
+                  size={normalize(24)} 
+                  color={theme.textColor} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+
+        <Animated.ScrollView 
+          style={styles.notesContainer}
+          contentContainerStyle={{ 
+            paddingTop: hp(17),
+            paddingBottom: hp(12) 
+          }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.searchContainer}>
+            <Ionicons 
+              name="search-outline" 
+              size={22} 
+              color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('searchHere')}
+              placeholderTextColor={theme.placeholderColor}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity 
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name="close-circle" 
+                  size={20} 
+                  color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
           {getFilteredNotes().length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyStateIcon}>
                 <Ionicons 
                   name="document-text-outline" 
-                  size={48} 
+                  size={normalize(48)} 
                   color={theme.accentColor} 
                 />
               </View>
@@ -758,111 +957,214 @@ export default function HomeScreen() {
                 {t('noNotes')}
               </Text>
             </View>
-          ) : (
-            getFilteredNotes().map((note) => (
-              <Animated.View
-                key={note.id}
-                style={[
-                  fadingNoteId === note.id && [
-                    styles.hidingNote,
-                    {
-                      opacity: fadeAnim,
-                      transform: [{
-                        scale: fadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                        })
-                      }]
-                    }
-                  ]
-                ]}
-              >
-                <Swipeable
-                  renderRightActions={(progress, dragX) => (
-                    <View style={styles.actionContainer}>
-                      <TouchableOpacity 
-                        style={styles.deleteButton}
-                        onPress={() => handleDelete(note.id)}
-                      >
-                        <Ionicons name="trash-outline" size={22} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  overshootRight={false}
-                  friction={2}
-                  rightThreshold={40}
-                >
+          ) : isViewPreferenceLoaded ? (
+            <View style={isGridView ? styles.notesGrid : null}>
+              {isGridView ? (
+                getFilteredNotes().map((note) => (
                   <Pressable 
-                    style={styles.noteCard}
+                    key={note.id}
+                    style={[
+                      styles.gridCard,
+                      { 
+                        backgroundColor: theme.secondaryBackground,
+                        borderRadius: wp(4),
+                        borderLeftWidth: 3,
+                        borderLeftColor: getBorderColor(note.color, theme.borderColor),
+                      }
+                    ]}
                     onPress={() => handleNotePress(note)}
                     onLongPress={() => handleLongPress(note)}
                     delayLongPress={300}
                   >
-                    <View style={styles.noteHeader}>
-                      <Text style={styles.noteDate}>
-                        {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
-                          day: 'numeric', 
-                          month: 'short' 
-                        })}
-                      </Text>
-                      <View style={styles.headerActions}>
-                        <TouchableOpacity onPress={() => handleFavorite(note)}>
-                          <Ionicons 
-                            name={note.isFavorite ? "heart" : "heart-outline"}
-                            size={24} 
-                            color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          onPress={() => {
-                            setSelectedNote(note);
-                            setShowActionMenu(true);
-                          }}
-                          style={{ marginLeft: 12 }}
-                        >
-                          <Ionicons 
-                            name="ellipsis-vertical" 
-                            size={24} 
-                            color={theme.placeholderColor} 
-                          />
-                        </TouchableOpacity>
+                    <View style={styles.gridCardHeader}>
+                      <View>
+                        <View style={styles.categoryContainer}>
+                          <Text 
+                            style={[
+                              styles.tagLabel, 
+                              { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
+                            ]}
+                          >
+                            {note.color ? TAG_LABELS[note.color as TagColor] : ''}
+                          </Text>
+                          {!note.color && (
+                            <TouchableOpacity 
+                              style={styles.addCategoryButton}
+                              onPress={() => {
+                                setSelectedNote(note);
+                                setShowActionMenu(true);
+                              }}
+                            >
+                              <Ionicons 
+                                name="add-circle-outline" 
+                                size={normalize(16)} 
+                                color={theme.placeholderColor} 
+                              />
+                              <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
+                                {t('addTag')}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       </View>
+                      <TouchableOpacity onPress={() => handleFavorite(note)}>
+                        <Ionicons 
+                          name={note.isFavorite ? "heart" : "heart-outline"}
+                          size={normalize(20)}
+                          color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                        />
+                      </TouchableOpacity>
                     </View>
 
-                    <View style={styles.noteContent}>
-                      <Text style={styles.noteTitle} numberOfLines={1}>
-                        <HighlightText 
-                          text={note.title}
-                          highlight={searchQuery}
-                          style={styles.noteTitle}
-                        />
+                    <View style={styles.gridCardContent}>
+                      <Text style={styles.gridCardTitle} numberOfLines={2}>
+                        {note.title}
                       </Text>
-
                       {note.description && (
-                        <Text style={styles.noteDescription} numberOfLines={2}>
-                          <HighlightText 
-                            text={truncateText(note.description, 100)}
-                            highlight={searchQuery}
-                            style={styles.noteDescription}
-                          />
+                        <Text style={styles.gridCardDescription} numberOfLines={3}>
+                          {note.description}
                         </Text>
                       )}
                     </View>
-
-                    <View style={styles.noteFooter}>
-                      <View style={styles.statusContainer}>
-                        <View style={styles.statusDot} />
-                        <Text style={styles.statusText}>
-                          {getTimeAgo(note.createdAt || new Date().toISOString())}
-                        </Text>
-                      </View>
-                    </View>
                   </Pressable>
-                </Swipeable>
-              </Animated.View>
-            ))
-          )}
-        </ScrollView>
+                ))
+              ) : (
+                getFilteredNotes().map((note) => (
+                  <Animated.View
+                    key={note.id}
+                    style={[
+                      fadingNoteId === note.id && styles.hidingNote,
+                    ]}
+                  >
+                    <Swipeable
+                      renderRightActions={(progress, dragX) => (
+                        <View style={styles.actionContainer}>
+                          <TouchableOpacity 
+                            style={styles.deleteButton}
+                            onPress={() => handleDelete(note.id)}
+                          >
+                            <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      enabled={!isGridView}
+                    >
+                      <Pressable 
+                        style={[
+                          styles.noteCard,
+                          { 
+                            backgroundColor: theme.secondaryBackground,
+                            borderRadius: wp(4),
+                            borderLeftWidth: 3,
+                            borderLeftColor: getBorderColor(note.color, theme.borderColor),
+                          }
+                        ]}
+                        onPress={() => handleNotePress(note)}
+                        onLongPress={() => handleLongPress(note)}
+                        delayLongPress={300}
+                      >
+                        <View style={[styles.noteHeader]}>
+                          <View>
+                            <View style={styles.categoryContainer}>
+                              <Text 
+                                style={[
+                                  styles.tagLabel, 
+                                  { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
+                                ]}
+                              >
+                                {note.color ? TAG_LABELS[note.color as TagColor] : ''}
+                              </Text>
+                              {!note.color && (
+                                <TouchableOpacity 
+                                  style={styles.addCategoryButton}
+                                  onPress={() => {
+                                    setSelectedNote(note);
+                                    setShowActionMenu(true);
+                                  }}
+                                >
+                                  <Ionicons 
+                                    name="add-circle-outline" 
+                                    size={normalize(16)} 
+                                    color={theme.placeholderColor} 
+                                  />
+                                  <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
+                                    {t('addTag')}
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                            <Text style={styles.noteDate}>
+                              {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
+                                day: 'numeric', 
+                                month: 'short' 
+                              })}
+                            </Text>
+                          </View>
+                          <View style={[styles.headerActions]}>
+                            <TouchableOpacity onPress={() => handleFavorite(note)}>
+                              <Ionicons 
+                                name={note.isFavorite ? "heart" : "heart-outline"}
+                                size={normalize(24)}
+                                color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                              />
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              onPress={() => {
+                                setSelectedNote(note);
+                                setShowActionMenu(true);
+                              }}
+                            >
+                              <Ionicons 
+                                name="ellipsis-vertical" 
+                                size={normalize(24)}
+                                color={theme.placeholderColor} 
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        <View style={styles.noteContent}>
+                          <Text 
+                            style={[styles.noteTitle]} 
+                            numberOfLines={1}
+                          >
+                            <HighlightText 
+                              text={note.title}
+                              highlight={searchQuery}
+                              style={[styles.noteTitle]}
+                            />
+                          </Text>
+
+                          {note.description && (
+                            <Text 
+                              style={[styles.noteDescription]} 
+                              numberOfLines={3}
+                            >
+                              <HighlightText 
+                                text={truncateText(note.description, 100)}
+                                highlight={searchQuery}
+                                style={[styles.noteDescription]}
+                              />
+                            </Text>
+                          )}
+                        </View>
+
+                        <View style={[styles.noteFooter]}>
+                          <View style={styles.statusContainer}>
+                            <View style={styles.statusDot} />
+                            <Text style={[styles.statusText]}>
+                              {getTimeAgo(note.createdAt || new Date().toISOString())}
+                            </Text>
+                          </View>
+                        </View>
+                      </Pressable>
+                    </Swipeable>
+                  </Animated.View>
+                ))
+              )}
+            </View>
+          ) : null}
+        </Animated.ScrollView>
 
         <NavigationMenu 
           onAddPress={() => setIsModalVisible(true)}
@@ -872,13 +1174,6 @@ export default function HomeScreen() {
           visible={isModalVisible}
           onClose={() => setIsModalVisible(false)}
           onSelectOption={handleOptionSelect}
-        />
-
-        <SettingsModal
-          visible={isSettingsVisible}
-          onClose={() => setIsSettingsVisible(false)}
-          username={localUsername}
-          onUpdateUsername={handleUsernameSubmit}
         />
 
         <FilterModal
@@ -898,6 +1193,8 @@ export default function HomeScreen() {
           onEdit={() => handleNoteAction('edit')}
           onDelete={() => handleNoteAction('delete')}
           onHide={() => handleNoteAction('hide')}
+          onColorChange={handleColorChange}
+          currentColor={selectedNote?.color || '#4CAF50'}
           isHidden={false}
         />
       </View>

@@ -1,69 +1,93 @@
+import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import HomeScreen from './HomeScreen';
-import AddEditNoteScreen from './AddEditNoteScreen';
 import FavoritesScreen from './components/FavoritesScreen';
 import { NotesProvider } from './NotesContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
-import { UserProvider } from './context/UserContext';
 import HiddenNotesScreen from './components/HiddenNotesScreen';
 import SecurityCheck from './components/SecurityCheck';
 import PinScreen from './components/PinScreen';
 import TaskScreen from './components/TaskScreen';
+import { OnboardingProvider, useOnboarding } from './context/OnboardingContext';
+import { Easing } from 'react-native';
+import WelcomeScreen from './components/WelcomeScreen';
+import UserPreferencesScreen from './components/UserPreferencesScreen';
+import SettingsScreen from './components/SettingsModal';
 
 type RootStackParamList = {
+  Welcome: undefined;
+  UserPreferences: undefined;
   Home: undefined;
-  AddEditNote: { note?: any };
   Favorites: undefined;
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
   Task: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator();
 
 function Navigation() {
+  const { theme } = useTheme();
+  const { isFirstLaunch } = useOnboarding();
+  
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen
-        name="Home"
+    <Stack.Navigator 
+      initialRouteName={isFirstLaunch ? "Welcome" : "Home"}
+      screenOptions={{ 
+        headerShown: false,
+        contentStyle: {
+          backgroundColor: theme.backgroundColor,
+        },
+        presentation: 'card',
+        gestureEnabled: false,
+        animation: 'none',
+        animationTypeForReplace: 'pop'
+      }}
+    >
+      {isFirstLaunch && (
+        <>
+          <Stack.Screen 
+            name="Welcome" 
+            component={WelcomeScreen}
+          />
+          <Stack.Screen 
+            name="UserPreferences" 
+            component={UserPreferencesScreen}
+          />
+        </>
+      )}
+      <Stack.Screen 
+        name="Home" 
         component={HomeScreen}
-        options={{ animation: 'none' }}
       />
       <Stack.Screen 
         name="Favorites" 
         component={FavoritesScreen}
-        options={{ animation: 'none' }}
       />
       <Stack.Screen 
-        name="AddEditNote" 
-        component={AddEditNoteScreen} 
-      />
-      <Stack.Screen
-        name="SecurityCheck"
+        name="SecurityCheck" 
         component={SecurityCheck}
-        options={{ animation: 'fade' }}
       />
-      <Stack.Screen
-        name="HiddenNotes"
+      <Stack.Screen 
+        name="HiddenNotes" 
         component={HiddenNotesScreen}
-        options={{ animation: 'slide_from_right' }}
       />
-      <Stack.Screen
-        name="PinScreen"
+      <Stack.Screen 
+        name="PinScreen" 
         component={PinScreen}
-        options={{ animation: 'fade' }}
       />
       <Stack.Screen 
         name="Task" 
         component={TaskScreen}
-        options={{ 
-          animation: 'slide_from_right',
-          presentation: 'card'
-        }}
+      />
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen}
       />
     </Stack.Navigator>
   );
@@ -72,17 +96,17 @@ function Navigation() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NotesProvider>
-        <ThemeProvider>
-          <LanguageProvider>
-            <UserProvider>
+      <OnboardingProvider>
+        <NotesProvider>
+          <ThemeProvider>
+            <LanguageProvider>
               <View style={{ flex: 1 }}>
                 <Navigation />
               </View>
-            </UserProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </NotesProvider>
+            </LanguageProvider>
+          </ThemeProvider>
+        </NotesProvider>
+      </OnboardingProvider>
     </GestureHandlerRootView>
   );
 }

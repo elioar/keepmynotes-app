@@ -24,7 +24,7 @@ import NoteActionMenu from './NoteActionMenu';
 
 type RootStackParamList = {
   Home: undefined;
-  AddEditNote: { note?: any };
+  Task: { note?: any };
   Favorites: undefined;
   HiddenNotes: undefined;
 };
@@ -50,7 +50,11 @@ export default function HiddenNotesScreen() {
 
   const hiddenNotes = notes.filter(note => note.isHidden === true);
   const handleNotePress = (note: any) => {
-    navigation.navigate('AddEditNote', { note });
+    if (note.type === 'task') {
+      navigation.navigate('Task', { note });
+    } else {
+      navigation.navigate('Task', { note });
+    }
   };
 
   const handleDelete = async (noteId: string | undefined) => {

@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React from 'react';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import SettingsModal from './SettingsModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as LocalAuthentication from 'expo-local-authentication';
 
 type RootStackParamList = {
   Home: undefined;
@@ -16,6 +13,7 @@ type RootStackParamList = {
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
   Task: undefined;
+  Settings: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,20 +25,7 @@ interface Props {
 export default function NavigationMenu({ onAddPress }: Props) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
-  const [username, setUsername] = useState('');
   
-  useEffect(() => {
-    AsyncStorage.getItem('@username').then(saved => {
-      if (saved) setUsername(saved);
-    });
-  }, []);
-
-  const handleUpdateUsername = async (newUsername: string) => {
-    await AsyncStorage.setItem('@username', newUsername);
-    setUsername(newUsername);
-  };
-
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   
   const isActive = (screenName: string) => currentRoute === screenName;
@@ -61,8 +46,8 @@ export default function NavigationMenu({ onAddPress }: Props) {
       right: 0,
       height: 70,
       backgroundColor: theme.isDarkMode 
-        ? 'rgba(45, 45, 45, 0.98)'  // Πιο σκούρο για dark mode
-        : 'rgba(245, 245, 245, 0.98)', // Πιο ανοιχτό για light mode
+        ? 'rgba(45, 45, 45, 0.98)'
+        : 'rgba(245, 245, 245, 0.98)',
       flexDirection: 'row',
       justifyContent: 'space-around',
       alignItems: 'center',
@@ -103,58 +88,49 @@ export default function NavigationMenu({ onAddPress }: Props) {
   });
 
   return (
-    <>
-      <View style={styles.container}>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Ionicons 
-            name={isActive('Home') ? "home" : "home-outline"} 
-            size={24} 
-            color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Favorites')}
-        >
-          <Ionicons 
-            name={isActive('Favorites') ? "heart" : "heart-outline"} 
-            size={24} 
-            color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleAddPress}
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('PinScreen', { isChangingPin: false })}
-        >
-          <Ionicons name="lock-closed-outline" size={24} color={theme.placeholderColor} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => setIsSettingsVisible(true)}
-        >
-          <Ionicons name="person-outline" size={24} color={theme.placeholderColor} />
-        </TouchableOpacity>
-      </View>
-
-      <SettingsModal
-        visible={isSettingsVisible}
-        onClose={() => setIsSettingsVisible(false)}
-        username={username}
-        onUpdateUsername={handleUpdateUsername}
-      />
-    </>
+    <View style={styles.container}>
+      <TouchableOpacity 
+        style={styles.navItem}
+        onPress={() => navigation.navigate('Home')}
+      >
+        <Ionicons 
+          name={isActive('Home') ? "home" : "home-outline"} 
+          size={24} 
+          color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
+        />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.navItem}
+        onPress={() => navigation.navigate('Favorites')}
+      >
+        <Ionicons 
+          name={isActive('Favorites') ? "heart" : "heart-outline"} 
+          size={24} 
+          color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
+        />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.addButton}
+        onPress={handleAddPress}
+      >
+        <Ionicons name="add" size={24} color="#fff" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.navItem}
+        onPress={() => navigation.navigate('PinScreen', { isChangingPin: false })}
+      >
+        <Ionicons name="lock-closed-outline" size={24} color={theme.placeholderColor} />
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.navItem}
+        onPress={() => navigation.navigate('Settings')}
+      >
+        <Ionicons name="person-outline" size={24} color={theme.placeholderColor} />
+      </TouchableOpacity>
+    </View>
   );
 } 

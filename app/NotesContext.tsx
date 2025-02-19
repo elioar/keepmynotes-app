@@ -13,10 +13,11 @@ export interface Note {
   content?: string;
   createdAt: string;
   updatedAt: string;
-  type: 'text' | 'checklist';
+  type: 'text' | 'checklist' | 'task';
   isFavorite: boolean;
   isHidden: boolean;
   tasks?: TaskItem[];
+  color?: string;
 }
 
 interface BackupData {
@@ -179,10 +180,14 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         id: String(note.id || Date.now()),
         title: String(note.title || ''),
         description: String(note.description || ''),
-        type: (note.type === 'checklist' ? 'checklist' : 'text') as 'text' | 'checklist',
+        content: String(note.content || note.description || ''),
+        type: ((note.type === 'checklist' || note.type === 'task') ? 'checklist' : 'text') as Note['type'],
         isFavorite: Boolean(note.isFavorite),
         isHidden: Boolean(note.isHidden),
-        tasks: Array.isArray(note.tasks) ? note.tasks : [],
+        tasks: Array.isArray(note.tasks) ? note.tasks.map(task => ({
+          text: String(task.text || ''),
+          isCompleted: Boolean(task.isCompleted)
+        })) : [],
         createdAt: note.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }));
@@ -194,6 +199,11 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         const existingNoteIndex = existingNotes.findIndex(note => note.id === importedNote.id);
         if (existingNoteIndex === -1) {
           mergedNotes.push(importedNote);
+        } else {
+          mergedNotes[existingNoteIndex] = {
+            ...importedNote,
+            updatedAt: new Date().toISOString()
+          };
         }
       });
 

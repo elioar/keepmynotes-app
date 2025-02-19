@@ -1,16 +1,43 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  TouchableOpacity,
   Modal,
+  TouchableOpacity,
+  StyleSheet,
+  Pressable,
+  ScrollView,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { BlurView } from 'expo-blur';
+import { TAG_COLORS, TagColor } from '../constants/tags';
+
+interface TagTranslations {
+  tagColors: {
+    [K in TagColor]: string;
+  };
+}
+
+const TAG_ICONS: Record<TagColor, keyof typeof Ionicons.glyphMap> = {
+  none: 'remove-outline',
+  green: 'person-outline',
+  purple: 'briefcase-outline',
+  blue: 'book-outline',
+  orange: 'bulb-outline',
+  red: 'alert-circle-outline'
+};
+
+const TAG_LABELS: Record<TagColor, string> = {
+  none: 'No Category',
+  green: 'Personal',
+  purple: 'Work',
+  blue: 'Study',
+  orange: 'Ideas',
+  red: 'Important'
+};
 
 interface NoteActionMenuProps {
   visible: boolean;
@@ -18,153 +45,242 @@ interface NoteActionMenuProps {
   onEdit: () => void;
   onDelete: () => void;
   onHide: () => void;
-  isHidden?: boolean;
+  onColorChange: (color: TagColor | null) => void;
+  currentColor: TagColor | null;
+  isHidden: boolean;
 }
 
-export default function NoteActionMenu({
+const NoteActionMenu = ({
   visible,
   onClose,
   onEdit,
   onDelete,
   onHide,
-  isHidden = false,
-}: NoteActionMenuProps) {
+  onColorChange,
+  currentColor,
+  isHidden,
+}: NoteActionMenuProps) => {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const slideAnim = React.useRef(new Animated.Value(0)).current;
 
-  const actions = [
-    {
-      id: 'edit',
-      icon: 'pencil-outline',
-      label: t('edit'),
-      onPress: onEdit,
-      color: theme.accentColor,
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(slideAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
+  const styles = StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
     },
-    {
-      id: 'hide',
-      icon: isHidden ? 'eye-outline' : 'eye-off-outline',
-      label: isHidden ? t('unhide') : t('hide'),
-      onPress: onHide,
-      color: theme.accentColor,
+    blurContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
     },
-    {
-      id: 'delete',
-      icon: 'trash-outline',
-      label: t('delete'),
-      onPress: onDelete,
+    modalContent: {
+      backgroundColor: theme.isDarkMode ? 
+        theme.secondaryBackground : 
+        '#FFFFFF',
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      padding: 20,
+      maxHeight: '80%',
+      borderTopWidth: 1,
+      borderLeftWidth: 1,
+      borderRightWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    title: {
+      color: theme.textColor,
+      fontSize: 24,
+      fontWeight: '600',
+      marginBottom: 20,
+    },
+    optionsContainer: {
+      marginBottom: 20,
+    },
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      marginBottom: 8,
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        theme.secondaryBackground,
+    },
+    optionText: {
+      color: theme.textColor,
+      fontSize: 16,
+      marginLeft: 12,
+      fontWeight: '500',
+    },
+    dangerOption: {
+      backgroundColor: '#FF4E4E15',
+    },
+    dangerText: {
       color: '#FF4E4E',
-      danger: true,
     },
-  ];
+    closeButton: {
+      position: 'absolute',
+      right: 20,
+      top: 20,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    tagsSection: {
+      marginTop: 20,
+      marginBottom: 20,
+    },
+    tagsSectionTitle: {
+      color: theme.textColor,
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: 12,
+      marginLeft: 4,
+    },
+    tagsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    tagButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginBottom: 8,
+      backgroundColor: theme.secondaryBackground,
+      minWidth: '45%',
+    },
+    tagIcon: {
+      marginRight: 8,
+    },
+    tagText: {
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    selectedTag: {
+      backgroundColor: `${theme.accentColor}15`,
+    },
+    animatedContent: {
+      transform: [{
+        translateY: slideAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [300, 0],
+        })
+      }],
+    },
+  });
 
-  const renderAction = (action: any) => (
+  const renderActionButton = (
+    icon: string,
+    text: string,
+    onPress: () => void,
+    isDanger = false
+  ) => (
     <TouchableOpacity
-      key={action.id}
-      style={[
-        styles.actionButton,
-        action.danger && styles.dangerButton,
-        { backgroundColor: theme.secondaryBackground }
-      ]}
-      onPress={() => {
-        action.onPress();
-        onClose();
-      }}
+      style={[styles.option, isDanger && styles.dangerOption]}
+      onPress={onPress}
     >
-      <View style={[
-        styles.iconContainer,
-        { backgroundColor: `${action.color}15` }
-      ]}>
-        <Ionicons
-          name={action.icon}
-          size={22}
-          color={action.color}
-        />
-      </View>
-      <Text style={[
-        styles.actionText,
-        { color: action.danger ? '#FF4E4E' : theme.textColor }
-      ]}>
-        {action.label}
+      <Ionicons
+        name={icon as any}
+        size={24}
+        color={isDanger ? '#FF4E4E' : theme.textColor}
+      />
+      <Text style={[styles.optionText, isDanger && styles.dangerText]}>
+        {text}
       </Text>
     </TouchableOpacity>
   );
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={[
-          styles.container,
-          { backgroundColor: theme.backgroundColor }
-        ]}>
-          <Text style={[styles.title, { color: theme.textColor }]}>
-            {t('noteOptions')}
-          </Text>
-          <View style={styles.actionsContainer}>
-            {actions.map(renderAction)}
-          </View>
-        </View>
-      </TouchableOpacity>
+    <Modal visible={visible} transparent animationType="none">
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <BlurView 
+          intensity={10}
+          tint={theme.isDarkMode ? "dark" : "light"}
+          style={styles.blurContainer}
+        />
+        <Animated.View style={[styles.modalContent, styles.animatedContent]}>
+          <Text style={styles.title}>{t('noteOptions')}</Text>
+
+          <ScrollView style={styles.optionsContainer}>
+            {renderActionButton('create-outline', t('edit'), onEdit)}
+            {renderActionButton(
+              isHidden ? 'eye-outline' : 'eye-off-outline',
+              isHidden ? t('unhide') : t('hide'),
+              onHide
+            )}
+
+            <View style={styles.tagsSection}>
+              <Text style={styles.tagsSectionTitle}>{t('tags')}</Text>
+              <View style={styles.tagsGrid}>
+                {(Object.keys(TAG_COLORS) as TagColor[]).map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.tagButton,
+                      {
+                        borderColor: TAG_COLORS[color],
+                        ...(currentColor === color && styles.selectedTag),
+                      },
+                    ]}
+                    onPress={() => onColorChange(color === 'none' ? null : color)}
+                  >
+                    <Ionicons
+                      name={TAG_ICONS[color]}
+                      size={18}
+                      color={TAG_COLORS[color] === 'transparent' ? theme.textColor : TAG_COLORS[color]}
+                      style={styles.tagIcon}
+                    />
+                    <Text
+                      style={[
+                        styles.tagText,
+                        { color: TAG_COLORS[color] === 'transparent' ? theme.textColor : TAG_COLORS[color] },
+                      ]}
+                    >
+                      {TAG_LABELS[color]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {renderActionButton('trash-outline', t('delete'), onDelete, true)}
+          </ScrollView>
+
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Ionicons name="close" size={24} color={theme.textColor} />
+          </TouchableOpacity>
+        </Animated.View>
+      </Pressable>
     </Modal>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  container: {
-    width: '90%',
-    maxWidth: 340,
-    borderRadius: 24,
-    overflow: 'hidden',
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  actionsContainer: {
-    gap: 8,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-  },
-  dangerButton: {
-    backgroundColor: '#FF4E4E10',
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  actionText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-}); 
+export default NoteActionMenu; 

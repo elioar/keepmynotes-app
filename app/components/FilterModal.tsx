@@ -6,11 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 
 interface Props {
   visible: boolean;
@@ -57,7 +59,7 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       }
     }
 
-    // Περιορισμός σε μέγιστο 2 φίλτρα
+    // Περιορισμός σε μέγιστο 2 φίλτρα (1 από κάθε κατηγορία)
     if (newFilters.length <= 2) {
       onSelectFilter(newFilters);
     }
@@ -71,172 +73,115 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
   const styles = StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center',
       alignItems: 'center',
     },
+    blurContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    },
     modalContainer: {
+      backgroundColor: theme.isDarkMode ? 
+        theme.secondaryBackground : 
+        '#FFFFFF',
+      borderRadius: 20,
       width: '85%',
       maxWidth: 320,
-      borderRadius: 20,
-      padding: 20,
-      paddingBottom: 50,
+      maxHeight: '70%',
       shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
+      shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    contentContainer: {
+      padding: 16,
     },
     modalHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 20,
-    },
-    headerButtons: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    clearButton: {
-      position: 'absolute',
-      bottom: 20,
-      right: 20,
-      padding: 4,
-    },
-    clearText: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: theme.accentColor,
-    },
-    closeButton: {
-      padding: 4,
+      marginBottom: 16,
+      paddingTop: 8,
     },
     title: {
-      fontSize: 18,
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.textColor,
+    },
+    section: {
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.textColor,
+      marginBottom: 12,
+      paddingLeft: 4,
+    },
+    dateFiltersRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    dateCard: {
+      width: '31%',
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        theme.secondaryBackground,
+      borderRadius: 8,
+      padding: 8,
+      alignItems: 'center',
+    },
+    dateCardActive: {
+      backgroundColor: `${theme.accentColor}15`,
+      borderColor: theme.accentColor,
+      borderWidth: 1,
+    },
+    dateCardLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: theme.textColor,
+      marginTop: 4,
+    },
+    dateCardLabelActive: {
+      color: theme.accentColor,
       fontWeight: '600',
     },
     filterOption: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 14,
-      borderRadius: 14,
-      marginBottom: 8,
+      padding: 10,
+      borderRadius: 8,
+      marginBottom: 6,
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        theme.secondaryBackground,
     },
     filterText: {
-      fontSize: 15,
-      marginLeft: 14,
+      fontSize: 13,
+      marginLeft: 8,
       fontWeight: '500',
-    },
-    dateFilterContainer: {
-      marginBottom: 20,
-    },
-    dateFiltersRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      width: '100%',
-      paddingHorizontal: 4,
-    },
-    dateCard: {
-      backgroundColor: theme.secondaryBackground,
-      borderRadius: 14,
-      padding: 12,
-      width: '32%',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 1,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
-    },
-    dateCardActive: {
-      backgroundColor: theme.accentColor,
-      transform: [{ scale: 1.05 }],
-    },
-    dateCardLabel: {
-      fontSize: 11,
       color: theme.textColor,
-      marginTop: 4,
-      textAlign: 'center',
-    },
-    dateCardLabelActive: {
-      color: '#fff',
-      fontWeight: '600',
-    },
-    sliderTrack: {
-      position: 'absolute',
-      top: '50%',
-      left: 20,
-      right: 20,
-      height: 3,
-      backgroundColor: theme.borderColor,
-      transform: [{ translateY: -1.5 }],
-      borderRadius: 1.5,
-    },
-    sliderButton: {
-      position: 'absolute',
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: theme.accentColor,
-      top: -8.5,
-      left: -10,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
-    },
-    sliderLabels: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 12,
-    },
-    dateFilterOption: {
-      alignItems: 'center',
-    },
-    dateFilterDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: theme.borderColor,
-      marginBottom: 8,
-    },
-    dateFilterDotActive: {
-      backgroundColor: theme.accentColor,
-      transform: [{ scale: 1.5 }],
-    },
-    dateFilterActive: {
-      transform: [{ scale: 1.1 }],
-    },
-    dateFilterLabel: {
-      fontSize: 14,
-      color: theme.placeholderColor,
-    },
-    dateFilterLabelActive: {
-      color: theme.accentColor,
-      fontWeight: '600',
-    },
-    titleContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     resultCount: {
-      position: 'absolute',
-      bottom: 20,
-      left: 20,
       flexDirection: 'row',
       alignItems: 'center',
-      opacity: 0.8,
+      justifyContent: 'space-between',
+      padding: 12,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderColor,
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}90` : 
+        theme.backgroundColor,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
     },
     resultText: {
       color: theme.placeholderColor,
@@ -249,6 +194,17 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       fontWeight: '700',
       marginLeft: 4,
     },
+    clearButton: {
+      backgroundColor: `${theme.accentColor}15`,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 6,
+    },
+    clearText: {
+      color: theme.accentColor,
+      fontSize: 13,
+      fontWeight: '600',
+    },
   });
 
   return (
@@ -260,94 +216,95 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
     >
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
+          <BlurView 
+            intensity={10}
+            tint={theme.isDarkMode ? "dark" : "light"}
+            style={styles.blurContainer}
+          />
           <TouchableWithoutFeedback>
-            <View style={[styles.modalContainer, { backgroundColor: theme.secondaryBackground }]}>
-              <View style={styles.modalHeader}>
-                <View style={styles.titleContainer}>
-                  <Text style={[styles.title, { color: theme.textColor }]}>
-                    {t('filterBy')}
-                  </Text>
-                </View>
-                <TouchableOpacity 
-                  onPress={onClose}
-                  style={styles.closeButton}
-                >
-                  <Ionicons 
-                    name="close" 
-                    size={24} 
-                    color={theme.textColor} 
-                  />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.dateFilterContainer}>
-                <View style={styles.dateFiltersRow}>
-                  {dateFilters.map((filter) => (
-                    <TouchableOpacity
-                      key={filter.id}
-                      style={[
-                        styles.dateCard,
-                        activeFilters.includes(filter.id) && styles.dateCardActive
-                      ]}
-                      onPress={() => handleFilterToggle(filter.id)}
-                    >
-                      <Ionicons
-                        name={
-                          filter.id === 'today' ? 'today-outline' :
-                          filter.id === 'week' ? 'calendar-outline' : 'calendar-clear-outline'
-                        }
-                        size={20}
-                        color={activeFilters.includes(filter.id) ? '#fff' : theme.textColor}
-                      />
-                      <Text style={[
-                        styles.dateCardLabel,
-                        activeFilters.includes(filter.id) && styles.dateCardLabelActive
-                      ]}>
-                        {filter.label}
-                      </Text>
+            <View style={styles.modalContainer}>
+              <ScrollView>
+                <View style={styles.contentContainer}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.title}>{t('filterBy')}</Text>
+                    <TouchableOpacity onPress={onClose}>
+                      <Ionicons name="close" size={20} color={theme.textColor} />
                     </TouchableOpacity>
-                  ))}
+                  </View>
+
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t('filterByDate')}</Text>
+                    <View style={styles.dateFiltersRow}>
+                      {dateFilters.map((filter) => (
+                        <TouchableOpacity
+                          key={filter.id}
+                          style={[
+                            styles.dateCard,
+                            activeFilters.includes(filter.id) && styles.dateCardActive
+                          ]}
+                          onPress={() => handleFilterToggle(filter.id)}
+                        >
+                          <Ionicons
+                            name={
+                              filter.id === 'today' ? 'today-outline' :
+                              filter.id === 'week' ? 'calendar-outline' : 'calendar-clear-outline'
+                            }
+                            size={18}
+                            color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
+                          />
+                          <Text style={[
+                            styles.dateCardLabel,
+                            activeFilters.includes(filter.id) && styles.dateCardLabelActive
+                          ]}>
+                            {filter.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>{t('filterByType')}</Text>
+                    {otherFilters.map((filter) => (
+                      <TouchableOpacity
+                        key={filter.id}
+                        style={[
+                          styles.filterOption,
+                          activeFilters.includes(filter.id) && { backgroundColor: `${theme.accentColor}15` }
+                        ]}
+                        onPress={() => handleFilterToggle(filter.id)}
+                      >
+                        <Ionicons
+                          name={filter.icon as any}
+                          size={18}
+                          color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
+                        />
+                        <Text style={[
+                          styles.filterText,
+                          { color: activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor }
+                        ]}>
+                          {filter.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
-              {otherFilters.map((filter) => (
-                <TouchableOpacity
-                  key={filter.id}
-                  style={[
-                    styles.filterOption,
-                    activeFilters.includes(filter.id) && { backgroundColor: `${theme.accentColor}20` }
-                  ]}
-                  onPress={() => handleFilterToggle(filter.id)}
-                >
-                  <Ionicons
-                    name={filter.icon as any}
-                    size={24}
-                    color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
-                  />
-                  <Text style={[
-                    styles.filterText,
-                    { color: activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor }
-                  ]}>
-                    {filter.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              </ScrollView>
+
               <View style={styles.resultCount}>
-                <Text style={styles.resultText}>
-                  {t('showingResults')}
-                </Text>
-                <Text style={styles.resultNumber}>
-                  {filteredCount}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.resultText}>{t('showingResults')}</Text>
+                  <Text style={styles.resultNumber}>{filteredCount}</Text>
+                </View>
+                {activeFilters.length > 0 && (
+                  <TouchableOpacity 
+                    style={styles.clearButton}
+                    onPress={handleClearFilters}
+                  >
+                    <Text style={styles.clearText}>{t('clearFilters')}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              {activeFilters.length > 0 && (
-                <TouchableOpacity 
-                  onPress={handleClearFilters}
-                  style={styles.clearButton}
-                >
-                  <Text style={[styles.clearText, { color: theme.accentColor }]}>
-                    {t('clearFilter')}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
           </TouchableWithoutFeedback>
         </View>

@@ -8,12 +8,15 @@ import {
   Pressable,
   ScrollView,
   Animated,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { BlurView } from 'expo-blur';
 import { TAG_COLORS, TagColor } from '../constants/tags';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface TagTranslations {
   tagColors: {
@@ -63,6 +66,7 @@ const NoteActionMenu = ({
   const { theme } = useTheme();
   const { t } = useLanguage();
   const slideAnim = React.useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (visible) {
@@ -79,6 +83,41 @@ const NoteActionMenu = ({
       }).start();
     }
   }, [visible]);
+
+  const handleHide = async () => {
+    if (!isHidden) {
+      try {
+        const hasPin = await AsyncStorage.getItem('@secure_pin');
+        if (!hasPin) {
+          Alert.alert(
+            t('secureNotes'),
+            t('secureNotesDescription'),
+            [
+              {
+                text: t('cancel'),
+                style: 'cancel',
+                onPress: onClose,
+              },
+              {
+                text: t('setPinCode'),
+                style: 'default',
+                onPress: () => {
+                  onClose();
+                  navigation.navigate('PinScreen' as never);
+                },
+              },
+            ]
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking PIN:', error);
+        return;
+      }
+    }
+    onClose();
+    onHide();
+  };
 
   const styles = StyleSheet.create({
     overlay: {
@@ -234,7 +273,7 @@ const NoteActionMenu = ({
             {renderActionButton(
               isHidden ? 'eye-outline' : 'eye-off-outline',
               isHidden ? t('unhide') : t('hide'),
-              onHide
+              isHidden ? handleHide : onHide
             )}
 
             <View style={styles.tagsSection}>

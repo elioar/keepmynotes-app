@@ -21,12 +21,14 @@ import { useLanguage } from '../context/LanguageContext';
 import { Swipeable } from 'react-native-gesture-handler';
 import HighlightText from './HighlightText';
 import NoteActionMenu from './NoteActionMenu';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Home: undefined;
   Task: { note?: any };
   Favorites: undefined;
   HiddenNotes: undefined;
+  PinScreen: undefined;
 };
 
 export default function HiddenNotesScreen() {
@@ -38,6 +40,33 @@ export default function HiddenNotesScreen() {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  React.useEffect(() => {
+    const checkPin = async () => {
+      const hasPin = await AsyncStorage.getItem('@secure_pin');
+      if (!hasPin) {
+        Alert.alert(
+          t('secureNotes'),
+          t('secureNotesDescription'),
+          [
+            {
+              text: t('cancel'),
+              style: 'cancel',
+              onPress: () => navigation.navigate('Home'),
+            },
+            {
+              text: t('setPinCode'),
+              style: 'default',
+              onPress: () => {
+                navigation.navigate('PinScreen');
+              },
+            },
+          ]
+        );
+      }
+    };
+    checkPin();
+  }, []);
 
   React.useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {

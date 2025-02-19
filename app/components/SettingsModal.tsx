@@ -613,34 +613,37 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🌍 {t('language')}</Text>
-          <TouchableOpacity 
-            style={[styles.settingItem, currentLanguage === 'en' && styles.activeItem]}
-            onPress={() => setLanguage('en')}
-          >
-            <View style={styles.settingIcon}>
-              <Text style={{ fontSize: 18 }}>🇬🇧</Text>
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>{t('english')}</Text>
-            </View>
-            <View style={styles.radioButton}>
-              {currentLanguage === 'en' && <View style={styles.radioButtonInner} />}
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.settingItem, currentLanguage === 'el' && styles.activeItem]}
-            onPress={() => setLanguage('el')}
-          >
-            <View style={styles.settingIcon}>
-              <Text style={{ fontSize: 18 }}>🇬🇷</Text>
-            </View>
-            <View style={styles.settingContent}>
-              <Text style={styles.settingLabel}>{t('greek')}</Text>
-            </View>
-            <View style={styles.radioButton}>
-              {currentLanguage === 'el' && <View style={styles.radioButtonInner} />}
-            </View>
-          </TouchableOpacity>
+          <View style={styles.themeContainer}>
+            <TouchableOpacity 
+              style={[styles.themeItem, currentLanguage === 'en' && styles.themeItemActive]}
+              onPress={() => setLanguage('en')}
+            >
+              <View style={styles.themeIcon}>
+                <Text style={{ fontSize: 24 }}>🇬🇧</Text>
+              </View>
+              <Text style={styles.themeLabel}>{t('english')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.themeItem, currentLanguage === 'el' && styles.themeItemActive]}
+              onPress={() => setLanguage('el')}
+            >
+              <View style={styles.themeIcon}>
+                <Text style={{ fontSize: 24 }}>🇬🇷</Text>
+              </View>
+              <Text style={styles.themeLabel}>{t('greek')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.themeItem, currentLanguage === 'es' && styles.themeItemActive]}
+              onPress={() => setLanguage('es')}
+            >
+              <View style={styles.themeIcon}>
+                <Text style={{ fontSize: 24 }}>🇪🇸</Text>
+              </View>
+              <Text style={styles.themeLabel}>{t('spanish')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.section}>

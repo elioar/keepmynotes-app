@@ -6,6 +6,7 @@ export const en = {
   whatNotes: 'What would you like to add?',
   textNotes: 'Text notes',
   recentlyEdited: 'Recently edited',
+  characters: 'characters',
   
   // Actions
   edit: 'Edit',
@@ -42,6 +43,10 @@ export const en = {
   unsavedChangesMessage: 'You have unsaved changes. Would you like to save them?',
   noHiddenNotes: 'No hidden notes',
   hiddenNotesDescription: 'Your hidden notes are safe here',
+  hiddenNotes: 'Hidden Notes',
+  hiddenNote: 'hidden note',
+  unhideNote: 'Unhide note',
+  unhideNoteConfirm: 'Are you sure you want to unhide this note?',
 
   // Filters
   filters: 'Filters',
@@ -102,7 +107,7 @@ export const en = {
   unlockWithBiometrics: 'Unlock with biometrics',
   secureNotes: 'Secure Notes',
   secureNotesDescription: 'Hidden notes are protected with PIN',
-  setPinCode: 'Set PIN Code',
+  setPinCode: 'New PIN Code',
   changePinDescription: 'Change your app PIN code',
   downloadBackup: 'Download Backup',
   downloadBackupDescription: 'Save your notes to a file',
@@ -125,6 +130,7 @@ export const en = {
   // Languages
   english: 'English',
   greek: 'Greek',
+  spanish: 'Spanish',
 
   // Time
   now: 'now',
@@ -143,6 +149,7 @@ export const en = {
   // Tags
   tags: 'Tags',
   addTag: 'Add tag',
+  enterTag: 'Enter tag name...',
   tagColors: {
     none: 'No tag',
     green: 'Personal',
@@ -192,6 +199,10 @@ export const en = {
   appTheme: 'App Theme',
   enabled: 'Enabled',
   disabled: 'Disabled',
+
+  // Authentication
+  authenticateToView: 'Authenticate to view',
+  usePasscode: 'Use passcode',
 } as const;
 
 export default en; 

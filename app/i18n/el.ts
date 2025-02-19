@@ -6,6 +6,7 @@ export const el = {
   whatNotes: 'Προσθήκη:',
   textNotes: 'Σημειώσεις κειμένου',
   recentlyEdited: 'Πρόσφατη επεξεργασία',
+  characters: 'χαρακτήρες',
   
   // Ενέργειες
   edit: 'Επεξεργασία',
@@ -42,6 +43,10 @@ export const el = {
   unsavedChangesMessage: 'Έχετε μη αποθηκευμένες αλλαγές. Θέλετε να τις αποθηκεύσετε;',
   noHiddenNotes: 'Δεν υπάρχουν κρυφές σημειώσεις',
   hiddenNotesDescription: 'Οι κρυφές σημειώσεις σας είναι ασφαλείς εδώ',
+  hiddenNotes: 'Κρυφές σημειώσεις',
+  hiddenNote: 'κρυφή σημείωση',
+  unhideNote: 'Εμφάνιση σημείωσης',
+  unhideNoteConfirm: 'Είστε βέβαιοι ότι θέλετε να εμφανίσετε αυτή τη σημείωση;',
 
   // Φίλτρα
   filters: 'Φίλτρα',
@@ -102,7 +107,7 @@ export const el = {
   unlockWithBiometrics: 'Ξεκλείδωμα με βιομετρικά',
   secureNotes: 'Ασφαλείς σημειώσεις',
   secureNotesDescription: 'Οι κρυφές σημειώσεις προστατεύονται με PIN',
-  setPinCode: 'Ορισμός κωδικού PIN',
+  setPinCode: 'Νέος κωδικός PIN',
   changePinDescription: 'Αλλαγή του κωδικού PIN της εφαρμογής',
   downloadBackup: 'Λήψη αντιγράφου',
   downloadBackupDescription: 'Αποθηκεύστε τις σημειώσεις σας σε αρχείο',
@@ -125,6 +130,7 @@ export const el = {
   // Γλώσσες
   english: 'Αγγλικά',
   greek: 'Ελληνικά',
+  spanish: 'Ισπανικά',
 
   // Χρόνος
   now: 'τώρα',
@@ -143,6 +149,7 @@ export const el = {
   // Ετικέτες
   tags: 'Ετικέτες',
   addTag: 'Κατηγορία',
+  enterTag: 'Εισάγετε όνομα ετικέτας...',
   tagColors: {
     none: 'Χωρίς ετικέτα',
     green: 'Προσωπικά',
@@ -184,6 +191,7 @@ export const el = {
   importError: 'Σφάλμα κατά την εισαγωγή',
   invalidBackupFile: 'Μη έγκυρο αρχείο αντιγράφου',
   fileSelectionError: 'Σφάλμα κατά την επιλογή αρχείου',
+  error: 'Σφάλμα',
 
   // Settings sections
   information: 'Πληροφορίες',
@@ -191,6 +199,10 @@ export const el = {
   appTheme: 'Θέμα Εφαρμογής',
   enabled: 'Ενεργοποιημένο',
   disabled: 'Απενεργοποιημένο',
+
+  // Authentication
+  authenticateToView: 'Ταυτοποίηση για προβολή',
+  usePasscode: 'Χρήση κωδικού',
 } as const;
 
 export default el; 

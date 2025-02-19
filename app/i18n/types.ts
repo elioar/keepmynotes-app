@@ -6,6 +6,7 @@ export interface Translations {
   whatNotes: string;
   textNotes: string;
   recentlyEdited: string;
+  characters: string;
   
   // Actions
   edit: string;
@@ -125,6 +126,7 @@ export interface Translations {
   // Languages
   english: string;
   greek: string;
+  spanish: string;
 
   // Time
   now: string;
@@ -143,6 +145,7 @@ export interface Translations {
   // Tags
   tags: string;
   addTag: string;
+  enterTag: string;
   tagColors: {
     none: string;
     green: string;
@@ -192,6 +195,10 @@ export interface Translations {
   appTheme: string;
   enabled: string;
   disabled: string;
+
+  // Authentication
+  authenticateToView: string;
+  usePasscode: string;
 }
 
 export default {} as { Translations: Translations }; 

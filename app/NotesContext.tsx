@@ -18,6 +18,7 @@ export interface Note {
   isHidden: boolean;
   tasks?: TaskItem[];
   color?: string;
+  tags?: string[];
 }
 
 interface BackupData {

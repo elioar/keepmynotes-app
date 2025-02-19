@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler } from 'react-native';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,12 +9,27 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TAG_COLORS, TagColor, TAG_ICONS, TAG_LABELS } from '../constants/tags';
 
 type RootStackParamList = {
   Home: undefined;
   Task: { note?: any };
   AddEditNote: { note?: any };
 };
+
+interface Note {
+  id: string;
+  title: string;
+  content?: string;
+  description?: string;
+  type: 'text' | 'checklist' | 'task';
+  isFavorite: boolean;
+  isHidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+  tags?: string[];
+  color?: string;
+}
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,6 +45,9 @@ export default function TaskScreen({ route }: { route: any }) {
   const [title, setTitle] = useState(existingNote?.title || '');
   const [isViewMode, setIsViewMode] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [tags, setTags] = useState<string[]>(existingNote?.tags || []);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTag, setNewTag] = useState('');
 
   useEffect(() => {
     if (existingNote) {
@@ -87,38 +105,440 @@ export default function TaskScreen({ route }: { route: any }) {
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 12px 16px;
-            background: ${theme.backgroundColor};
+            padding: 8px;
+            background: #000000;
             border-top: 1px solid ${theme.borderColor};
             display: ${isViewMode ? 'none' : 'flex'};
-            justify-content: space-between;
-            gap: 12px;
+            flex-direction: column;
+            gap: 4px;
+            max-width: 100%;
           }
 
-          .toolbar button {
-            min-width: 40px;
-            height: 40px;
+          .toolbar-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            width: 100%;
+          }
+
+          .toolbar-row.secondary {
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            margin-top: -4px;
+            overflow: hidden;
+          }
+
+          .toolbar-row.secondary.expanded {
+            height: 44px;
+            opacity: 1;
+            pointer-events: auto;
+            margin-top: 4px;
+          }
+
+          .toolbar-row.colors {
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            margin-top: -4px;
+            overflow: hidden;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 4px;
+          }
+
+          .toolbar-row.colors::-webkit-scrollbar {
+            display: none;
+          }
+
+          .toolbar-row.colors.expanded {
+            height: 44px;
+            opacity: 1;
+            pointer-events: auto;
+            margin-top: 4px;
+          }
+
+          .color-button {
+            flex: 0 0 44px;
+            width: 44px;
+            height: 44px;
             padding: 0;
-            background: ${theme.secondaryBackground};
+            background: #2A2A2A;
             border: none;
             border-radius: 10px;
-            color: ${theme.textColor};
-            font-weight: 600;
-            font-size: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+          }
+
+          .color-button::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            z-index: 1;
+          }
+
+          #yellow::before { background: #FFE57F; }
+          #green::before { background: #A5D6A7; }
+          #blue::before { background: #90CAF9; }
+          #pink::before { background: #F48FB1; }
+          #purple::before { background: #B39DDB; }
+          #cyan::before { background: #81D4FA; }
+          #orange::before { background: #FFAB91; }
+          #lime::before { background: #E6EE9C; }
+
+          .color-button:active {
+            transform: scale(0.96);
+          }
+
+          .color-button.selected {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          }
+
+          .color-button.selected::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border: 2px solid #FFFFFF;
+            border-radius: 10px;
+            z-index: 2;
+          }
+
+          .toolbar button {
+            flex: 1;
+            min-width: 44px;
+            height: 44px;
+            padding: 0;
+            background: #2A2A2A;
+            border: none;
+            border-radius: 12px;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+          }
+
+          .toolbar button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: ${theme.accentColor};
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+          }
+
+          .toolbar button > * {
+            position: relative;
+            z-index: 2;
+          }
+
+          .toolbar button:active {
+            transform: scale(0.96);
+          }
+
+          .toolbar button.active::after {
+            opacity: 1;
           }
 
           .toolbar button.active {
+            box-shadow: 0 2px 8px ${theme.accentColor}40;
+            transform: translateY(-1px);
+          }
+
+          .toolbar button.expand-button {
+            width: 44px;
+            flex: 0 0 44px;
+            margin-left: 4px;
+          }
+
+          .toolbar button.expand-button.active {
             background: ${theme.accentColor};
-            color: white;
-            box-shadow: 0 2px 5px ${theme.accentColor}40;
+            box-shadow: 0 2px 8px ${theme.accentColor}40;
+          }
+
+          .format-icon {
+            font-size: 20px;
+            line-height: 1;
+            font-family: -apple-system, system-ui;
+            font-weight: 500;
+            color: #FFFFFF;
+            transition: all 0.3s ease;
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .format-icon.bold {
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: -0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .format-icon.italic {
+            font-style: italic;
+            font-size: 22px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .format-icon.underline {
+            font-size: 22px;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .format-icon.list-ol {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -1px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .format-icon.list-ul {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
+          }
+
+          .format-icon.list-ul::before {
+            content: '';
+            width: 16px;
+            height: 2px;
+            background: #FFFFFF;
+            position: absolute;
+            right: 0;
+            top: 4px;
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            border-radius: 1px;
+          }
+
+          .format-icon.list-ul::after {
+            content: '';
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            position: absolute;
+            left: 2px;
+            top: 3px;
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .format-icon.align {
+            width: 18px;
+            height: 14px;
+            position: relative;
+          }
+
+          .format-icon.align::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #FFFFFF;
+            top: 0;
+            border-radius: 1px;
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .format-icon.align-left::before {
+            width: 100%;
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .format-icon.align-center::before {
+            width: 70%;
+            left: 15%;
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .format-icon.align-right::before {
+            width: 100%;
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .format-icon.expand {
+            width: 14px;
+            height: 14px;
+            position: relative;
+          }
+
+          .format-icon.expand::before,
+          .format-icon.expand::after {
+            content: '';
+            position: absolute;
+            background: #FFFFFF;
+            border-radius: 1px;
+          }
+
+          .format-icon.expand::before {
+            width: 10px;
+            height: 2px;
+            top: 6px;
+            left: 2px;
+          }
+
+          .format-icon.expand::after {
+            width: 2px;
+            height: 10px;
+            left: 6px;
+            top: 2px;
+          }
+
+          .toolbar button.active .format-icon.expand::after {
+            transform: scaleY(0);
+          }
+
+          .toolbar button.active .format-icon {
+            transform: scale(1.1);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          }
+
+          .highlight-icon {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .highlight-icon::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--highlight-color, #FFE57F);
+            border-radius: 4px;
+            transform: rotate(45deg);
+            transition: all 0.2s ease;
+          }
+
+          .highlight-icon::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 14px;
+            background: #FFFFFF;
+            transform: rotate(-45deg) translate(2px, -6px);
+            border-radius: 1px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .color-picker {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1A1A1A;
+            border-radius: 12px;
+            padding: 12px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            width: 200px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            margin-bottom: 8px;
+          }
+
+          .color-picker.visible {
+            display: flex;
+          }
+
+          .color-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #2A2A2A;
+          }
+
+          .color-option:hover {
+            background: #333333;
+            transform: translateX(4px);
+          }
+
+          .color-option.selected {
+            background: #333333;
+          }
+
+          .color-swatch {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+          }
+
+          .color-name {
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 500;
+          }
+
+          .color-picker::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #1A1A1A;
           }
 
           #editor[contenteditable="false"] {
             cursor: default;
+          }
+
+          @media screen and (min-width: 600px) {
+            .toolbar {
+              max-width: 600px;
+              left: 50%;
+              transform: translateX(-50%);
+              border-radius: 16px 16px 0 0;
+            }
+          }
+
+          @media screen and (max-width: 360px) {
+            .color-button {
+              flex: 0 0 36px;
+              width: 36px;
+              height: 36px;
+            }
           }
         </style>
       </head>
@@ -127,27 +547,152 @@ export default function TaskScreen({ route }: { route: any }) {
           ${existingNote?.content || ''}
         </div>
         <div class="toolbar">
-          <button id="bold" onclick="format('bold')" aria-label="Bold">𝐁</button>
-          <button id="italic" onclick="format('italic')" aria-label="Italic">𝐼</button>
-          <button id="underline" onclick="format('underline')" aria-label="Underline">U̲</button>
-          <button id="strikethrough" onclick="format('strikeThrough')" aria-label="Strikethrough">S̶</button>
-          <button id="list-ul" onclick="format('insertUnorderedList')" aria-label="Bullet List">•</button>
-          <button id="list-ol" onclick="format('insertOrderedList')" aria-label="Numbered List">1.</button>
+          <div class="toolbar-row">
+            <button id="bold" onclick="format('bold')" aria-label="Bold">
+              <span class="format-icon bold">B</span>
+            </button>
+            <button id="italic" onclick="format('italic')" aria-label="Italic">
+              <span class="format-icon italic">I</span>
+            </button>
+            <button id="underline" onclick="format('underline')" aria-label="Underline">
+              <span class="format-icon underline">U</span>
+            </button>
+            <button id="highlight" onclick="toggleColorRow()" aria-label="Highlight">
+              <span class="highlight-icon"></span>
+            </button>
+            <button class="expand-button" onclick="toggleSecondaryTools()" aria-label="More formatting options">
+              <span class="format-icon expand"></span>
+            </button>
+          </div>
+          <div class="toolbar-row secondary">
+            <button id="list-ol" onclick="format('insertOrderedList')" aria-label="Numbered List">
+              <span class="format-icon list-ol">123</span>
+            </button>
+            <button id="list-ul" onclick="format('insertUnorderedList')" aria-label="Bullet List">
+              <span class="format-icon list-ul"></span>
+            </button>
+            <button id="align-left" onclick="format('justifyLeft')" aria-label="Align Left">
+              <span class="format-icon align align-left"></span>
+            </button>
+            <button id="align-center" onclick="format('justifyCenter')" aria-label="Align Center">
+              <span class="format-icon align align-center"></span>
+            </button>
+            <button id="align-right" onclick="format('justifyRight')" aria-label="Align Right">
+              <span class="format-icon align align-right"></span>
+            </button>
+          </div>
+          <div class="toolbar-row colors">
+            <button id="yellow" class="color-button" onclick="setHighlightColor('#FFE57F')" aria-label="Κίτρινο"></button>
+            <button id="green" class="color-button" onclick="setHighlightColor('#A5D6A7')" aria-label="Πράσινο"></button>
+            <button id="blue" class="color-button" onclick="setHighlightColor('#90CAF9')" aria-label="Μπλε"></button>
+            <button id="pink" class="color-button" onclick="setHighlightColor('#F48FB1')" aria-label="Ροζ"></button>
+            <button id="purple" class="color-button" onclick="setHighlightColor('#B39DDB')" aria-label="Μωβ"></button>
+            <button id="cyan" class="color-button" onclick="setHighlightColor('#81D4FA')" aria-label="Γαλάζιο"></button>
+            <button id="orange" class="color-button" onclick="setHighlightColor('#FFAB91')" aria-label="Πορτοκαλί"></button>
+            <button id="lime" class="color-button" onclick="setHighlightColor('#E6EE9C')" aria-label="Λαχανί"></button>
+          </div>
         </div>
 
         <script>
           const editor = document.getElementById('editor');
+          const toolbar = document.querySelector('.toolbar');
           const buttons = document.querySelectorAll('.toolbar button');
+          const expandButton = document.querySelector('.expand-button');
+          const secondaryRow = document.querySelector('.toolbar-row.secondary');
+          let isExpanded = false;
+          let isColorsExpanded = false;
+          let currentHighlightColor = '#FFE57F';
 
-          function format(command) {
-            document.execCommand(command, false, null);
+          function toggleSecondaryTools(e) {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+            isExpanded = !isExpanded;
+            
+            if (isColorsExpanded) {
+              toggleColorRow();
+            }
+            
+            expandButton.classList.toggle('active');
+            secondaryRow.classList.toggle('expanded');
+            editor.blur();
+          }
+
+          function toggleColorRow() {
+            const colorRow = document.querySelector('.toolbar-row.colors');
+            isColorsExpanded = !isColorsExpanded;
+            
+            if (isExpanded) {
+              isExpanded = false;
+              secondaryRow.classList.remove('expanded');
+              expandButton.classList.remove('active');
+            }
+            
+            colorRow.classList.toggle('expanded');
+          }
+
+          function setHighlightColor(color) {
+            currentHighlightColor = color;
+            document.documentElement.style.setProperty('--highlight-color', color);
+            
+            const colorButtons = document.querySelectorAll('.color-button');
+            colorButtons.forEach(btn => btn.classList.remove('selected'));
+            document.querySelector('.color-button[onclick*="' + color + '"]').classList.add('selected');
+            
+            const selection = window.getSelection();
+            if (!selection.isCollapsed) {
+              document.execCommand('backColor', false, color);
+            }
+            
+            toggleColorRow();
             updateButtons();
-            notifyContent();
+          }
+
+          function format(command, value = null) {
+            if (command === 'highlight') {
+              const selection = window.getSelection();
+              const highlightButton = document.querySelector('#highlight');
+              
+              if (!selection.isCollapsed) {
+                if (highlightButton.classList.contains('active')) {
+                  document.execCommand('removeFormat', false, null);
+                  highlightButton.classList.remove('active');
+                } else {
+                  document.execCommand('backColor', false, currentHighlightColor);
+                  highlightButton.classList.add('active');
+                }
+              }
+              
+              updateButtons();
+              notifyContent();
+            } else {
+              document.execCommand(command, false, value);
+              updateButtons();
+              notifyContent();
+            }
           }
 
           function updateButtons() {
             buttons.forEach(button => {
-              button.classList.toggle('active', document.queryCommandState(button.id));
+              if (button.id === 'highlight') {
+                const selection = window.getSelection();
+                if (!selection.isCollapsed) {
+                  const range = selection.getRangeAt(0);
+                  const span = document.createElement('span');
+                  range.surroundContents(span);
+                  const computedStyle = window.getComputedStyle(span);
+                  const hasHighlight = computedStyle.backgroundColor !== 'transparent' 
+                    && computedStyle.backgroundColor !== ''
+                    && computedStyle.backgroundColor !== 'rgb(0, 0, 0)';
+                  span.outerHTML = span.innerHTML;
+                  button.classList.toggle('active', hasHighlight);
+                } else {
+                  button.classList.remove('active');
+                }
+              } else {
+                button.classList.toggle('active', document.queryCommandState(button.id));
+              }
             });
           }
 
@@ -166,6 +711,9 @@ export default function TaskScreen({ route }: { route: any }) {
           // Initial setup
           editor.focus();
           updateButtons();
+
+          // Select default color on load
+          document.querySelector('#yellow').classList.add('selected');
 
           function insertTask() {
             const checkbox = document.createElement('input');
@@ -231,6 +779,20 @@ export default function TaskScreen({ route }: { route: any }) {
     </html>
   `;
 
+  const handleAddTag = () => {
+    if (newTag.trim()) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag('');
+      setIsAddingTag(false);
+      setHasChanges(true);
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+    setHasChanges(true);
+  };
+
   const handleSave = async () => {
     try {
       if (existingNote) {
@@ -239,7 +801,8 @@ export default function TaskScreen({ route }: { route: any }) {
           title,
           content: noteContent,
           description: stripHtmlTags(noteContent).substring(0, 100),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
+          tags
         });
       } else {
         await addNote({ 
@@ -248,7 +811,8 @@ export default function TaskScreen({ route }: { route: any }) {
           description: stripHtmlTags(noteContent).substring(0, 100),
           type: 'text',
           isFavorite: false,
-          isHidden: false
+          isHidden: false,
+          tags
         });
       }
       setHasChanges(false);
@@ -272,34 +836,11 @@ export default function TaskScreen({ route }: { route: any }) {
     editorRef.current?.postMessage(newMode ? 'view-mode' : 'edit-mode');
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
     if (hasChanges) {
-      Alert.alert(
-        t('unsavedChanges'),
-        t('unsavedChangesMessage'),
-        [
-          {
-            text: t('discard'),
-            style: 'destructive',
-            onPress: () => navigation.navigate('Home')
-          },
-          {
-            text: t('save'),
-            style: 'default',
-            onPress: async () => {
-              await handleSave();
-              navigation.navigate('Home');
-            }
-          },
-          {
-            text: t('cancel'),
-            style: 'cancel'
-          },
-        ]
-      );
-    } else {
-      navigation.navigate('Home');
+      await handleSave();
     }
+    navigation.navigate('Home');
   };
 
   // Χειρισμός του hardware back button
@@ -307,29 +848,9 @@ export default function TaskScreen({ route }: { route: any }) {
     React.useCallback(() => {
       const onBackPress = () => {
         if (hasChanges) {
-          Alert.alert(
-            t('unsavedChanges'),
-            t('unsavedChangesMessage'),
-            [
-              {
-                text: t('discard'),
-                style: 'destructive',
-                onPress: () => navigation.navigate('Home')
-              },
-              {
-                text: t('save'),
-                style: 'default',
-                onPress: async () => {
-                  await handleSave();
-                  navigation.navigate('Home');
-                }
-              },
-              {
-                text: t('cancel'),
-                style: 'cancel'
-              },
-            ]
-          );
+          handleSave().then(() => {
+            navigation.navigate('Home');
+          });
           return true;
         }
         navigation.navigate('Home');
@@ -406,7 +927,7 @@ export default function TaskScreen({ route }: { route: any }) {
       fontWeight: '600',
       color: theme.textColor,
       padding: 20,
-      paddingTop: 20,
+      paddingTop: 8,
       paddingBottom: 20,
       backgroundColor: theme.backgroundColor,
     },
@@ -454,6 +975,83 @@ export default function TaskScreen({ route }: { route: any }) {
     viewButtonTextActive: {
       color: '#FFFFFF',
     },
+    tagsContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      padding: 12,
+      paddingTop: 8,
+      gap: 8,
+      alignItems: 'center',
+    },
+    tag: {
+      backgroundColor: theme.accentColor + '20',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    tagText: {
+      color: theme.accentColor,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    addTagButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      padding: 6,
+      borderRadius: 8,
+      backgroundColor: theme.secondaryBackground,
+    },
+    addTagButtonText: {
+      color: theme.textColor,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    tagInput: {
+      flex: 1,
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      color: theme.textColor,
+      fontSize: 14,
+    },
+    tagInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+    },
+    tagContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 4,
+      marginBottom: 0,
+    },
+    categoryGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    metaInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    metaText: {
+      fontSize: 12,
+      color: theme.placeholderColor,
+      fontWeight: '500',
+    },
+    tagLabel: {
+      fontSize: 13,
+      fontWeight: '500',
+    },
   });
 
   return (
@@ -490,6 +1088,42 @@ export default function TaskScreen({ route }: { route: any }) {
                 color={hasChanges ? "#FFFFFF" : theme.accentColor} 
               />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.tagContainer}>
+          <View style={styles.categoryGroup}>
+            <Ionicons 
+              name={TAG_ICONS[existingNote?.color as TagColor] || 'remove-outline'} 
+              size={16} 
+              color={existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.placeholderColor} 
+            />
+            <Text 
+              style={[
+                styles.tagLabel, 
+                { color: existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.placeholderColor }
+              ]}
+            >
+              {existingNote?.color ? TAG_LABELS[existingNote.color as TagColor] : TAG_LABELS.none}
+            </Text>
+          </View>
+          <View style={styles.metaInfo}>
+            <Text style={styles.metaText}>
+              {stripHtmlTags(noteContent).length} {t('characters')}
+            </Text>
+            <Text style={styles.metaText}>
+              {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString('el', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              }) : new Date().toLocaleString('el', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Text>
           </View>
         </View>
 

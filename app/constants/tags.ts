@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+
 export const TAG_COLORS = {
   none: 'transparent',
   green: '#4CAF50',
@@ -8,6 +10,24 @@ export const TAG_COLORS = {
 } as const;
 
 export type TagColor = keyof typeof TAG_COLORS;
+
+export const TAG_ICONS: Record<TagColor, keyof typeof Ionicons.glyphMap> = {
+  none: 'remove-outline',
+  green: 'person-outline',
+  purple: 'briefcase-outline',
+  blue: 'book-outline',
+  orange: 'bulb-outline',
+  red: 'alert-circle-outline'
+};
+
+export const TAG_LABELS: Record<TagColor, string> = {
+  none: 'No Category',
+  green: 'Personal',
+  purple: 'Work',
+  blue: 'Study',
+  orange: 'Ideas',
+  red: 'Important'
+};
 
 export function getTagColorValue(color: TagColor | null): string {
   if (!color || color === 'none') return 'transparent';

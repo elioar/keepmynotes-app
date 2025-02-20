@@ -166,6 +166,105 @@ export default function TaskScreen({ route }: { route: any }) {
             margin-top: 4px;
           }
 
+          .toolbar-row.font-size {
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            margin-top: -4px;
+            overflow: hidden;
+            padding: 0 16px;
+            flex-direction: column;
+          }
+
+          .toolbar-row.font-size.expanded {
+            height: 70px;
+            opacity: 1;
+            pointer-events: auto;
+            margin-top: 4px;
+            padding-bottom: 12px;
+          }
+
+          .font-size-slider {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            touch-action: none;
+            padding: 24px 0 8px;
+          }
+
+          .font-size-track {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: ${theme.textColor}15;
+            border-radius: 1.5px;
+            overflow: hidden;
+          }
+
+          .font-size-dots {
+            position: absolute;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+
+          .font-size-dot {
+            width: 16px;
+            height: 16px;
+            background: ${theme.backgroundColor};
+            border: 2px solid ${theme.textColor}30;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 2;
+          }
+
+          .font-size-labels {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+          }
+
+          .font-size-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            transform: translateX(-50%);
+          }
+
+          .font-size-label:first-child {
+            transform: translateX(0);
+          }
+
+          .font-size-label:last-child {
+            transform: translateX(0);
+          }
+
+          .font-size-icon {
+            font-weight: 600;
+            color: ${theme.textColor}60;
+            line-height: 1;
+          }
+
+          .font-size-value {
+            font-size: 11px;
+            color: ${theme.textColor}60;
+            margin-top: 2px;
+          }
+
           .color-button {
             flex: 0 0 44px;
             width: 44px;
@@ -540,6 +639,44 @@ export default function TaskScreen({ route }: { route: any }) {
               height: 36px;
             }
           }
+
+          @media screen and (max-width: 360px) {
+            .toolbar-row.font-size.expanded {
+              height: 60px;
+            }
+
+            .font-size-slider {
+              padding: 20px 0 8px;
+            }
+
+            .font-size-dot {
+              width: 14px;
+              height: 14px;
+            }
+
+            .font-size-value {
+              font-size: 10px;
+            }
+          }
+
+          @media screen and (min-width: 600px) {
+            .toolbar-row.font-size.expanded {
+              height: 80px;
+            }
+
+            .font-size-slider {
+              padding: 28px 0 8px;
+            }
+
+            .font-size-dot {
+              width: 18px;
+              height: 18px;
+            }
+
+            .font-size-value {
+              font-size: 12px;
+            }
+          }
         </style>
       </head>
       <body>
@@ -591,6 +728,35 @@ export default function TaskScreen({ route }: { route: any }) {
             <button id="orange" class="color-button" onclick="setHighlightColor('#FFAB91')" aria-label="Πορτοκαλί"></button>
             <button id="lime" class="color-button" onclick="setHighlightColor('#E6EE9C')" aria-label="Λαχανί"></button>
           </div>
+          <div class="toolbar-row font-size">
+            <div class="font-size-slider">
+              <div class="font-size-labels">
+                <div class="font-size-label">
+                  <span class="font-size-icon">T</span>
+                  <span class="font-size-value">12px</span>
+                </div>
+                <div class="font-size-label">
+                  <span class="font-size-icon" style="font-size: 14px;">T</span>
+                  <span class="font-size-value">16px</span>
+                </div>
+                <div class="font-size-label">
+                  <span class="font-size-icon" style="font-size: 16px;">T</span>
+                  <span class="font-size-value">20px</span>
+                </div>
+                <div class="font-size-label">
+                  <span class="font-size-icon" style="font-size: 18px;">T</span>
+                  <span class="font-size-value">24px</span>
+                </div>
+              </div>
+              <div class="font-size-track"></div>
+              <div class="font-size-dots">
+                <div class="font-size-dot" data-size="12"></div>
+                <div class="font-size-dot" data-size="16"></div>
+                <div class="font-size-dot" data-size="20"></div>
+                <div class="font-size-dot" data-size="24"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <script>
@@ -599,9 +765,14 @@ export default function TaskScreen({ route }: { route: any }) {
           const buttons = document.querySelectorAll('.toolbar button');
           const expandButton = document.querySelector('.expand-button');
           const secondaryRow = document.querySelector('.toolbar-row.secondary');
+          const fontSizeRow = document.querySelector('.toolbar-row.font-size');
           let isExpanded = false;
           let isColorsExpanded = false;
+          let isFontSizeExpanded = false;
           let currentHighlightColor = '#FFE57F';
+          let isDragging = false;
+          let startX = 0;
+          let sliderLeft = 0;
 
           function toggleSecondaryTools(e) {
             if (e) {
@@ -616,6 +787,7 @@ export default function TaskScreen({ route }: { route: any }) {
             
             expandButton.classList.toggle('active');
             secondaryRow.classList.toggle('expanded');
+            fontSizeRow.classList.toggle('expanded');
             editor.blur();
           }
 
@@ -773,6 +945,103 @@ export default function TaskScreen({ route }: { route: any }) {
               editor.contentEditable = 'true';
               editor.focus();
             }
+          });
+
+          // Font size functionality
+          const FONT_SIZES = [12, 16, 20, 24];
+          const dots = document.querySelectorAll('.font-size-dot');
+          const slider = document.querySelector('.font-size-slider');
+
+          function getClosestSize(x, rect) {
+            const width = rect.width - 20; // Adjust for padding
+            const stepWidth = width / (FONT_SIZES.length - 1);
+            const index = Math.round((x - 10) / stepWidth); // Adjust for padding
+            return Math.max(0, Math.min(FONT_SIZES.length - 1, index));
+          }
+
+          function applyFontSize(fontSize) {
+            const selection = window.getSelection();
+            if (!selection.isCollapsed) {
+              const range = selection.getRangeAt(0);
+              const span = document.createElement('span');
+              span.style.fontSize = fontSize + 'px';
+              
+              try {
+                range.surroundContents(span);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                notifyContent();
+              } catch (e) {
+                console.log('Error applying font size:', e);
+              }
+            }
+          }
+
+          function updateActiveDot(index) {
+            dots.forEach((dot, i) => {
+              dot.classList.toggle('active', i === index);
+            });
+          }
+
+          function handleSliderInteraction(e) {
+            const rect = slider.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const index = getClosestSize(x, rect);
+            
+            updateActiveDot(index);
+            applyFontSize(FONT_SIZES[index]);
+          }
+
+          // Click/touch on dots directly
+          dots.forEach((dot, index) => {
+            dot.addEventListener('click', (e) => {
+              e.stopPropagation();
+              updateActiveDot(index);
+              applyFontSize(FONT_SIZES[index]);
+            });
+
+            dot.addEventListener('touchstart', (e) => {
+              e.stopPropagation();
+              updateActiveDot(index);
+              applyFontSize(FONT_SIZES[index]);
+            });
+          });
+
+          // Slider drag functionality
+          slider.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.font-size-dot')) return;
+            isDragging = true;
+            handleSliderInteraction(e);
+          });
+
+          document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            handleSliderInteraction(e);
+          });
+
+          document.addEventListener('mouseup', () => {
+            isDragging = false;
+          });
+
+          // Touch events
+          slider.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.font-size-dot')) return;
+            isDragging = true;
+            handleSliderInteraction(e);
+          });
+
+          document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            handleSliderInteraction(e);
+          });
+
+          document.addEventListener('touchend', () => {
+            isDragging = false;
+          });
+
+          // Prevent text selection while dragging
+          slider.addEventListener('selectstart', (e) => {
+            if (isDragging) e.preventDefault();
           });
         </script>
       </body>
@@ -940,6 +1209,8 @@ export default function TaskScreen({ route }: { route: any }) {
     editor: {
       flex: 1,
       backgroundColor: theme.backgroundColor,
+      width: '100%',
+      height: '100%'
     },
     buttonsContainer: {
       flexDirection: 'row',

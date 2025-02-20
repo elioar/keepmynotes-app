@@ -728,35 +728,6 @@ export default function TaskScreen({ route }: { route: any }) {
             <button id="orange" class="color-button" onclick="setHighlightColor('#FFAB91')" aria-label="Πορτοκαλί"></button>
             <button id="lime" class="color-button" onclick="setHighlightColor('#E6EE9C')" aria-label="Λαχανί"></button>
           </div>
-          <div class="toolbar-row font-size">
-            <div class="font-size-slider">
-              <div class="font-size-labels">
-                <div class="font-size-label">
-                  <span class="font-size-icon">T</span>
-                  <span class="font-size-value">12px</span>
-                </div>
-                <div class="font-size-label">
-                  <span class="font-size-icon" style="font-size: 14px;">T</span>
-                  <span class="font-size-value">16px</span>
-                </div>
-                <div class="font-size-label">
-                  <span class="font-size-icon" style="font-size: 16px;">T</span>
-                  <span class="font-size-value">20px</span>
-                </div>
-                <div class="font-size-label">
-                  <span class="font-size-icon" style="font-size: 18px;">T</span>
-                  <span class="font-size-value">24px</span>
-                </div>
-              </div>
-              <div class="font-size-track"></div>
-              <div class="font-size-dots">
-                <div class="font-size-dot" data-size="12"></div>
-                <div class="font-size-dot" data-size="16"></div>
-                <div class="font-size-dot" data-size="20"></div>
-                <div class="font-size-dot" data-size="24"></div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <script>
@@ -765,14 +736,9 @@ export default function TaskScreen({ route }: { route: any }) {
           const buttons = document.querySelectorAll('.toolbar button');
           const expandButton = document.querySelector('.expand-button');
           const secondaryRow = document.querySelector('.toolbar-row.secondary');
-          const fontSizeRow = document.querySelector('.toolbar-row.font-size');
           let isExpanded = false;
           let isColorsExpanded = false;
-          let isFontSizeExpanded = false;
           let currentHighlightColor = '#FFE57F';
-          let isDragging = false;
-          let startX = 0;
-          let sliderLeft = 0;
 
           function toggleSecondaryTools(e) {
             if (e) {
@@ -787,7 +753,6 @@ export default function TaskScreen({ route }: { route: any }) {
             
             expandButton.classList.toggle('active');
             secondaryRow.classList.toggle('expanded');
-            fontSizeRow.classList.toggle('expanded');
             editor.blur();
           }
 
@@ -945,103 +910,6 @@ export default function TaskScreen({ route }: { route: any }) {
               editor.contentEditable = 'true';
               editor.focus();
             }
-          });
-
-          // Font size functionality
-          const FONT_SIZES = [12, 16, 20, 24];
-          const dots = document.querySelectorAll('.font-size-dot');
-          const slider = document.querySelector('.font-size-slider');
-
-          function getClosestSize(x, rect) {
-            const width = rect.width - 20; // Adjust for padding
-            const stepWidth = width / (FONT_SIZES.length - 1);
-            const index = Math.round((x - 10) / stepWidth); // Adjust for padding
-            return Math.max(0, Math.min(FONT_SIZES.length - 1, index));
-          }
-
-          function applyFontSize(fontSize) {
-            const selection = window.getSelection();
-            if (!selection.isCollapsed) {
-              const range = selection.getRangeAt(0);
-              const span = document.createElement('span');
-              span.style.fontSize = fontSize + 'px';
-              
-              try {
-                range.surroundContents(span);
-                selection.removeAllRanges();
-                selection.addRange(range);
-                notifyContent();
-              } catch (e) {
-                console.log('Error applying font size:', e);
-              }
-            }
-          }
-
-          function updateActiveDot(index) {
-            dots.forEach((dot, i) => {
-              dot.classList.toggle('active', i === index);
-            });
-          }
-
-          function handleSliderInteraction(e) {
-            const rect = slider.getBoundingClientRect();
-            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-            const index = getClosestSize(x, rect);
-            
-            updateActiveDot(index);
-            applyFontSize(FONT_SIZES[index]);
-          }
-
-          // Click/touch on dots directly
-          dots.forEach((dot, index) => {
-            dot.addEventListener('click', (e) => {
-              e.stopPropagation();
-              updateActiveDot(index);
-              applyFontSize(FONT_SIZES[index]);
-            });
-
-            dot.addEventListener('touchstart', (e) => {
-              e.stopPropagation();
-              updateActiveDot(index);
-              applyFontSize(FONT_SIZES[index]);
-            });
-          });
-
-          // Slider drag functionality
-          slider.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.font-size-dot')) return;
-            isDragging = true;
-            handleSliderInteraction(e);
-          });
-
-          document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            handleSliderInteraction(e);
-          });
-
-          document.addEventListener('mouseup', () => {
-            isDragging = false;
-          });
-
-          // Touch events
-          slider.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.font-size-dot')) return;
-            isDragging = true;
-            handleSliderInteraction(e);
-          });
-
-          document.addEventListener('touchmove', (e) => {
-            if (!isDragging) return;
-            handleSliderInteraction(e);
-          });
-
-          document.addEventListener('touchend', () => {
-            isDragging = false;
-          });
-
-          // Prevent text selection while dragging
-          slider.addEventListener('selectstart', (e) => {
-            if (isDragging) e.preventDefault();
           });
         </script>
       </body>

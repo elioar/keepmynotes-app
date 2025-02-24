@@ -43,6 +43,13 @@ export interface Translations {
   unsavedChangesMessage: string;
   noHiddenNotes: string;
   hiddenNotesDescription: string;
+  noteHistory: string;
+  restoreVersion: string;
+  noVersionsAvailable: string;
+  seeMore: string;
+  seeLess: string;
+  restore: string;
+  restoreVersionConfirm: string;
 
   // Filters
   filters: string;
@@ -199,6 +206,14 @@ export interface Translations {
   // Authentication
   authenticateToView: string;
   usePasscode: string;
+
+  // Note Details
+  noteDetails: string;
+  createdTime: string;
+  lastModified: string;
+  wordCount: string;
+  characterCount: string;
+  readingMode: string;
 }
 
 export default {} as { Translations: Translations }; 

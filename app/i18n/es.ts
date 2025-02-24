@@ -47,6 +47,9 @@ export const es = {
   hiddenNote: 'nota oculta',
   unhideNote: 'Mostrar nota',
   unhideNoteConfirm: '¿Estás seguro de que quieres mostrar esta nota?',
+  noteHistory: 'Historial de Notas',
+  restoreVersion: 'Restaurar Versión',
+  noVersionsAvailable: 'No hay versiones anteriores disponibles',
 
   // Filters
   filters: 'Filtros',

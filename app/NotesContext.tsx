@@ -74,10 +74,30 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   };
 
   const stripHtmlTags = (html: string) => {
+    let counter = 0;
     return html
+      // Handle ordered lists (numbered)
+      .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/g, (match, content) => {
+        counter = 0;
+        return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_: string, item: string) => {
+          counter++;
+          return `\n${counter}. ${item.trim()}\n`;
+        });
+      })
+      // Handle unordered lists (bullet points)
+      .replace(/<ul[^>]*>([\s\S]*?)<\/ul>/g, (match, content) => {
+        return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_: string, item: string) => {
+          return `\n• ${item.trim()}\n`;
+        });
+      })
+      // Handle line breaks and other HTML elements
+      .replace(/<br\s*\/?>/g, '\n')
       .replace(/<[^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
+      // Clean up extra whitespace and line breaks
+      .replace(/\n\s*\n/g, '\n')
+      .replace(/^\s+|\s+$/g, '')
+      .replace(/[\n\s]*$/, '')
       .trim();
   };
 

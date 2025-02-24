@@ -47,6 +47,9 @@ export const en = {
   hiddenNote: 'hidden note',
   unhideNote: 'Unhide note',
   unhideNoteConfirm: 'Are you sure you want to unhide this note?',
+  noteHistory: 'Note History',
+  restoreVersion: 'Restore Version',
+  noVersionsAvailable: 'No previous versions available',
 
   // Filters
   filters: 'Filters',
@@ -203,6 +206,13 @@ export const en = {
   // Authentication
   authenticateToView: 'Authenticate to view',
   usePasscode: 'Use passcode',
+
+  // Note Details
+  noteDetails: 'Note Details',
+  createdTime: 'Created Time',
+  lastModified: 'Last Modified',
+  wordCount: 'Word Count',
+  characterCount: 'Character Count',
 } as const;
 
 export default en; 

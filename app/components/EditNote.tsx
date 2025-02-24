@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,10 +10,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TAG_COLORS, TagColor, TAG_ICONS, TAG_LABELS } from '../constants/tags';
+import ConfirmationModal from './ConfirmationModal';
 
 type RootStackParamList = {
   Home: undefined;
-  Task: { note?: any };
+  EditNote: { note?: any };
   AddEditNote: { note?: any };
 };
 
@@ -33,7 +34,7 @@ interface Note {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export default function TaskScreen({ route }: { route: any }) {
+export default function EditNote({ route }: { route: any }) {
   const editorRef = useRef<WebView>(null);
   const { theme } = useTheme();
   const { t } = useLanguage();
@@ -45,9 +46,23 @@ export default function TaskScreen({ route }: { route: any }) {
   const [title, setTitle] = useState(existingNote?.title || '');
   const [isViewMode, setIsViewMode] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [tags, setTags] = useState<string[]>(existingNote?.tags || []);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [isHistoryModalVisible, setIsHistoryModalVisible] = useState(false);
+  const [versions, setVersions] = useState<Array<{
+    content: string;
+    title: string;
+    updatedAt: string;
+    description: string;
+    isExpanded?: boolean;
+  }>>([]);
+  const [restoreVersion, setRestoreVersion] = useState<typeof versions[0] | null>(null);
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [menuAnimation] = useState(new Animated.Value(0));
 
   useEffect(() => {
     if (existingNote) {
@@ -58,6 +73,71 @@ export default function TaskScreen({ route }: { route: any }) {
       setHasChanges(!!noteContent || !!title);
     }
   }, [noteContent, title]);
+
+  // Load versions when the component mounts
+  useEffect(() => {
+    if (existingNote?.id) {
+      loadVersions(existingNote.id);
+    }
+  }, [existingNote?.id]);
+
+  const loadVersions = async (noteId: string) => {
+    try {
+      const savedVersions = await AsyncStorage.getItem(`note_versions_${noteId}`);
+      if (savedVersions) {
+        setVersions(JSON.parse(savedVersions));
+      }
+    } catch (error) {
+      console.error('Error loading versions:', error);
+    }
+  };
+
+  const saveVersion = async () => {
+    if (!existingNote?.id) return;
+
+    try {
+      const newVersion = {
+        content: noteContent,
+        title,
+        updatedAt: new Date().toISOString(),
+        description: stripHtmlTags(noteContent).substring(0, 100)
+      };
+
+      const updatedVersions = [newVersion, ...versions].slice(0, 10); // Keep last 10 versions
+      await AsyncStorage.setItem(`note_versions_${existingNote.id}`, JSON.stringify(updatedVersions));
+      setVersions(updatedVersions);
+    } catch (error) {
+      console.error('Error saving version:', error);
+    }
+  };
+
+  const handleRestoreVersion = async (version: typeof versions[0]) => {
+    setRestoreVersion(version);
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!restoreVersion) return;
+
+    try {
+      setNoteContent(restoreVersion.content);
+      setTitle(restoreVersion.title);
+      setHasChanges(true);
+      setIsHistoryModalVisible(false);
+      
+      // Save current state as a new version before restoring
+      await saveVersion();
+      
+      // Update the editor content
+      editorRef.current?.injectJavaScript(`
+        editor.innerHTML = ${JSON.stringify(restoreVersion.content)};
+        true;
+      `);
+    } catch (error) {
+      console.error('Error restoring version:', error);
+    } finally {
+      setRestoreVersion(null);
+    }
+  };
 
   const editorHTML = `
     <!DOCTYPE html>
@@ -86,6 +166,7 @@ export default function TaskScreen({ route }: { route: any }) {
             min-height: calc(100vh - 120px);
             outline: none;
             padding: 20px;
+            padding-bottom: ${isViewMode ? '20px' : '500px'};
             font-size: 16px;
             line-height: 1.6;
             caret-color: ${theme.accentColor};
@@ -106,12 +187,14 @@ export default function TaskScreen({ route }: { route: any }) {
             left: 0;
             right: 0;
             padding: 8px;
-            background: #000000;
+            margin-top: 20px;
+            background: ${theme.isDarkMode ? '#000000' : theme.backgroundColor};
             border-top: 1px solid ${theme.borderColor};
             display: ${isViewMode ? 'none' : 'flex'};
             flex-direction: column;
             gap: 4px;
             max-width: 100%;
+            z-index: 1000;
           }
 
           .toolbar-row {
@@ -680,7 +763,7 @@ export default function TaskScreen({ route }: { route: any }) {
         </style>
       </head>
       <body>
-        <div id="editor" contenteditable="${!isViewMode}" ${isViewMode ? 'style="padding-bottom: 20px;"' : ''}>
+        <div id="editor" contenteditable="${!isViewMode}" style="padding-bottom: ${isViewMode ? '20px' : '180px'};">
           ${existingNote?.content || ''}
         </div>
         <div class="toolbar">
@@ -739,6 +822,30 @@ export default function TaskScreen({ route }: { route: any }) {
           let isExpanded = false;
           let isColorsExpanded = false;
           let currentHighlightColor = '#FFE57F';
+
+          // Add auto-scroll functionality
+          function scrollToCaretPosition() {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              const rect = range.getBoundingClientRect();
+              const toolbarHeight = toolbar?.getBoundingClientRect().height || 0;
+              const viewportHeight = window.innerHeight;
+              
+              if (rect.bottom > viewportHeight - toolbarHeight - 40) {
+                window.scrollTo({
+                  top: window.scrollY + (rect.bottom - (viewportHeight - toolbarHeight - 40)),
+                  behavior: 'smooth'
+                });
+              }
+            }
+          }
+
+          editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              requestAnimationFrame(scrollToCaretPosition);
+            }
+          });
 
           function toggleSecondaryTools(e) {
             if (e) {
@@ -834,12 +941,52 @@ export default function TaskScreen({ route }: { route: any }) {
           }
 
           function notifyContent() {
-            window.ReactNativeWebView.postMessage(editor.innerHTML);
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'content',
+              content: editor.innerHTML,
+              canUndo: document.queryCommandEnabled('undo'),
+              canRedo: document.queryCommandEnabled('redo')
+            }));
+          }
+
+          function updateUndoRedoState() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'undoRedoState',
+              canUndo: document.queryCommandEnabled('undo'),
+              canRedo: document.queryCommandEnabled('redo')
+            }));
           }
 
           editor.addEventListener('input', notifyContent);
-          editor.addEventListener('keyup', updateButtons);
+          editor.addEventListener('keyup', () => {
+            updateButtons();
+            updateUndoRedoState();
+          });
           editor.addEventListener('mouseup', updateButtons);
+
+          // Add undo/redo event listeners
+          document.addEventListener('keydown', function(e) {
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              if (e.shiftKey) {
+                document.execCommand('redo');
+              } else {
+                document.execCommand('undo');
+              }
+              notifyContent();
+              updateButtons();
+              updateUndoRedoState();
+            }
+          });
+
+          // Update content after undo/redo
+          editor.addEventListener('input', function(e) {
+            if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') {
+              notifyContent();
+              updateButtons();
+              updateUndoRedoState();
+            }
+          });
 
           document.querySelector('.toolbar').addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -941,8 +1088,9 @@ export default function TaskScreen({ route }: { route: any }) {
           updatedAt: new Date().toISOString(),
           tags
         });
+        await saveVersion();
       } else {
-        await addNote({ 
+        const newNote = await addNote({ 
           title,
           content: noteContent,
           description: stripHtmlTags(noteContent).substring(0, 100),
@@ -951,6 +1099,7 @@ export default function TaskScreen({ route }: { route: any }) {
           isHidden: false,
           tags
         });
+        await saveVersion();
       }
       setHasChanges(false);
       navigation.navigate('Home');
@@ -960,10 +1109,30 @@ export default function TaskScreen({ route }: { route: any }) {
   };
 
   const stripHtmlTags = (html: string) => {
+    let counter = 0;
     return html
+      // Handle ordered lists (numbered)
+      .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/g, (match, content) => {
+        counter = 0;
+        return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_: string, item: string) => {
+          counter++;
+          return `\n${counter}. ${item.trim()}\n`;
+        });
+      })
+      // Handle unordered lists (bullet points)
+      .replace(/<ul[^>]*>([\s\S]*?)<\/ul>/g, (match, content) => {
+        return content.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_: string, item: string) => {
+          return `\n• ${item.trim()}\n`;
+        });
+      })
+      // Handle line breaks and other HTML elements
+      .replace(/<br\s*\/?>/g, '\n')
       .replace(/<[^>]*>/g, '')
       .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
+      // Clean up extra whitespace and line breaks
+      .replace(/\n\s*\n/g, '\n')
+      .replace(/^\s+|\s+$/g, '')
+      .replace(/[\n\s]*$/, '')
       .trim();
   };
 
@@ -999,6 +1168,40 @@ export default function TaskScreen({ route }: { route: any }) {
     }, [hasChanges, navigation, handleSave])
   );
 
+  // Add menu handlers
+  const handleMenuPress = () => {
+    setIsMenuVisible(!isMenuVisible);
+  };
+
+  const handleHistoryPress = () => {
+    setIsMenuVisible(false);
+    setIsHistoryModalVisible(true);
+  };
+
+  const handleReadingModePress = () => {
+    setIsMenuVisible(false);
+    toggleViewMode();
+  };
+
+  const handleDetailsPress = () => {
+    setIsMenuVisible(false);
+    setIsDetailsModalVisible(true);
+  };
+
+  // Add word count function
+  const getWordCount = (text: string) => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  useEffect(() => {
+    Animated.spring(menuAnimation, {
+      toValue: isMenuVisible ? 1 : 0,
+      useNativeDriver: true,
+      tension: 80,
+      friction: 12,
+    }).start();
+  }, [isMenuVisible]);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -1018,6 +1221,128 @@ export default function TaskScreen({ route }: { route: any }) {
     headerLeft: {
       flexDirection: 'row',
       alignItems: 'center',
+    },
+    headerCenter: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    menuButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      backgroundColor: theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    menuButtonActive: {
+      backgroundColor: theme.accentColor + '15',
+    },
+    menuOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 999,
+    },
+    menuOptions: {
+      position: 'absolute',
+      top: 50,
+      right: 16,
+      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      borderRadius: 16,
+      padding: 6,
+      width: 200,
+      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 8,
+      },
+      shadowOpacity: theme.isDarkMode ? 0.4 : 0.2,
+      shadowRadius: 16,
+      elevation: 8,
+      zIndex: 1000,
+      transform: [
+        { scale: menuAnimation },
+        { translateY: menuAnimation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [-10, 0]
+        })},
+      ],
+      opacity: menuAnimation,
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+    },
+    menuOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+      gap: 10,
+      borderRadius: 10,
+      marginBottom: 2,
+    },
+    menuOptionText: {
+      color: theme.textColor,
+      fontSize: 15,
+      fontWeight: '500',
+      letterSpacing: -0.3,
+    },
+    menuOptionActive: {
+      backgroundColor: theme.accentColor + '15',
+    },
+    menuOptionTextActive: {
+      color: theme.accentColor,
+      fontWeight: '600',
+    },
+    menuOptionIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    menuOptionIconActive: {
+      backgroundColor: theme.accentColor + '20',
+    },
+    editControls: {
+      flexDirection: 'row',
+      gap: 8,
+      alignItems: 'center',
+    },
+    editButton: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      backgroundColor: theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+      opacity: 1,
+    },
+    editButtonDisabled: {
+      opacity: 0.5,
     },
     backButton: {
       width: 38,
@@ -1191,44 +1516,378 @@ export default function TaskScreen({ route }: { route: any }) {
       fontSize: 13,
       fontWeight: '500',
     },
+    historyModal: {
+      flex: 1,
+      backgroundColor: theme.backgroundColor,
+    },
+    historyHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      paddingTop: Platform.OS === 'ios' ? 16 : 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+      backgroundColor: theme.isDarkMode ? theme.backgroundColor : theme.secondaryBackground,
+    },
+    historyTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.textColor,
+      letterSpacing: -0.5,
+    },
+    versionItem: {
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+      backgroundColor: theme.backgroundColor,
+      marginBottom: 1,
+    },
+    versionDate: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.textColor,
+      marginBottom: 8,
+      letterSpacing: -0.3,
+    },
+    versionPreview: {
+      fontSize: 14,
+      color: theme.textColor + '90',
+      lineHeight: 20,
+      marginBottom: 8,
+      letterSpacing: 0.2,
+      paddingHorizontal: 2,
+      textAlign: 'left',
+      flexWrap: 'wrap',
+      fontWeight: '400',
+    },
+    seeMoreButton: {
+      alignSelf: 'flex-start',
+      marginBottom: 12,
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 6,
+      backgroundColor: theme.secondaryBackground,
+    },
+    seeMoreText: {
+      fontSize: 13,
+      color: theme.accentColor,
+      fontWeight: '600',
+    },
+    versionMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 6,
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground : theme.backgroundColor + '90',
+      padding: 8,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+    },
+    versionMetaText: {
+      fontSize: 12,
+      color: theme.textColor + '80',
+      fontWeight: '500',
+      letterSpacing: -0.2,
+    },
+    versionActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      gap: 8,
+    },
+    restoreButton: {
+      backgroundColor: theme.accentColor,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      shadowColor: theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 3,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    restoreButtonText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: -0.3,
+    },
+    closeButton: {
+      padding: 8,
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground : theme.backgroundColor,
+      borderRadius: 10,
+      width: 38,
+      height: 38,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    noVersions: {
+      padding: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 200,
+    },
+    noVersionsText: {
+      color: theme.textColor + '70',
+      fontSize: 16,
+      fontWeight: '500',
+      textAlign: 'center',
+      letterSpacing: -0.3,
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      padding: 20,
+    },
+    detailsModal: {
+      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      borderRadius: 24,
+      padding: 24,
+      width: '100%',
+      maxWidth: 380,
+      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 8,
+      },
+      shadowOpacity: theme.isDarkMode ? 0.5 : 0.25,
+      shadowRadius: 16,
+      elevation: 10,
+    },
+    detailsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 28,
+    },
+    detailsTitle: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: theme.textColor,
+      letterSpacing: -0.5,
+    },
+    detailsCloseButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    detailsContent: {
+      marginBottom: 24,
+    },
+    detailsRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor + '20',
+    },
+    detailsRowIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.accentColor + '15',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    detailsRowContent: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    detailsLabel: {
+      fontSize: 14,
+      color: theme.textColor + '70',
+      fontWeight: '500',
+      marginBottom: 6,
+      letterSpacing: -0.3,
+    },
+    detailsValue: {
+      fontSize: 15,
+      color: theme.textColor,
+      fontWeight: '600',
+      textAlign: 'right',
+    },
+    detailsFooter: {
+      marginTop: 24,
+      borderTopWidth: 1,
+      borderTopColor: theme.borderColor + '20',
+      paddingTop: 20,
+    },
+    detailsStats: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: 20,
+    },
+    detailsStat: {
+      alignItems: 'center',
+    },
+    detailsStatValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.textColor,
+      marginBottom: 4,
+    },
+    detailsStatLabel: {
+      fontSize: 12,
+      color: theme.textColor + '60',
+      fontWeight: '500',
+    },
+    actionButton: {
+      padding: 8,
+      backgroundColor: theme.accentColor,
+      borderRadius: 10,
+      alignItems: 'center',
+    },
+    actionButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    dateContainer: {
+      flexDirection: 'column',
+      gap: 4,
+    },
+    dateValue: {
+      fontSize: 16,
+      color: theme.textColor,
+      fontWeight: '600',
+      letterSpacing: -0.3,
+    },
+    timeValue: {
+      fontSize: 14,
+      color: theme.textColor + '80',
+      fontWeight: '500',
+      letterSpacing: -0.2,
+    },
   });
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={handleBack}
+          >
+            <Ionicons 
+              name="checkmark" 
+              size={24} 
+              color={theme.textColor} 
+            />
+          </TouchableOpacity>
+
+          <View style={styles.headerCenter}>
             <TouchableOpacity 
-              style={styles.backButton}
-              onPress={handleBack}
+              style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
+              onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
             >
-              <Ionicons name="chevron-back" size={20} color={theme.textColor} />
+              <Ionicons 
+                name="arrow-undo-outline" 
+                size={20} 
+                color={theme.textColor} 
+                style={{ opacity: canUndo ? 1 : 0.5 }}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
+              onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
+            >
+              <Ionicons 
+                name="arrow-redo-outline" 
+                size={20} 
+                color={theme.textColor}
+                style={{ opacity: canRedo ? 1 : 0.5 }}
+              />
             </TouchableOpacity>
           </View>
-          <View style={styles.buttonsContainer}>
+
+          <View style={styles.headerRight}>
             <TouchableOpacity 
-              style={[styles.viewButton, isViewMode && styles.viewButtonActive]}
+              style={[styles.menuButton, isViewMode && styles.menuButtonActive]}
               onPress={toggleViewMode}
             >
               <Ionicons 
                 name={isViewMode ? "create-outline" : "eye-outline"} 
                 size={20} 
-                color={isViewMode ? '#FFFFFF' : theme.textColor} 
+                color={theme.textColor} 
               />
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.saveButton}
-              onPress={handleSave}
-              disabled={!hasChanges}
+              style={styles.menuButton}
+              onPress={handleMenuPress}
             >
-              <Ionicons 
-                name="save-outline" 
-                size={20} 
-                color={hasChanges ? "#FFFFFF" : theme.accentColor} 
-              />
+              <Ionicons name="ellipsis-vertical" size={20} color={theme.textColor} />
             </TouchableOpacity>
           </View>
         </View>
+
+        {isMenuVisible && (
+          <TouchableOpacity 
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={() => setIsMenuVisible(false)}
+          >
+            <Animated.View style={styles.menuOptions}>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={handleDetailsPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuOptionIcon}>
+                  <Ionicons name="information-circle-outline" size={20} color={theme.textColor} />
+                </View>
+                <Text style={styles.menuOptionText}>{t('noteDetails')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={handleHistoryPress}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuOptionIcon}>
+                  <Ionicons name="time-outline" size={20} color={theme.textColor} />
+                </View>
+                <Text style={styles.menuOptionText}>{t('noteHistory')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.menuOption, isViewMode && styles.menuOptionActive]}
+                onPress={handleReadingModePress}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.menuOptionIcon, isViewMode && styles.menuOptionIconActive]}>
+                  <Ionicons 
+                    name={isViewMode ? "create-outline" : "eye-outline"} 
+                    size={20} 
+                    color={isViewMode ? theme.accentColor : theme.textColor} 
+                  />
+                </View>
+                <Text style={[
+                  styles.menuOptionText, 
+                  isViewMode && styles.menuOptionTextActive
+                ]}>
+                  {isViewMode ? t('edit') : t('readingMode')}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.tagContainer}>
           <View style={styles.categoryGroup}>
@@ -1282,13 +1941,194 @@ export default function TaskScreen({ route }: { route: any }) {
           style={styles.editor}
           originWhitelist={['*']}
           onMessage={(event) => {
-            setNoteContent(event.nativeEvent.data);
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === 'content') {
+              setNoteContent(data.content);
+              setCanUndo(data.canUndo);
+              setCanRedo(data.canRedo);
+            } else if (data.type === 'undoRedoState') {
+              setCanUndo(data.canUndo);
+              setCanRedo(data.canRedo);
+            }
           }}
           scrollEnabled={true}
           keyboardDisplayRequiresUserAction={false}
           hideKeyboardAccessoryView={false}
         />
       </View>
+
+      {/* History Modal */}
+      <Modal
+        visible={isHistoryModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsHistoryModalVisible(false)}
+      >
+        <SafeAreaView style={styles.historyModal}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.historyTitle}>{t('noteHistory')}</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setIsHistoryModalVisible(false)}
+            >
+              <Ionicons name="close" size={22} color={theme.textColor} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView>
+            {versions.length > 0 ? (
+              versions.map((version, index) => (
+                <View key={version.updatedAt} style={styles.versionItem}>
+                  <Text style={styles.versionDate}>
+                    {new Date(version.updatedAt).toLocaleString('el', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </Text>
+                  <View style={styles.versionMeta}>
+                    <Ionicons name="create-outline" size={16} color={theme.textColor + '80'} />
+                    <Text style={styles.versionMetaText}>
+                      {stripHtmlTags(version.content).length} {t('characters')}
+                    </Text>
+                  </View>
+                  <Text style={styles.versionPreview} numberOfLines={version.isExpanded ? undefined : 3}>
+                    {stripHtmlTags(version.content)}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.seeMoreButton}
+                    onPress={() => {
+                      const updatedVersions = versions.map((v, i) => 
+                        i === index ? { ...v, isExpanded: !v.isExpanded } : v
+                      );
+                      setVersions(updatedVersions);
+                    }}
+                  >
+                    <Text style={styles.seeMoreText}>
+                      {version.isExpanded ? t('seeLess') : t('seeMore')}
+                    </Text>
+                  </TouchableOpacity>
+                  <View style={styles.versionActions}>
+                    <TouchableOpacity
+                      style={styles.restoreButton}
+                      onPress={() => handleRestoreVersion(version)}
+                    >
+                      <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.restoreButtonText}>
+                        {t('restoreVersion')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.noVersions}>
+                <Text style={styles.noVersionsText}>
+                  {t('noVersionsAvailable')}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Note Details Modal */}
+      <Modal
+        visible={isDetailsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDetailsModalVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.detailsModal}>
+            <View style={styles.detailsHeader}>
+              <Text style={styles.detailsTitle}>{t('noteDetails')}</Text>
+              <TouchableOpacity 
+                style={styles.detailsCloseButton}
+                onPress={() => setIsDetailsModalVisible(false)}
+              >
+                <Ionicons name="close" size={20} color={theme.textColor} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.detailsContent}>
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsRowContent}>
+                  <View style={styles.detailsRowIcon}>
+                    <Ionicons name="calendar-outline" size={20} color={theme.accentColor} />
+                  </View>
+                  <View style={styles.dateContainer}>
+                    <Text style={styles.detailsLabel}>{t('createdTime')}</Text>
+                    <Text style={styles.dateValue}>
+                      {new Date(existingNote?.createdAt || new Date()).toLocaleString('el', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsRowContent}>
+                  <View style={styles.detailsRowIcon}>
+                    <Ionicons name="time-outline" size={20} color={theme.accentColor} />
+                  </View>
+                  <View style={styles.dateContainer}>
+                    <Text style={styles.detailsLabel}>{t('lastModified')}</Text>
+                    <Text style={styles.dateValue}>
+                      {new Date(existingNote?.updatedAt || new Date()).toLocaleString('el', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.detailsFooter}>
+              <View style={styles.detailsStats}>
+                <View style={styles.detailsStat}>
+                  <Text style={styles.detailsStatValue}>
+                    {getWordCount(stripHtmlTags(noteContent))}
+                  </Text>
+                  <Text style={styles.detailsStatLabel}>{t('wordCount')}</Text>
+                </View>
+                <View style={styles.detailsStat}>
+                  <Text style={styles.detailsStatValue}>
+                    {stripHtmlTags(noteContent).length}
+                  </Text>
+                  <Text style={styles.detailsStatLabel}>{t('characterCount')}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => setIsDetailsModalVisible(false)}
+              >
+                <Text style={styles.actionButtonText}>{t('done')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ConfirmationModal
+        visible={!!restoreVersion}
+        title={t('restoreVersion')}
+        message={t('restoreVersionConfirm')}
+        confirmText={t('restore')}
+        cancelText={t('cancel')}
+        onConfirm={handleConfirmRestore}
+        onCancel={() => setRestoreVersion(null)}
+        type="warning"
+        icon="time-outline"
+      />
     </SafeAreaView>
   );
 } 

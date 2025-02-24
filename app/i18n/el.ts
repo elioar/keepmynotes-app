@@ -47,6 +47,13 @@ export const el = {
   hiddenNote: 'κρυφή σημείωση',
   unhideNote: 'Εμφάνιση σημείωσης',
   unhideNoteConfirm: 'Είστε βέβαιοι ότι θέλετε να εμφανίσετε αυτή τη σημείωση;',
+  noteHistory: 'Ιστορικό Σημείωσης',
+  restoreVersion: 'Επαναφορά Έκδοσης',
+  noVersionsAvailable: 'Δεν υπάρχουν διαθέσιμες εκδόσεις',
+  seeMore: 'Περισσότερα',
+  seeLess: 'Λιγότερα',
+  restore: 'Επαναφορά',
+  restoreVersionConfirm: 'Είστε σίγουροι ότι θέλετε να επαναφέρετε αυτή την έκδοση; Η τρέχουσα έκδοση θα αποθηκευτεί στο ιστορικό.',
 
   // Φίλτρα
   filters: 'Φίλτρα',
@@ -203,6 +210,13 @@ export const el = {
   // Authentication
   authenticateToView: 'Ταυτοποίηση για προβολή',
   usePasscode: 'Χρήση κωδικού',
+
+  // Note Details
+  noteDetails: 'Λεπτομέρειες Σημείωσης',
+  createdTime: 'Ημερομηνία Δημιουργίας',
+  lastModified: 'Τελευταία Τροποποίηση',
+  wordCount: 'Αριθμός Λέξεων',
+  characterCount: 'Αριθμός Χαρακτήρων',
 } as const;
 
 export default el; 

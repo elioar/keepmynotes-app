@@ -10,7 +10,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import HiddenNotesScreen from './components/HiddenNotesScreen';
 import SecurityCheck from './components/SecurityCheck';
 import PinScreen from './components/PinScreen';
-import TaskScreen from './components/TaskScreen';
+import EditNote from './components/EditNote';
 import { OnboardingProvider, useOnboarding } from './context/OnboardingContext';
 import { Easing } from 'react-native';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -83,7 +83,7 @@ function Navigation() {
       />
       <Stack.Screen 
         name="Task" 
-        component={TaskScreen}
+        component={EditNote}
       />
       <Stack.Screen 
         name="Settings" 

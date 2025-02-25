@@ -2,7 +2,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import RootLayout from './app/_layout';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { NotesProvider } from './app/context/NotesContext';
+import { NotesProvider } from './context/NotesContext';
+import { CategoryProvider } from './context/CategoryContext';
 
 export default function App() {
   return (
@@ -10,7 +11,9 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer>
           <NotesProvider>
-            <RootLayout />
+            <CategoryProvider>
+              <RootLayout />
+            </CategoryProvider>
           </NotesProvider>
         </NavigationContainer>
       </SafeAreaProvider>

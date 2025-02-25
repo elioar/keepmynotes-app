@@ -7,6 +7,15 @@ export interface Translations {
   textNotes: string;
   recentlyEdited: string;
   characters: string;
+  words: string;
+  
+  // Categories
+  noTag: string;
+  personal: string;
+  work: string;
+  study: string;
+  ideas: string;
+  important: string;
   
   // Actions
   edit: string;
@@ -214,6 +223,32 @@ export interface Translations {
   wordCount: string;
   characterCount: string;
   readingMode: string;
+  search: string;
+  searchInNote: string;
+  deleteNote: string;
+  deleteNoteConfirm: string;
+  errorDeletingNote: string;
+
+  // Favorites
+  addToFavorites: string;
+  removeFromFavorites: string;
+
+  // Sharing
+  share: string;
+  shareAsText: string;
+  shareAsImage: string;
+  shareAsTextDescription: string;
+  shareAsImageDescription: string;
+  errorSharingImage: string;
+
+  // Categories
+  selectCategory: string;
+  enterCategoryName: string;
+  addCustomCategory: string;
+  customCategory: string;
+  categoryAdded: string;
+  categoryExists: string;
+  categoryError: string;
 }
 
 export default {} as { Translations: Translations }; 

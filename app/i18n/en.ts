@@ -7,6 +7,15 @@ export const en = {
   textNotes: 'Text notes',
   recentlyEdited: 'Recently edited',
   characters: 'characters',
+  words: 'words',
+  
+  // Categories
+  noTag: 'No Category',
+  personal: 'Personal',
+  work: 'Work',
+  study: 'Study',
+  ideas: 'Ideas',
+  important: 'Important',
   
   // Actions
   edit: 'Edit',
@@ -213,6 +222,33 @@ export const en = {
   lastModified: 'Last Modified',
   wordCount: 'Word Count',
   characterCount: 'Character Count',
+  readingMode: 'Reading Mode',
+  search: 'Search',
+  searchInNote: 'Search in note...',
+  deleteNote: 'Delete Note',
+  deleteNoteConfirm: 'Are you sure you want to delete this note?',
+  errorDeletingNote: 'Error deleting note',
+
+  // Favorites
+  addToFavorites: 'Add to Favorites',
+  removeFromFavorites: 'Remove from Favorites',
+
+  // Sharing
+  share: 'Share',
+  shareAsText: 'Share as Text',
+  shareAsImage: 'Save as Image',
+  shareAsTextDescription: 'Share your note as plain text',
+  shareAsImageDescription: 'Convert your note to an image',
+  errorSharingImage: 'Error creating or sharing image',
+
+  // Categories
+  selectCategory: 'Select category',
+  enterCategoryName: 'Enter category name',
+  addCustomCategory: 'Add custom category',
+  customCategory: 'Custom category',
+  categoryAdded: 'Category added',
+  categoryExists: 'Category already exists',
+  categoryError: 'Error adding category',
 } as const;
 
 export default en; 

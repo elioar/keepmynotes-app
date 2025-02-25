@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,7 +10,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TAG_COLORS, TagColor, TAG_ICONS, TAG_LABELS } from '../constants/tags';
-import ConfirmationModal from './ConfirmationModal';
+import { Share } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 type RootStackParamList = {
   Home: undefined;
@@ -36,9 +39,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function EditNote({ route }: { route: any }) {
   const editorRef = useRef<WebView>(null);
+  const viewShotRef = useRef<ViewShot>(null);
+  const webViewRef = useRef<WebView>(null);
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { addNote, updateNote } = useNotes();
+  const { addNote, updateNote, deleteNote } = useNotes();
   const navigation = useNavigation<NavigationProp>();
   
   const existingNote = route.params?.note;
@@ -62,13 +67,20 @@ export default function EditNote({ route }: { route: any }) {
   const [restoreVersion, setRestoreVersion] = useState<typeof versions[0] | null>(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
-  const [menuAnimation] = useState(new Animated.Value(0));
+  const [isFavorite, setIsFavorite] = useState(existingNote?.isFavorite || false);
+  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [searchResults, setSearchResults] = useState<number[]>([]);
+  const [currentResultIndex, setCurrentResultIndex] = useState(-1);
 
   useEffect(() => {
     if (existingNote) {
       const contentChanged = noteContent !== existingNote.content;
       const titleChanged = title !== existingNote.title;
       setHasChanges(contentChanged || titleChanged);
+      setIsFavorite(existingNote.isFavorite);
     } else {
       setHasChanges(!!noteContent || !!title);
     }
@@ -161,12 +173,25 @@ export default function EditNote({ route }: { route: any }) {
             user-select: text;
           }
 
+          .search-highlight {
+            background-color: ${theme.accentColor}40;
+            border-radius: 2px;
+            padding: 2px 0;
+            transition: all 0.2s ease;
+          }
+
+          .search-highlight.current {
+            background-color: ${theme.accentColor};
+            color: #FFFFFF;
+            box-shadow: 0 1px 4px ${theme.accentColor}40;
+          }
+
           #editor {
             width: 100%;
             min-height: calc(100vh - 120px);
             outline: none;
             padding: 20px;
-            padding-bottom: ${isViewMode ? '20px' : '500px'};
+            padding-bottom: ${isViewMode ? '20px' : '200px'};
             font-size: 16px;
             line-height: 1.6;
             caret-color: ${theme.accentColor};
@@ -187,14 +212,12 @@ export default function EditNote({ route }: { route: any }) {
             left: 0;
             right: 0;
             padding: 8px;
-            margin-top: 20px;
-            background: ${theme.isDarkMode ? '#000000' : theme.backgroundColor};
+            background: #000000;
             border-top: 1px solid ${theme.borderColor};
             display: ${isViewMode ? 'none' : 'flex'};
             flex-direction: column;
             gap: 4px;
             max-width: 100%;
-            z-index: 1000;
           }
 
           .toolbar-row {
@@ -760,10 +783,48 @@ export default function EditNote({ route }: { route: any }) {
               font-size: 12px;
             }
           }
+
+          .no-color-icon {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .no-color-icon::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid ${theme.textColor}40;
+            border-radius: 4px;
+          }
+
+          .no-color-icon::after {
+            content: '';
+            position: absolute;
+            width: 28px;
+            height: 2px;
+            background: ${theme.textColor}60;
+            transform: rotate(-45deg);
+            border-radius: 1px;
+          }
+
+          #remove-color {
+            background: ${theme.isDarkMode ? '#2A2A2A' : '#F5F5F5'};
+            border: 1px solid ${theme.borderColor};
+          }
+
+          #remove-color.selected {
+            background: ${theme.isDarkMode ? '#3A3A3A' : '#E5E5E5'};
+            border-color: ${theme.textColor}60;
+          }
         </style>
       </head>
       <body>
-        <div id="editor" contenteditable="${!isViewMode}" style="padding-bottom: ${isViewMode ? '20px' : '180px'};">
+        <div id="editor" contenteditable="${!isViewMode}" ${isViewMode ? 'style="padding-bottom: 20px;"' : ''}>
           ${existingNote?.content || ''}
         </div>
         <div class="toolbar">
@@ -802,6 +863,9 @@ export default function EditNote({ route }: { route: any }) {
             </button>
           </div>
           <div class="toolbar-row colors">
+            <button id="remove-color" class="color-button" onclick="removeHighlightColor()" aria-label="Χωρίς χρώμα">
+              <span class="no-color-icon"></span>
+            </button>
             <button id="yellow" class="color-button" onclick="setHighlightColor('#FFE57F')" aria-label="Κίτρινο"></button>
             <button id="green" class="color-button" onclick="setHighlightColor('#A5D6A7')" aria-label="Πράσινο"></button>
             <button id="blue" class="color-button" onclick="setHighlightColor('#90CAF9')" aria-label="Μπλε"></button>
@@ -822,30 +886,6 @@ export default function EditNote({ route }: { route: any }) {
           let isExpanded = false;
           let isColorsExpanded = false;
           let currentHighlightColor = '#FFE57F';
-
-          // Add auto-scroll functionality
-          function scrollToCaretPosition() {
-            const selection = window.getSelection();
-            if (selection && selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0);
-              const rect = range.getBoundingClientRect();
-              const toolbarHeight = toolbar?.getBoundingClientRect().height || 0;
-              const viewportHeight = window.innerHeight;
-              
-              if (rect.bottom > viewportHeight - toolbarHeight - 40) {
-                window.scrollTo({
-                  top: window.scrollY + (rect.bottom - (viewportHeight - toolbarHeight - 40)),
-                  behavior: 'smooth'
-                });
-              }
-            }
-          }
-
-          editor.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-              requestAnimationFrame(scrollToCaretPosition);
-            }
-          });
 
           function toggleSecondaryTools(e) {
             if (e) {
@@ -976,6 +1016,24 @@ export default function EditNote({ route }: { route: any }) {
               notifyContent();
               updateButtons();
               updateUndoRedoState();
+            } else if (e.key === 'Enter') {
+              // Add delay to allow the new line to be inserted
+              setTimeout(() => {
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                  const range = selection.getRangeAt(0);
+                  const rect = range.getBoundingClientRect();
+                  const toolbarHeight = 220; // Height of the toolbar
+                  const buffer = 40; // Extra space above the toolbar
+                  
+                  if (rect.bottom > window.innerHeight - toolbarHeight) {
+                    window.scrollTo({
+                      top: window.scrollY + (rect.bottom - (window.innerHeight - toolbarHeight)) + buffer,
+                      behavior: 'smooth'
+                    });
+                  }
+                }
+              }, 10);
             }
           });
 
@@ -1058,6 +1116,25 @@ export default function EditNote({ route }: { route: any }) {
               editor.focus();
             }
           });
+
+          function removeHighlightColor() {
+            const selection = window.getSelection();
+            if (!selection.isCollapsed) {
+              document.execCommand('removeFormat', false, null);
+              
+              const colorButtons = document.querySelectorAll('.color-button');
+              colorButtons.forEach(btn => btn.classList.remove('selected'));
+              document.querySelector('#remove-color').classList.add('selected');
+              
+              toggleColorRow();
+              updateButtons();
+              notifyContent();
+            }
+          }
+
+          // Update the initial setup
+          document.querySelector('#yellow').classList.remove('selected');
+          document.querySelector('#remove-color').classList.add('selected');
         </script>
       </body>
     </html>
@@ -1188,19 +1265,228 @@ export default function EditNote({ route }: { route: any }) {
     setIsDetailsModalVisible(true);
   };
 
+  const handleFavoritePress = async () => {
+    const newFavoriteState = !isFavorite;
+    setIsFavorite(newFavoriteState);
+    setIsMenuVisible(false);
+    
+    if (existingNote) {
+      await updateNote({
+        ...existingNote,
+        isFavorite: newFavoriteState,
+      });
+    }
+  };
+
   // Add word count function
   const getWordCount = (text: string) => {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   };
 
-  useEffect(() => {
-    Animated.spring(menuAnimation, {
-      toValue: isMenuVisible ? 1 : 0,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 12,
-    }).start();
-  }, [isMenuVisible]);
+  // Add share handlers
+  const handleSharePress = () => {
+    setIsMenuVisible(false);
+    setIsShareModalVisible(true);
+  };
+
+  const handleShareAsText = async () => {
+    try {
+      await Share.share({
+        message: stripHtmlTags(noteContent),
+        title: title,
+      });
+    } catch (error) {
+      console.error('Error sharing text:', error);
+    }
+    setIsShareModalVisible(false);
+  };
+
+  const handleShareAsImage = async () => {
+    try {
+      const ref = viewShotRef.current;
+      if (!ref?.capture) {
+        Alert.alert(t('error'), t('errorSharingImage'));
+        return;
+      }
+
+      const uri = await ref.capture();
+      if (uri) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: title });
+        setIsShareModalVisible(false);
+      }
+    } catch (error) {
+      console.error('Error sharing as image:', error);
+      Alert.alert(t('error'), t('errorSharingImage'));
+    }
+  };
+
+  const cleanHtmlContent = (html: string) => {
+    if (!html) return '';
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+  };
+
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    
+    if (!text.trim()) {
+      setSearchResults([]);
+      setCurrentResultIndex(-1);
+      editorRef.current?.injectJavaScript(`
+        document.querySelectorAll('.search-highlight').forEach(el => {
+          const text = el.textContent;
+          el.replaceWith(text);
+        });
+        true;
+      `);
+      return;
+    }
+
+    editorRef.current?.injectJavaScript(`
+      try {
+        // Remove existing highlights first
+        document.querySelectorAll('.search-highlight').forEach(el => {
+          const text = el.textContent;
+          el.replaceWith(text);
+        });
+
+        const editor = document.querySelector('#editor');
+        const walker = document.createTreeWalker(
+          editor,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+
+        let node;
+        let matches = [];
+        const searchRegex = new RegExp(${JSON.stringify(text)}, 'gi');
+
+        while (node = walker.nextNode()) {
+          const text = node.textContent;
+          let match;
+          
+          while ((match = searchRegex.exec(text)) !== null) {
+            const range = document.createRange();
+            range.setStart(node, match.index);
+            range.setEnd(node, match.index + match[0].length);
+            
+            const span = document.createElement('span');
+            span.className = 'search-highlight';
+            span.style.backgroundColor = 'rgba(255, 213, 13, 0.3)';
+            span.style.padding = '2px 0';
+            
+            range.surroundContents(span);
+            matches.push(span);
+            
+            // Update walker to continue from the right position
+            walker.currentNode = span;
+          }
+        }
+
+        if (matches.length > 0) {
+          matches[0].classList.add('current');
+          matches[0].style.backgroundColor = 'rgba(255, 213, 13, 0.7)';
+          matches[0].scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'searchResults',
+          results: matches.map((_, index) => ({
+            index: index,
+            length: 1
+          }))
+        }));
+
+      } catch (error) {
+        console.error('Search error:', error);
+      }
+      true;
+    `);
+  };
+
+  const handleNextResult = () => {
+    if (searchResults.length === 0) return;
+    
+    const nextIndex = currentResultIndex + 1 >= searchResults.length ? 0 : currentResultIndex + 1;
+    setCurrentResultIndex(nextIndex);
+    
+    editorRef.current?.injectJavaScript(`
+      try {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(h => {
+          h.classList.remove('current');
+          h.style.backgroundColor = 'rgba(255, 213, 13, 0.3)';
+        });
+        
+        if (highlights[${nextIndex}]) {
+          highlights[${nextIndex}].classList.add('current');
+          highlights[${nextIndex}].style.backgroundColor = 'rgba(255, 213, 13, 0.7)';
+          highlights[${nextIndex}].scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
+      true;
+    `);
+  };
+
+  const handlePreviousResult = () => {
+    if (searchResults.length === 0) return;
+    
+    const prevIndex = currentResultIndex - 1 < 0 ? searchResults.length - 1 : currentResultIndex - 1;
+    setCurrentResultIndex(prevIndex);
+    
+    editorRef.current?.injectJavaScript(`
+      try {
+        const highlights = document.querySelectorAll('.search-highlight');
+        highlights.forEach(h => {
+          h.classList.remove('current');
+          h.style.backgroundColor = 'rgba(255, 213, 13, 0.3)';
+        });
+        
+        if (highlights[${prevIndex}]) {
+          highlights[${prevIndex}].classList.add('current');
+          highlights[${prevIndex}].style.backgroundColor = 'rgba(255, 213, 13, 0.7)';
+          highlights[${prevIndex}].scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
+      true;
+    `);
+  };
+
+  const handleDelete = () => {
+    setIsMenuVisible(false);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      if (existingNote?.id) {
+        await deleteNote(existingNote.id);
+      }
+      setIsDeleteModalVisible(false);
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      Alert.alert(t('error'), t('errorDeletingNote'));
+    }
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -1248,8 +1534,22 @@ export default function EditNote({ route }: { route: any }) {
       shadowRadius: 3,
       elevation: 2,
     },
-    menuButtonActive: {
-      backgroundColor: theme.accentColor + '15',
+    menuOptions: {
+      position: 'absolute',
+      top: 50,
+      right: 16,
+      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      borderRadius: 12,
+      padding: 8,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 5,
+      zIndex: 1000,
     },
     menuOverlay: {
       position: 'absolute',
@@ -1259,65 +1559,23 @@ export default function EditNote({ route }: { route: any }) {
       bottom: 0,
       zIndex: 999,
     },
-    menuOptions: {
-      position: 'absolute',
-      top: 50,
-      right: 16,
-      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
-      borderRadius: 16,
-      padding: 6,
-      width: 200,
-      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
-      shadowOffset: {
-        width: 0,
-        height: 8,
-      },
-      shadowOpacity: theme.isDarkMode ? 0.4 : 0.2,
-      shadowRadius: 16,
-      elevation: 8,
-      zIndex: 1000,
-      transform: [
-        { scale: menuAnimation },
-        { translateY: menuAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [-10, 0]
-        })},
-      ],
-      opacity: menuAnimation,
-      borderWidth: 1,
-      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-    },
     menuOption: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 10,
-      gap: 10,
-      borderRadius: 10,
-      marginBottom: 2,
+      padding: 12,
+      gap: 12,
+      borderRadius: 8,
     },
     menuOptionText: {
       color: theme.textColor,
       fontSize: 15,
       fontWeight: '500',
-      letterSpacing: -0.3,
     },
     menuOptionActive: {
       backgroundColor: theme.accentColor + '15',
     },
     menuOptionTextActive: {
       color: theme.accentColor,
-      fontWeight: '600',
-    },
-    menuOptionIcon: {
-      width: 28,
-      height: 28,
-      borderRadius: 8,
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    menuOptionIconActive: {
-      backgroundColor: theme.accentColor + '20',
     },
     editControls: {
       flexDirection: 'row',
@@ -1640,142 +1898,187 @@ export default function EditNote({ route }: { route: any }) {
       textAlign: 'center',
       letterSpacing: -0.3,
     },
-    modalContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      padding: 20,
-    },
     detailsModal: {
       backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
-      borderRadius: 24,
-      padding: 24,
+      borderRadius: 28,
+      padding: 0,
       width: '100%',
-      maxWidth: 380,
+      maxWidth: 340,
       shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
       shadowOffset: {
         width: 0,
         height: 8,
       },
-      shadowOpacity: theme.isDarkMode ? 0.5 : 0.25,
+      shadowOpacity: theme.isDarkMode ? 0.5 : 0.2,
       shadowRadius: 16,
-      elevation: 10,
+      elevation: 8,
     },
     detailsHeader: {
-      flexDirection: 'row',
+      padding: 24,
+      paddingBottom: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.isDarkMode ? '#2A2A2A' : theme.borderColor,
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 28,
+      gap: 12,
     },
     detailsTitle: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: '700',
       color: theme.textColor,
       letterSpacing: -0.5,
     },
-    detailsCloseButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-    },
     detailsContent: {
-      marginBottom: 24,
+      padding: 20,
     },
     detailsRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
       paddingVertical: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor + '20',
+      gap: 16,
     },
-    detailsRowIcon: {
+    detailsIcon: {
       width: 40,
       height: 40,
       borderRadius: 12,
-      backgroundColor: theme.accentColor + '15',
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 16,
     },
-    detailsRowContent: {
+    detailsInfo: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
     },
     detailsLabel: {
-      fontSize: 14,
-      color: theme.textColor + '70',
+      fontSize: 13,
+      color: theme.textColor + '60',
       fontWeight: '500',
-      marginBottom: 6,
-      letterSpacing: -0.3,
+      marginBottom: 4,
     },
     detailsValue: {
       fontSize: 15,
       color: theme.textColor,
       fontWeight: '600',
-      textAlign: 'right',
     },
     detailsFooter: {
-      marginTop: 24,
-      borderTopWidth: 1,
-      borderTopColor: theme.borderColor + '20',
-      paddingTop: 20,
+      padding: 20,
+      paddingTop: 0,
     },
-    detailsStats: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      marginBottom: 20,
-    },
-    detailsStat: {
-      alignItems: 'center',
-    },
-    detailsStatValue: {
-      fontSize: 20,
-      fontWeight: '700',
-      color: theme.textColor,
-      marginBottom: 4,
-    },
-    detailsStatLabel: {
-      fontSize: 12,
-      color: theme.textColor + '60',
-      fontWeight: '500',
-    },
-    actionButton: {
-      padding: 8,
+    doneButton: {
       backgroundColor: theme.accentColor,
-      borderRadius: 10,
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 16,
       alignItems: 'center',
+      shadowColor: theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 5,
     },
-    actionButtonText: {
+    doneButtonText: {
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
-    },
-    dateContainer: {
-      flexDirection: 'column',
-      gap: 4,
-    },
-    dateValue: {
-      fontSize: 16,
-      color: theme.textColor,
-      fontWeight: '600',
       letterSpacing: -0.3,
     },
-    timeValue: {
-      fontSize: 14,
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+      padding: 20,
+    },
+    shareModal: {
+      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      borderRadius: 28,
+      padding: 24,
+      width: '100%',
+      maxWidth: 340,
+      gap: 20,
+    },
+    shareOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
+      borderRadius: 16,
+      gap: 16,
+    },
+    shareIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? '#3A3A3A' : theme.backgroundColor,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    shareInfo: {
+      flex: 1,
+    },
+    shareTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textColor,
+      marginBottom: 4,
+    },
+    shareDescription: {
+      fontSize: 13,
       color: theme.textColor + '80',
+    },
+    cancelButton: {
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
+      paddingVertical: 14,
+      borderRadius: 16,
+      alignItems: 'center',
+    },
+    cancelText: {
+      color: theme.textColor,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    searchContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: 10,
+      marginHorizontal: 12,
+      paddingHorizontal: 12,
+      height: 38,
+    },
+    searchInput: {
+      flex: 1,
+      color: theme.textColor,
+      fontSize: 16,
+      paddingVertical: 8,
+    },
+    searchControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    searchCounter: {
+      color: theme.textColor,
+      fontSize: 14,
       fontWeight: '500',
-      letterSpacing: -0.2,
+      marginRight: 8,
+    },
+    searchNavButton: {
+      padding: 4,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
+    },
+    searchCloseButton: {
+      padding: 4,
+      marginLeft: 8,
+    },
+    menuOptionDanger: {
+      backgroundColor: '#FF4E4E15',
+    },
+    menuOptionTextDanger: {
+      color: '#FF4E4E',
     },
   });
 
@@ -1787,49 +2090,80 @@ export default function EditNote({ route }: { route: any }) {
             style={styles.backButton}
             onPress={handleBack}
           >
-            <Ionicons 
-              name="checkmark" 
-              size={24} 
-              color={theme.textColor} 
-            />
+            <Ionicons name="checkmark" size={24} color={theme.textColor} />
           </TouchableOpacity>
 
-          <View style={styles.headerCenter}>
-            <TouchableOpacity 
-              style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
-              onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
-            >
-              <Ionicons 
-                name="arrow-undo-outline" 
-                size={20} 
-                color={theme.textColor} 
-                style={{ opacity: canUndo ? 1 : 0.5 }}
+          {isSearchVisible ? (
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={handleSearch}
+                placeholder={t('searchInNote')}
+                placeholderTextColor={theme.placeholderColor}
+                autoFocus
               />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
-              onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
-            >
-              <Ionicons 
-                name="arrow-redo-outline" 
-                size={20} 
-                color={theme.textColor}
-                style={{ opacity: canRedo ? 1 : 0.5 }}
-              />
-            </TouchableOpacity>
-          </View>
+              <View style={styles.searchControls}>
+                {searchResults.length > 0 && (
+                  <>
+                    <Text style={styles.searchCounter}>
+                      {currentResultIndex + 1}/{searchResults.length}
+                    </Text>
+                    <TouchableOpacity 
+                      style={styles.searchNavButton}
+                      onPress={handlePreviousResult}
+                    >
+                      <Ionicons name="chevron-up" size={20} color={theme.textColor} />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.searchNavButton}
+                      onPress={handleNextResult}
+                    >
+                      <Ionicons name="chevron-down" size={20} color={theme.textColor} />
+                    </TouchableOpacity>
+                  </>
+                )}
+                <TouchableOpacity 
+                  style={styles.searchCloseButton}
+                  onPress={() => {
+                    setIsSearchVisible(false);
+                    handleSearch('');
+                    setSearchResults([]);
+                    setCurrentResultIndex(-1);
+                  }}
+                >
+                  <Ionicons name="close" size={20} color={theme.textColor} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.headerCenter}>
+              <TouchableOpacity 
+                style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
+                onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
+              >
+                <Ionicons 
+                  name="arrow-undo-outline" 
+                  size={20} 
+                  color={theme.textColor} 
+                  style={{ opacity: canUndo ? 1 : 0.5 }}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
+                onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
+              >
+                <Ionicons 
+                  name="arrow-redo-outline" 
+                  size={20} 
+                  color={theme.textColor}
+                  style={{ opacity: canRedo ? 1 : 0.5 }}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={styles.headerRight}>
-            <TouchableOpacity 
-              style={[styles.menuButton, isViewMode && styles.menuButtonActive]}
-              onPress={toggleViewMode}
-            >
-              <Ionicons 
-                name={isViewMode ? "create-outline" : "eye-outline"} 
-                size={20} 
-                color={theme.textColor} 
-              />
-            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.menuButton}
               onPress={handleMenuPress}
@@ -1840,44 +2174,69 @@ export default function EditNote({ route }: { route: any }) {
         </View>
 
         {isMenuVisible && (
-          <TouchableOpacity 
-            style={styles.menuOverlay}
-            activeOpacity={1}
-            onPress={() => setIsMenuVisible(false)}
-          >
-            <Animated.View style={styles.menuOptions}>
+          <>
+            <TouchableOpacity 
+              style={styles.menuOverlay} 
+              activeOpacity={1}
+              onPress={() => setIsMenuVisible(false)}
+            />
+            <View style={styles.menuOptions}>
+              <TouchableOpacity 
+                style={[styles.menuOption, isFavorite && styles.menuOptionActive]}
+                onPress={handleFavoritePress}
+              >
+                <Ionicons 
+                  name={isFavorite ? "heart" : "heart-outline"} 
+                  size={20} 
+                  color={isFavorite ? theme.accentColor : theme.textColor} 
+                />
+                <Text style={[
+                  styles.menuOptionText, 
+                  isFavorite && styles.menuOptionTextActive
+                ]}>
+                  {isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={() => {
+                  setIsMenuVisible(false);
+                  setIsSearchVisible(true);
+                }}
+              >
+                <Ionicons name="search-outline" size={20} color={theme.textColor} />
+                <Text style={styles.menuOptionText}>{t('search')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={handleSharePress}
+              >
+                <Ionicons name="share-outline" size={20} color={theme.textColor} />
+                <Text style={styles.menuOptionText}>{t('share')}</Text>
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.menuOption}
                 onPress={handleDetailsPress}
-                activeOpacity={0.7}
               >
-                <View style={styles.menuOptionIcon}>
-                  <Ionicons name="information-circle-outline" size={20} color={theme.textColor} />
-                </View>
+                <Ionicons name="information-circle-outline" size={20} color={theme.textColor} />
                 <Text style={styles.menuOptionText}>{t('noteDetails')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.menuOption}
                 onPress={handleHistoryPress}
-                activeOpacity={0.7}
               >
-                <View style={styles.menuOptionIcon}>
-                  <Ionicons name="time-outline" size={20} color={theme.textColor} />
-                </View>
+                <Ionicons name="time-outline" size={20} color={theme.textColor} />
                 <Text style={styles.menuOptionText}>{t('noteHistory')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.menuOption, isViewMode && styles.menuOptionActive]}
                 onPress={handleReadingModePress}
-                activeOpacity={0.7}
               >
-                <View style={[styles.menuOptionIcon, isViewMode && styles.menuOptionIconActive]}>
-                  <Ionicons 
-                    name={isViewMode ? "create-outline" : "eye-outline"} 
-                    size={20} 
-                    color={isViewMode ? theme.accentColor : theme.textColor} 
-                  />
-                </View>
+                <Ionicons 
+                  name={isViewMode ? "create-outline" : "eye-outline"} 
+                  size={20} 
+                  color={isViewMode ? theme.accentColor : theme.textColor} 
+                />
                 <Text style={[
                   styles.menuOptionText, 
                   isViewMode && styles.menuOptionTextActive
@@ -1885,8 +2244,15 @@ export default function EditNote({ route }: { route: any }) {
                   {isViewMode ? t('edit') : t('readingMode')}
                 </Text>
               </TouchableOpacity>
-            </Animated.View>
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.menuOption, styles.menuOptionDanger]}
+                onPress={handleDelete}
+              >
+                <Ionicons name="trash-outline" size={20} color="#FF4E4E" />
+                <Text style={[styles.menuOptionText, styles.menuOptionTextDanger]}>{t('delete')}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
 
         <View style={styles.tagContainer}>
@@ -1949,6 +2315,22 @@ export default function EditNote({ route }: { route: any }) {
             } else if (data.type === 'undoRedoState') {
               setCanUndo(data.canUndo);
               setCanRedo(data.canRedo);
+            } else if (data.type === 'searchResults') {
+              setSearchResults(data.results);
+              if (data.results.length > 0 && currentResultIndex === -1) {
+                setCurrentResultIndex(0);
+                // Highlight first result
+                editorRef.current?.injectJavaScript(`
+                  const highlights = document.querySelectorAll('.search-highlight');
+                  if (highlights[0]) {
+                    highlights[0].style.backgroundColor = '${theme.accentColor}';
+                    highlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                  true;
+                `);
+              } else if (data.results.length === 0) {
+                setCurrentResultIndex(-1);
+              }
             }
           }}
           scrollEnabled={true}
@@ -2044,91 +2426,330 @@ export default function EditNote({ route }: { route: any }) {
         <View style={styles.modalContainer}>
           <View style={styles.detailsModal}>
             <View style={styles.detailsHeader}>
+              <View style={[styles.detailsIcon, { backgroundColor: theme.accentColor + '15' }]}>
+                <Ionicons name="document-text" size={22} color={theme.accentColor} />
+              </View>
               <Text style={styles.detailsTitle}>{t('noteDetails')}</Text>
-              <TouchableOpacity 
-                style={styles.detailsCloseButton}
-                onPress={() => setIsDetailsModalVisible(false)}
-              >
-                <Ionicons name="close" size={20} color={theme.textColor} />
-              </TouchableOpacity>
             </View>
-
+            
             <View style={styles.detailsContent}>
               <View style={styles.detailsRow}>
-                <View style={styles.detailsRowContent}>
-                  <View style={styles.detailsRowIcon}>
-                    <Ionicons name="calendar-outline" size={20} color={theme.accentColor} />
-                  </View>
-                  <View style={styles.dateContainer}>
-                    <Text style={styles.detailsLabel}>{t('createdTime')}</Text>
-                    <Text style={styles.dateValue}>
-                      {new Date(existingNote?.createdAt || new Date()).toLocaleString('el', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </View>
+                <View style={styles.detailsIcon}>
+                  <Ionicons name="calendar-outline" size={20} color={theme.textColor + '80'} />
+                </View>
+                <View style={styles.detailsInfo}>
+                  <Text style={styles.detailsLabel}>{t('createdTime')}</Text>
+                  <Text style={styles.detailsValue}>
+                    {new Date(existingNote?.createdAt || new Date()).toLocaleDateString('el', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </Text>
                 </View>
               </View>
-
+              
               <View style={styles.detailsRow}>
-                <View style={styles.detailsRowContent}>
-                  <View style={styles.detailsRowIcon}>
-                    <Ionicons name="time-outline" size={20} color={theme.accentColor} />
-                  </View>
-                  <View style={styles.dateContainer}>
-                    <Text style={styles.detailsLabel}>{t('lastModified')}</Text>
-                    <Text style={styles.dateValue}>
-                      {new Date(existingNote?.updatedAt || new Date()).toLocaleString('el', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                  </View>
+                <View style={styles.detailsIcon}>
+                  <Ionicons name="time-outline" size={20} color={theme.textColor + '80'} />
+                </View>
+                <View style={styles.detailsInfo}>
+                  <Text style={styles.detailsLabel}>{t('lastModified')}</Text>
+                  <Text style={styles.detailsValue}>
+                    {new Date(existingNote?.updatedAt || new Date()).toLocaleDateString('el', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsIcon}>
+                  <Ionicons name="text-outline" size={20} color={theme.textColor + '80'} />
+                </View>
+                <View style={styles.detailsInfo}>
+                  <Text style={styles.detailsLabel}>{t('wordCount')}</Text>
+                  <Text style={styles.detailsValue}>
+                    {getWordCount(stripHtmlTags(noteContent))} {t('words')}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.detailsRow}>
+                <View style={styles.detailsIcon}>
+                  <Ionicons name="analytics-outline" size={20} color={theme.textColor + '80'} />
+                </View>
+                <View style={styles.detailsInfo}>
+                  <Text style={styles.detailsLabel}>{t('characterCount')}</Text>
+                  <Text style={styles.detailsValue}>
+                    {stripHtmlTags(noteContent).length} {t('characters')}
+                  </Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.detailsFooter}>
-              <View style={styles.detailsStats}>
-                <View style={styles.detailsStat}>
-                  <Text style={styles.detailsStatValue}>
-                    {getWordCount(stripHtmlTags(noteContent))}
-                  </Text>
-                  <Text style={styles.detailsStatLabel}>{t('wordCount')}</Text>
-                </View>
-                <View style={styles.detailsStat}>
-                  <Text style={styles.detailsStatValue}>
-                    {stripHtmlTags(noteContent).length}
-                  </Text>
-                  <Text style={styles.detailsStatLabel}>{t('characterCount')}</Text>
-                </View>
-              </View>
-
               <TouchableOpacity
-                style={styles.actionButton}
+                style={styles.doneButton}
                 onPress={() => setIsDetailsModalVisible(false)}
               >
-                <Text style={styles.actionButtonText}>{t('done')}</Text>
+                <Text style={styles.doneButtonText}>
+                  {t('done')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      <ConfirmationModal
+      {/* Share Modal */}
+      <Modal
+        visible={isShareModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsShareModalVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.shareModal}>
+            <TouchableOpacity style={styles.shareOption} onPress={handleShareAsText}>
+              <View style={styles.shareIcon}>
+                <Ionicons name="text-outline" size={22} color={theme.textColor} />
+              </View>
+              <View style={styles.shareInfo}>
+                <Text style={styles.shareTitle}>{t('shareAsText')}</Text>
+                <Text style={styles.shareDescription}>{t('shareAsTextDescription')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.shareOption} onPress={handleShareAsImage}>
+              <View style={styles.shareIcon}>
+                <Ionicons name="image-outline" size={22} color={theme.textColor} />
+              </View>
+              <View style={styles.shareInfo}>
+                <Text style={styles.shareTitle}>{t('shareAsImage')}</Text>
+                <Text style={styles.shareDescription}>{t('shareAsImageDescription')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => setIsShareModalVisible(false)}
+            >
+              <Text style={styles.cancelText}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ViewShot component for image sharing */}
+      <ViewShot
+        ref={viewShotRef}
+        options={{
+          format: 'png',
+          quality: 1,
+          result: 'tmpfile'
+        }}
+        style={{
+          position: 'absolute',
+          top: -9999,
+          left: -9999,
+          width: 600,
+          backgroundColor: theme.backgroundColor,
+          padding: 20,
+          minHeight: 400
+        }}
+      >
+        <View style={{ flex: 1, justifyContent: 'space-between' }}>
+          <View>
+            <Text style={{ 
+              fontSize: 14, 
+              color: theme.placeholderColor,
+              marginBottom: 8 
+            }}>
+              {new Date(existingNote?.createdAt || new Date()).toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'long',
+                year: 'numeric'
+              })}
+            </Text>
+            <Text style={{ 
+              fontSize: 24, 
+              fontWeight: 'bold', 
+              color: theme.textColor,
+              marginBottom: 10 
+            }}>
+              {title}
+            </Text>
+            <Text style={{ 
+              fontSize: 16, 
+              color: theme.textColor,
+              lineHeight: 24
+            }}>
+              {stripHtmlTags(noteContent)}
+            </Text>
+          </View>
+
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: 40,
+            paddingTop: 20,
+            borderTopWidth: 1,
+            borderTopColor: theme.borderColor
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <Ionicons 
+                name="document-text" 
+                size={24} 
+                color={theme.accentColor}
+              />
+              <Text style={{
+                fontSize: 18,
+                color: theme.textColor,
+                fontWeight: '600'
+              }}>
+                Keep My Notes
+              </Text>
+            </View>
+
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12
+            }}>
+              <View style={{
+                width: 60,
+                height: 60,
+                backgroundColor: '#fff',
+                borderRadius: 8,
+                padding: 4
+              }}>
+                <Text style={{
+                  fontSize: 10,
+                  color: theme.placeholderColor,
+                  textAlign: 'center',
+                  marginBottom: 2
+                }}>
+                  Play Store
+                </Text>
+                <View style={{
+                  flex: 1,
+                  backgroundColor: '#000',
+                  borderRadius: 4
+                }} />
+              </View>
+
+              <View style={{
+                width: 60,
+                height: 60,
+                backgroundColor: '#fff',
+                borderRadius: 8,
+                padding: 4
+              }}>
+                <Text style={{
+                  fontSize: 10,
+                  color: theme.placeholderColor,
+                  textAlign: 'center',
+                  marginBottom: 2
+                }}>
+                  App Store
+                </Text>
+                <View style={{
+                  flex: 1,
+                  backgroundColor: '#000',
+                  borderRadius: 4
+                }} />
+              </View>
+            </View>
+          </View>
+        </View>
+      </ViewShot>
+
+      {/* Restore Version Modal */}
+      <Modal
         visible={!!restoreVersion}
-        title={t('restoreVersion')}
-        message={t('restoreVersionConfirm')}
-        confirmText={t('restore')}
-        cancelText={t('cancel')}
-        onConfirm={handleConfirmRestore}
-        onCancel={() => setRestoreVersion(null)}
-        type="warning"
-        icon="time-outline"
-      />
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRestoreVersion(null)}
+        statusBarTranslucent
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.detailsModal}>
+            <View style={styles.detailsHeader}>
+              <View style={[styles.detailsIcon, { backgroundColor: theme.accentColor + '15' }]}>
+                <Ionicons name="time-outline" size={22} color={theme.accentColor} />
+              </View>
+              <Text style={styles.detailsTitle}>{t('restoreVersion')}</Text>
+            </View>
+            <View style={styles.detailsContent}>
+              <Text style={styles.detailsValue}>{t('restoreVersionConfirm')}</Text>
+            </View>
+            <View style={styles.detailsFooter}>
+              <TouchableOpacity
+                style={[styles.doneButton, { backgroundColor: theme.accentColor }]}
+                onPress={() => handleConfirmRestore()}
+              >
+                <Text style={styles.doneButtonText}>{t('restore')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelButton, { marginTop: 8 }]}
+                onPress={() => setRestoreVersion(null)}
+              >
+                <Text style={styles.cancelText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Note Modal */}
+      <Modal
+        visible={isDeleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsDeleteModalVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.detailsModal}>
+            <View style={styles.detailsHeader}>
+              <View style={[styles.detailsIcon, { backgroundColor: '#FF4E4E15' }]}>
+                <Ionicons name="trash-outline" size={22} color="#FF4E4E" />
+              </View>
+              <Text style={styles.detailsTitle}>{t('deleteNote')}</Text>
+            </View>
+            <View style={styles.detailsContent}>
+              <Text style={styles.detailsValue}>{t('deleteNoteConfirm')}</Text>
+            </View>
+            <View style={styles.detailsFooter}>
+              <TouchableOpacity
+                style={[styles.doneButton, { backgroundColor: '#FF4E4E' }]}
+                onPress={handleConfirmDelete}
+              >
+                <Text style={styles.doneButtonText}>{t('delete')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelButton, { marginTop: 8 }]}
+                onPress={() => setIsDeleteModalVisible(false)}
+              >
+                <Text style={styles.cancelText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 } 

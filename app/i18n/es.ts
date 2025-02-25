@@ -7,6 +7,7 @@ export const es = {
   textNotes: 'Notas de texto',
   recentlyEdited: 'Editado recientemente',
   characters: 'caracteres',
+  words: 'palabras',
   
   // Actions
   edit: 'Editar',
@@ -206,6 +207,31 @@ export const es = {
   // Authentication
   authenticateToView: 'Autenticar para ver',
   usePasscode: 'Usar código',
+
+  // Favorites
+  addToFavorites: 'Añadir a Favoritos',
+  removeFromFavorites: 'Quitar de Favoritos',
+
+  // Sharing
+  share: 'Compartir',
+  shareAsText: 'Compartir como Texto',
+  shareAsImage: 'Guardar como Imagen',
+  shareAsTextDescription: 'Compartir tu nota como texto plano',
+  shareAsImageDescription: 'Convertir tu nota en imagen',
+  errorSharingImage: 'Error al crear o compartir la imagen',
+
+  // Note Details
+  noteDetails: 'Detalles de la Nota',
+  createdTime: 'Fecha de Creación',
+  lastModified: 'Última Modificación',
+  wordCount: 'Recuento de Palabras',
+  characterCount: 'Recuento de Caracteres',
+  readingMode: 'Modo Lectura',
+  search: 'Buscar',
+  searchInNote: 'Buscar en la nota...',
+  deleteNote: 'Eliminar Nota',
+  deleteNoteConfirm: '¿Estás seguro de que quieres eliminar esta nota?',
+  errorDeletingNote: 'Error al eliminar la nota',
 } as const;
 
 export default es; 

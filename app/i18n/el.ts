@@ -7,6 +7,15 @@ export const el = {
   textNotes: 'Σημειώσεις κειμένου',
   recentlyEdited: 'Πρόσφατη επεξεργασία',
   characters: 'χαρακτήρες',
+  words: 'λέξεις',
+  
+  // Κατηγορίες
+  noTag: 'Χωρίς Κατηγορία',
+  personal: 'Προσωπικά',
+  work: 'Εργασία',
+  study: 'Σπουδές',
+  ideas: 'Ιδέες',
+  important: 'Σημαντικό',
   
   // Ενέργειες
   edit: 'Επεξεργασία',
@@ -217,6 +226,33 @@ export const el = {
   lastModified: 'Τελευταία Τροποποίηση',
   wordCount: 'Αριθμός Λέξεων',
   characterCount: 'Αριθμός Χαρακτήρων',
+  readingMode: 'Λειτουργία Ανάγνωσης',
+  search: 'Αναζήτηση',
+  searchInNote: 'Αναζήτηση στη σημείωση...',
+  deleteNote: 'Διαγραφή Σημείωσης',
+  deleteNoteConfirm: 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή τη σημείωση;',
+  errorDeletingNote: 'Σφάλμα κατά τη διαγραφή της σημείωσης',
+
+  // Favorites
+  addToFavorites: 'Προσθήκη στα Αγαπημένα',
+  removeFromFavorites: 'Αφαίρεση από τα Αγαπημένα',
+
+  // Sharing
+  share: 'Κοινοποίηση',
+  shareAsText: 'Κοινοποίηση ως Κείμενο',
+  shareAsImage: 'Αποθήκευση ως Εικόνα',
+  shareAsTextDescription: 'Κοινοποίηση της σημείωσης ως απλό κείμενο',
+  shareAsImageDescription: 'Μετατροπή της σημείωσης σε εικόνα',
+  errorSharingImage: 'Σφάλμα κατά τη δημιουργία ή κοινοποίηση της εικόνας',
+
+  // Κατηγορίες
+  selectCategory: 'Επιλογή κατηγορίας',
+  enterCategoryName: 'Εισάγετε όνομα κατηγορίας',
+  addCustomCategory: 'Προσθήκη προσαρμοσμένης κατηγορίας',
+  customCategory: 'Προσαρμοσμένη κατηγορία',
+  categoryAdded: 'Η κατηγορία προστέθηκε',
+  categoryExists: 'Η κατηγορία υπάρχει ήδη',
+  categoryError: 'Σφάλμα κατά την προσθήκη κατηγορίας',
 } as const;
 
 export default el; 

@@ -42,7 +42,7 @@ export default function EditNote({ route }: { route: any }) {
   const viewShotRef = useRef<ViewShot>(null);
   const webViewRef = useRef<WebView>(null);
   const { theme } = useTheme();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const { addNote, updateNote, deleteNote } = useNotes();
   const navigation = useNavigation<NavigationProp>();
   
@@ -74,6 +74,8 @@ export default function EditNote({ route }: { route: any }) {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [searchResults, setSearchResults] = useState<number[]>([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(-1);
+  const [searchResultsCount, setSearchResultsCount] = useState(0);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
   useEffect(() => {
     if (existingNote) {
@@ -108,19 +110,34 @@ export default function EditNote({ route }: { route: any }) {
     if (!existingNote?.id) return;
 
     try {
+      const now = new Date();
       const newVersion = {
         content: noteContent,
         title,
-        updatedAt: new Date().toISOString(),
+        updatedAt: now.toISOString(),
         description: stripHtmlTags(noteContent).substring(0, 100)
       };
 
-      const updatedVersions = [newVersion, ...versions].slice(0, 10); // Keep last 10 versions
+      // Filter out versions older than 10 days
+      const tenDaysAgo = new Date(now.getTime() - (10 * 24 * 60 * 60 * 1000));
+      const filteredVersions = versions.filter(version => 
+        new Date(version.updatedAt) > tenDaysAgo
+      );
+
+      const updatedVersions = [newVersion, ...filteredVersions];
       await AsyncStorage.setItem(`note_versions_${existingNote.id}`, JSON.stringify(updatedVersions));
       setVersions(updatedVersions);
     } catch (error) {
       console.error('Error saving version:', error);
     }
+  };
+
+  const getDaysRemaining = (date: string) => {
+    const versionDate = new Date(date);
+    const now = new Date();
+    const tenDaysFromVersion = new Date(versionDate.getTime() + (10 * 24 * 60 * 60 * 1000));
+    const daysRemaining = Math.ceil((tenDaysFromVersion.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    return Math.max(0, daysRemaining);
   };
 
   const handleRestoreVersion = async (version: typeof versions[0]) => {
@@ -576,8 +593,25 @@ export default function EditNote({ route }: { route: any }) {
           }
 
           .format-icon.align-left::before {
+            content: '';
+            position: absolute;
             width: 100%;
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            height: 2px;
+            background: #FFFFFF;
+            top: 0;
+            border-radius: 1px;
+            box-shadow: 0 6px 0 #FFFFFF;
+          }
+
+          .format-icon.align-left::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 2px;
+            background: #FFFFFF;
+            bottom: 0;
+            left: 0;
+            border-radius: 1px;
           }
 
           .format-icon.align-center::before {
@@ -587,8 +621,25 @@ export default function EditNote({ route }: { route: any }) {
           }
 
           .format-icon.align-right::before {
+            content: '';
+            position: absolute;
             width: 100%;
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            height: 2px;
+            background: #FFFFFF;
+            top: 0;
+            border-radius: 1px;
+            box-shadow: 0 6px 0 #FFFFFF;
+          }
+
+          .format-icon.align-right::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 2px;
+            background: #FFFFFF;
+            bottom: 0;
+            right: 0;
+            border-radius: 1px;
           }
 
           .format-icon.expand {
@@ -786,8 +837,8 @@ export default function EditNote({ route }: { route: any }) {
 
           .no-color-icon {
             position: relative;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -796,30 +847,59 @@ export default function EditNote({ route }: { route: any }) {
           .no-color-icon::before {
             content: '';
             position: absolute;
-            width: 20px;
-            height: 20px;
-            border: 2px solid ${theme.textColor}40;
-            border-radius: 4px;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #FFFFFF;
+            border-radius: 2px;
+            opacity: 0.9;
           }
 
           .no-color-icon::after {
             content: '';
             position: absolute;
-            width: 28px;
+            width: 20px;
             height: 2px;
-            background: ${theme.textColor}60;
+            background: #FFFFFF;
             transform: rotate(-45deg);
-            border-radius: 1px;
+            opacity: 0.9;
           }
 
           #remove-color {
             background: ${theme.isDarkMode ? '#2A2A2A' : '#F5F5F5'};
-            border: 1px solid ${theme.borderColor};
+            border: none;
           }
 
           #remove-color.selected {
-            background: ${theme.isDarkMode ? '#3A3A3A' : '#E5E5E5'};
-            border-color: ${theme.textColor}60;
+            background: ${theme.accentColor};
+          }
+
+          .format-icon.highlight {
+            width: 20px;
+            height: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .format-icon.highlight::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #FFFFFF;
+            border-radius: 2px;
+            opacity: 0.9;
+          }
+
+          .format-icon.highlight::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 2px;
+            background: #FFFFFF;
+            transform: rotate(-45deg);
+            opacity: 0.9;
           }
         </style>
       </head>
@@ -1331,78 +1411,46 @@ export default function EditNote({ route }: { route: any }) {
   const handleSearch = (text: string) => {
     setSearchQuery(text);
     
-    if (!text.trim()) {
-      setSearchResults([]);
-      setCurrentResultIndex(-1);
-      editorRef.current?.injectJavaScript(`
-        document.querySelectorAll('.search-highlight').forEach(el => {
-          const text = el.textContent;
-          el.replaceWith(text);
-        });
-        true;
-      `);
-      return;
-    }
-
     editorRef.current?.injectJavaScript(`
       try {
-        // Remove existing highlights first
-        document.querySelectorAll('.search-highlight').forEach(el => {
-          const text = el.textContent;
-          el.replaceWith(text);
-        });
-
-        const editor = document.querySelector('#editor');
-        const walker = document.createTreeWalker(
-          editor,
-          NodeFilter.SHOW_TEXT,
-          null
-        );
-
-        let node;
-        let matches = [];
-        const searchRegex = new RegExp(${JSON.stringify(text)}, 'gi');
-
-        while (node = walker.nextNode()) {
-          const text = node.textContent;
-          let match;
-          
-          while ((match = searchRegex.exec(text)) !== null) {
-            const range = document.createRange();
-            range.setStart(node, match.index);
-            range.setEnd(node, match.index + match[0].length);
-            
-            const span = document.createElement('span');
-            span.className = 'search-highlight';
-            span.style.backgroundColor = 'rgba(255, 213, 13, 0.3)';
-            span.style.padding = '2px 0';
-            
-            range.surroundContents(span);
-            matches.push(span);
-            
-            // Update walker to continue from the right position
-            walker.currentNode = span;
-          }
+        const editor = document.getElementById('editor');
+        editor.innerHTML = editor.innerHTML.replace(/<mark class="search-highlight[^>]*>(.*?)<\\/mark>/g, '$1');
+        
+        if (!${JSON.stringify(text.trim())}) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'searchResults',
+            count: 0
+          }));
+          return true;
         }
 
-        if (matches.length > 0) {
-          matches[0].classList.add('current');
-          matches[0].style.backgroundColor = 'rgba(255, 213, 13, 0.7)';
-          matches[0].scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
+        const searchText = ${JSON.stringify(text)};
+        const content = editor.textContent;
+        const regex = new RegExp(searchText, 'gi');
+        const matches = content.match(regex);
+        const count = matches ? matches.length : 0;
+
+        if (count > 0) {
+          editor.innerHTML = editor.innerHTML.replace(
+            new RegExp('(' + searchText + ')', 'gi'),
+            '<mark class="search-highlight">$1</mark>'
+          );
+
+          const highlights = document.getElementsByClassName('search-highlight');
+          if (highlights.length > 0) {
+            highlights[0].style.backgroundColor = '${theme.accentColor}';
+            highlights[0].style.color = '#FFFFFF';
+            highlights[0].scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
+            });
+          }
         }
 
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'searchResults',
-          results: matches.map((_, index) => ({
-            index: index,
-            length: 1
-          }))
+          count: count
         }));
-
       } catch (error) {
         console.error('Search error:', error);
       }
@@ -1411,63 +1459,85 @@ export default function EditNote({ route }: { route: any }) {
   };
 
   const handleNextResult = () => {
-    if (searchResults.length === 0) return;
-    
-    const nextIndex = currentResultIndex + 1 >= searchResults.length ? 0 : currentResultIndex + 1;
-    setCurrentResultIndex(nextIndex);
+    if (searchResultsCount <= 1) return;
     
     editorRef.current?.injectJavaScript(`
       try {
-        const highlights = document.querySelectorAll('.search-highlight');
-        highlights.forEach(h => {
-          h.classList.remove('current');
-          h.style.backgroundColor = 'rgba(255, 213, 13, 0.3)';
-        });
+        const highlights = document.getElementsByClassName('search-highlight');
+        let currentIndex = -1;
         
-        if (highlights[${nextIndex}]) {
-          highlights[${nextIndex}].classList.add('current');
-          highlights[${nextIndex}].style.backgroundColor = 'rgba(255, 213, 13, 0.7)';
-          highlights[${nextIndex}].scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
+        // Find current highlighted index
+        for (let i = 0; i < highlights.length; i++) {
+          if (highlights[i].style.backgroundColor === '${theme.accentColor}') {
+            currentIndex = i;
+            break;
+          }
         }
+        
+        // Reset current highlight
+        if (currentIndex !== -1) {
+          highlights[currentIndex].style.backgroundColor = '${theme.accentColor}20';
+          highlights[currentIndex].style.color = '${theme.textColor}';
+        }
+        
+        // Move to next or wrap to first
+        const nextIndex = (currentIndex + 1) % highlights.length;
+        highlights[nextIndex].style.backgroundColor = '${theme.accentColor}';
+        highlights[nextIndex].style.color = '#FFFFFF';
+        highlights[nextIndex].scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
       } catch (error) {
         console.error('Navigation error:', error);
       }
       true;
     `);
+    
+    setCurrentMatchIndex(prev => 
+      prev + 1 > searchResultsCount ? 1 : prev + 1
+    );
   };
 
   const handlePreviousResult = () => {
-    if (searchResults.length === 0) return;
-    
-    const prevIndex = currentResultIndex - 1 < 0 ? searchResults.length - 1 : currentResultIndex - 1;
-    setCurrentResultIndex(prevIndex);
+    if (searchResultsCount <= 1) return;
     
     editorRef.current?.injectJavaScript(`
       try {
-        const highlights = document.querySelectorAll('.search-highlight');
-        highlights.forEach(h => {
-          h.classList.remove('current');
-          h.style.backgroundColor = 'rgba(255, 213, 13, 0.3)';
-        });
+        const highlights = document.getElementsByClassName('search-highlight');
+        let currentIndex = -1;
         
-        if (highlights[${prevIndex}]) {
-          highlights[${prevIndex}].classList.add('current');
-          highlights[${prevIndex}].style.backgroundColor = 'rgba(255, 213, 13, 0.7)';
-          highlights[${prevIndex}].scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center',
-            inline: 'nearest'
-          });
+        // Find current highlighted index
+        for (let i = 0; i < highlights.length; i++) {
+          if (highlights[i].style.backgroundColor === '${theme.accentColor}') {
+            currentIndex = i;
+            break;
+          }
         }
+        
+        // Reset current highlight
+        if (currentIndex !== -1) {
+          highlights[currentIndex].style.backgroundColor = '${theme.accentColor}20';
+          highlights[currentIndex].style.color = '${theme.textColor}';
+        }
+        
+        // Move to previous or wrap to last
+        const prevIndex = currentIndex - 1 < 0 ? highlights.length - 1 : currentIndex - 1;
+        highlights[prevIndex].style.backgroundColor = '${theme.accentColor}';
+        highlights[prevIndex].style.color = '#FFFFFF';
+        highlights[prevIndex].scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
       } catch (error) {
         console.error('Navigation error:', error);
       }
       true;
     `);
+    
+    setCurrentMatchIndex(prev => 
+      prev - 1 < 1 ? searchResultsCount : prev - 1
+    );
   };
 
   const handleDelete = () => {
@@ -2053,32 +2123,57 @@ export default function EditNote({ route }: { route: any }) {
       color: theme.textColor,
       fontSize: 16,
       paddingVertical: 8,
+      marginLeft: 8,
     },
     searchControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 8,
     },
     searchCounter: {
-      color: theme.textColor,
-      fontSize: 14,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      minWidth: 60,
+      alignItems: 'center',
+    },
+    searchCounterText: {
+      color: theme.textColor + '90',
+      fontSize: 12,
       fontWeight: '500',
-      marginRight: 8,
     },
     searchNavButton: {
-      padding: 4,
-      borderRadius: 6,
+      padding: 6,
+      borderRadius: 8,
       backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
+      opacity: 1,
+    },
+    searchNavButtonDisabled: {
+      opacity: 0.5,
     },
     searchCloseButton: {
-      padding: 4,
-      marginLeft: 8,
+      padding: 8,
+      marginLeft: 4,
     },
     menuOptionDanger: {
       backgroundColor: '#FF4E4E15',
     },
     menuOptionTextDanger: {
       color: '#FF4E4E',
+    },
+    daysRemainingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      marginLeft: 8,
+      gap: 4,
+    },
+    daysRemainingText: {
+      fontSize: 12,
+      fontWeight: '600',
     },
   });
 
@@ -2095,6 +2190,7 @@ export default function EditNote({ route }: { route: any }) {
 
           {isSearchVisible ? (
             <View style={styles.searchContainer}>
+              <Ionicons name="search-outline" size={18} color={theme.textColor + '60'} />
               <TextInput
                 style={styles.searchInput}
                 value={searchQuery}
@@ -2102,24 +2198,37 @@ export default function EditNote({ route }: { route: any }) {
                 placeholder={t('searchInNote')}
                 placeholderTextColor={theme.placeholderColor}
                 autoFocus
+                returnKeyType="search"
+                autoCapitalize="none"
+                autoCorrect={false}
               />
               <View style={styles.searchControls}>
-                {searchResults.length > 0 && (
+                {searchResultsCount > 0 && (
                   <>
-                    <Text style={styles.searchCounter}>
-                      {currentResultIndex + 1}/{searchResults.length}
-                    </Text>
+                    <View style={styles.searchCounter}>
+                      <Text style={styles.searchCounterText}>
+                        {currentMatchIndex}/{searchResultsCount}
+                      </Text>
+                    </View>
                     <TouchableOpacity 
-                      style={styles.searchNavButton}
+                      style={[
+                        styles.searchNavButton,
+                        searchResultsCount <= 1 && styles.searchNavButtonDisabled
+                      ]}
                       onPress={handlePreviousResult}
+                      disabled={searchResultsCount <= 1}
                     >
-                      <Ionicons name="chevron-up" size={20} color={theme.textColor} />
+                      <Ionicons name="chevron-up" size={18} color={theme.textColor} />
                     </TouchableOpacity>
                     <TouchableOpacity 
-                      style={styles.searchNavButton}
+                      style={[
+                        styles.searchNavButton,
+                        searchResultsCount <= 1 && styles.searchNavButtonDisabled
+                      ]}
                       onPress={handleNextResult}
+                      disabled={searchResultsCount <= 1}
                     >
-                      <Ionicons name="chevron-down" size={20} color={theme.textColor} />
+                      <Ionicons name="chevron-down" size={18} color={theme.textColor} />
                     </TouchableOpacity>
                   </>
                 )}
@@ -2127,9 +2236,15 @@ export default function EditNote({ route }: { route: any }) {
                   style={styles.searchCloseButton}
                   onPress={() => {
                     setIsSearchVisible(false);
-                    handleSearch('');
-                    setSearchResults([]);
-                    setCurrentResultIndex(-1);
+                    setSearchQuery('');
+                    setSearchResultsCount(0);
+                    setCurrentMatchIndex(0);
+                    editorRef.current?.injectJavaScript(`
+                      const style = document.getElementById('search-style');
+                      if (style) style.remove();
+                      window.find('');
+                      true;
+                    `);
                   }}
                 >
                   <Ionicons name="close" size={20} color={theme.textColor} />
@@ -2276,12 +2391,12 @@ export default function EditNote({ route }: { route: any }) {
               {stripHtmlTags(noteContent).length} {t('characters')}
             </Text>
             <Text style={styles.metaText}>
-              {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString('el', {
+              {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString(currentLanguage, {
                 day: '2-digit',
                 month: '2-digit',
                 hour: '2-digit',
                 minute: '2-digit'
-              }) : new Date().toLocaleString('el', {
+              }) : new Date().toLocaleString(currentLanguage, {
                 day: '2-digit',
                 month: '2-digit',
                 hour: '2-digit',
@@ -2316,20 +2431,11 @@ export default function EditNote({ route }: { route: any }) {
               setCanUndo(data.canUndo);
               setCanRedo(data.canRedo);
             } else if (data.type === 'searchResults') {
-              setSearchResults(data.results);
-              if (data.results.length > 0 && currentResultIndex === -1) {
-                setCurrentResultIndex(0);
-                // Highlight first result
-                editorRef.current?.injectJavaScript(`
-                  const highlights = document.querySelectorAll('.search-highlight');
-                  if (highlights[0]) {
-                    highlights[0].style.backgroundColor = '${theme.accentColor}';
-                    highlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                  true;
-                `);
-              } else if (data.results.length === 0) {
-                setCurrentResultIndex(-1);
+              setSearchResultsCount(data.count);
+              if (data.count > 0) {
+                setCurrentMatchIndex(1);
+              } else {
+                setCurrentMatchIndex(0);
               }
             }
           }}
@@ -2358,52 +2464,71 @@ export default function EditNote({ route }: { route: any }) {
           </View>
           <ScrollView>
             {versions.length > 0 ? (
-              versions.map((version, index) => (
-                <View key={version.updatedAt} style={styles.versionItem}>
-                  <Text style={styles.versionDate}>
-                    {new Date(version.updatedAt).toLocaleString('el', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </Text>
-                  <View style={styles.versionMeta}>
-                    <Ionicons name="create-outline" size={16} color={theme.textColor + '80'} />
-                    <Text style={styles.versionMetaText}>
-                      {stripHtmlTags(version.content).length} {t('characters')}
+              versions.map((version, index) => {
+                const daysRemaining = getDaysRemaining(version.updatedAt);
+                return (
+                  <View key={version.updatedAt} style={styles.versionItem}>
+                    <Text style={styles.versionDate}>
+                      {new Date(version.updatedAt).toLocaleString(currentLanguage, {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </Text>
-                  </View>
-                  <Text style={styles.versionPreview} numberOfLines={version.isExpanded ? undefined : 3}>
-                    {stripHtmlTags(version.content)}
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.seeMoreButton}
-                    onPress={() => {
-                      const updatedVersions = versions.map((v, i) => 
-                        i === index ? { ...v, isExpanded: !v.isExpanded } : v
-                      );
-                      setVersions(updatedVersions);
-                    }}
-                  >
-                    <Text style={styles.seeMoreText}>
-                      {version.isExpanded ? t('seeLess') : t('seeMore')}
+                    <View style={styles.versionMeta}>
+                      <Ionicons name="create-outline" size={16} color={theme.textColor + '80'} />
+                      <Text style={styles.versionMetaText}>
+                        {stripHtmlTags(version.content).length} {t('characters')}
+                      </Text>
+                      <View style={[
+                        styles.daysRemainingBadge,
+                        { backgroundColor: daysRemaining <= 2 ? '#FF4E4E20' : theme.accentColor + '20' }
+                      ]}>
+                        <Ionicons 
+                          name="time-outline" 
+                          size={14} 
+                          color={daysRemaining <= 2 ? '#FF4E4E' : theme.accentColor} 
+                        />
+                        <Text style={[
+                          styles.daysRemainingText,
+                          { color: daysRemaining <= 2 ? '#FF4E4E' : theme.accentColor }
+                        ]}>
+                          {daysRemaining} {daysRemaining === 1 ? t('dayRemaining') : t('daysRemaining')}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.versionPreview} numberOfLines={version.isExpanded ? undefined : 3}>
+                      {stripHtmlTags(version.content)}
                     </Text>
-                  </TouchableOpacity>
-                  <View style={styles.versionActions}>
-                    <TouchableOpacity
-                      style={styles.restoreButton}
-                      onPress={() => handleRestoreVersion(version)}
+                    <TouchableOpacity 
+                      style={styles.seeMoreButton}
+                      onPress={() => {
+                        const updatedVersions = versions.map((v, i) => 
+                          i === index ? { ...v, isExpanded: !v.isExpanded } : v
+                        );
+                        setVersions(updatedVersions);
+                      }}
                     >
-                      <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
-                      <Text style={styles.restoreButtonText}>
-                        {t('restoreVersion')}
+                      <Text style={styles.seeMoreText}>
+                        {version.isExpanded ? t('seeLess') : t('seeMore')}
                       </Text>
                     </TouchableOpacity>
+                    <View style={styles.versionActions}>
+                      <TouchableOpacity
+                        style={styles.restoreButton}
+                        onPress={() => handleRestoreVersion(version)}
+                      >
+                        <Ionicons name="refresh-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.restoreButtonText}>
+                          {t('restoreVersion')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             ) : (
               <View style={styles.noVersions}>
                 <Text style={styles.noVersionsText}>
@@ -2440,7 +2565,7 @@ export default function EditNote({ route }: { route: any }) {
                 <View style={styles.detailsInfo}>
                   <Text style={styles.detailsLabel}>{t('createdTime')}</Text>
                   <Text style={styles.detailsValue}>
-                    {new Date(existingNote?.createdAt || new Date()).toLocaleDateString('el', {
+                    {new Date(existingNote?.createdAt || new Date()).toLocaleDateString(currentLanguage, {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric',
@@ -2458,7 +2583,7 @@ export default function EditNote({ route }: { route: any }) {
                 <View style={styles.detailsInfo}>
                   <Text style={styles.detailsLabel}>{t('lastModified')}</Text>
                   <Text style={styles.detailsValue}>
-                    {new Date(existingNote?.updatedAt || new Date()).toLocaleDateString('el', {
+                    {new Date(existingNote?.updatedAt || new Date()).toLocaleDateString(currentLanguage, {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric',
@@ -2752,4 +2877,4 @@ export default function EditNote({ route }: { route: any }) {
       </Modal>
     </SafeAreaView>
   );
-} 
+}

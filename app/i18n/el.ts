@@ -253,6 +253,12 @@ export const el = {
   categoryAdded: 'Η κατηγορία προστέθηκε',
   categoryExists: 'Η κατηγορία υπάρχει ήδη',
   categoryError: 'Σφάλμα κατά την προσθήκη κατηγορίας',
+
+  // Ιστορικό Σημειώσεων
+  daysLeft: 'ημέρες απομένουν',
+  daysRemaining: 'ημέρες απομένουν',
+  dayRemaining: 'ημέρα απομένει',
+  expiresIn: 'λήγει σε',
 } as const;
 
 export default el; 

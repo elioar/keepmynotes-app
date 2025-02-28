@@ -249,6 +249,12 @@ export interface Translations {
   categoryAdded: string;
   categoryExists: string;
   categoryError: string;
+
+  // Note History
+  daysLeft: string;
+  daysRemaining: string;
+  dayRemaining: string;
+  expiresIn: string;
 }
 
 export default {} as { Translations: Translations }; 

@@ -249,6 +249,12 @@ export const en = {
   categoryAdded: 'Category added',
   categoryExists: 'Category already exists',
   categoryError: 'Error adding category',
+
+  // Note History
+  daysLeft: 'days left',
+  daysRemaining: 'days remaining',
+  dayRemaining: 'day remaining',
+  expiresIn: 'expires in',
 } as const;
 
 export default en; 

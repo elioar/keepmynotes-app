@@ -232,6 +232,12 @@ export const es = {
   deleteNote: 'Eliminar Nota',
   deleteNoteConfirm: '¿Estás seguro de que quieres eliminar esta nota?',
   errorDeletingNote: 'Error al eliminar la nota',
+
+  // Historial de Notas
+  daysLeft: 'días restantes',
+  daysRemaining: 'días restantes',
+  dayRemaining: 'día restante',
+  expiresIn: 'expira en',
 } as const;
 
 export default es; 

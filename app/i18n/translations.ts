@@ -14,6 +14,7 @@ export interface Translations {
   unhideNote: string;
   hide: string;
   delete: string;
+  daysLeft: string;
   
   // Categories
   noTag: string;
@@ -25,6 +26,13 @@ export interface Translations {
   addCustomCategory: string;
   enterCategoryName: string;
   customCategory: string;
+
+  // Note Details
+  noteDetails: string;
+  createdTime: string;
+  lastModified: string;
+  wordCount: string;
+  characterCount: string;
 }
 
 const en: Translations = {
@@ -43,6 +51,7 @@ const en: Translations = {
   unhideNote: 'Unhide Note',
   hide: 'Hide',
   delete: 'Delete',
+  daysLeft: 'days left',
   
   // Categories
   noTag: 'No Category',
@@ -53,7 +62,14 @@ const en: Translations = {
   important: 'Important',
   addCustomCategory: 'Add Custom Category',
   enterCategoryName: 'Enter category name',
-  customCategory: 'Custom Category'
+  customCategory: 'Custom Category',
+
+  // Note Details
+  noteDetails: 'Note Details',
+  createdTime: 'Created Time',
+  lastModified: 'Last Modified',
+  wordCount: 'Word Count',
+  characterCount: 'Character Count',
 };
 
 const el: Translations = {
@@ -72,6 +88,7 @@ const el: Translations = {
   unhideNote: 'Εμφάνιση Σημείωσης',
   hide: 'Απόκρυψη',
   delete: 'Διαγραφή',
+  daysLeft: 'ημέρες απομένουν',
   
   // Categories
   noTag: 'Χωρίς Κατηγορία',
@@ -82,7 +99,14 @@ const el: Translations = {
   important: 'Σημαντικό',
   addCustomCategory: 'Προσθήκη Προσαρμοσμένης Κατηγορίας',
   enterCategoryName: 'Εισάγετε όνομα κατηγορίας',
-  customCategory: 'Προσαρμοσμένη Κατηγορία'
+  customCategory: 'Προσαρμοσμένη Κατηγορία',
+
+  // Note Details
+  noteDetails: 'Λεπτομέρειες Σημείωσης',
+  createdTime: 'Ημερομηνία Δημιουργίας',
+  lastModified: 'Τελευταία Τροποποίηση',
+  wordCount: 'Αριθμός Λέξεων',
+  characterCount: 'Αριθμός Χαρακτήρων',
 };
 
 export { en, el };

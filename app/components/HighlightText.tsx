@@ -13,9 +13,13 @@ export default function HighlightText({ text, highlight, style, numberOfLines, .
 
   const styles = StyleSheet.create({
     highlight: {
-      backgroundColor: `${theme.accentColor}30`,
-      color: theme.accentColor,
-      borderRadius: 3,
+      backgroundColor: `${theme.accentColor}80`,
+      color: theme.isDarkMode ? '#FFFFFF' : theme.textColor,
+      borderRadius: 4,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      marginHorizontal: -2,
+      fontWeight: '700',
     },
   });
 
@@ -23,13 +27,14 @@ export default function HighlightText({ text, highlight, style, numberOfLines, .
     return <Text style={style} numberOfLines={numberOfLines} {...props}>{text}</Text>;
   }
 
-  const parts = text.split(new RegExp(`(${highlight})`, 'gi'));
+  const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
 
   return (
-    <Text style={style} numberOfLines={numberOfLines} {...props}>
+    <Text style={[style]} numberOfLines={numberOfLines} {...props}>
       {parts.map((part, i) => 
         part.toLowerCase() === highlight.toLowerCase() ? (
-          <Text key={i} style={styles.highlight}>{part}</Text>
+          <Text key={i} style={[styles.highlight]}>{part}</Text>
         ) : (
           part
         )

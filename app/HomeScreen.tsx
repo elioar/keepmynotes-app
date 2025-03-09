@@ -248,6 +248,14 @@ export default function HomeScreen() {
     }
   };
 
+  const stripHtmlTags = (html: string) => {
+    if (!html) return '';
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+  };
+
   const getFilteredNotes = () => {
     let filteredNotes = notes.filter(note => !note.isHidden);
 
@@ -257,9 +265,11 @@ export default function HomeScreen() {
     });
 
     if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
       filteredNotes = filteredNotes.filter(note => 
-        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        note.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        note.title.toLowerCase().includes(searchLower) ||
+        note.description?.toLowerCase().includes(searchLower) ||
+        (note.content && stripHtmlTags(note.content).toLowerCase().includes(searchLower))
       );
     }
 
@@ -1018,11 +1028,21 @@ export default function HomeScreen() {
 
                     <View style={styles.gridCardContent}>
                       <Text style={styles.gridCardTitle} numberOfLines={2}>
-                        {note.title}
+                        <HighlightText 
+                          text={note.title}
+                          highlight={searchQuery}
+                          style={styles.gridCardTitle}
+                          numberOfLines={1}
+                        />
                       </Text>
                       {note.description && (
                         <Text style={styles.gridCardDescription} numberOfLines={3}>
-                          {note.description}
+                          <HighlightText 
+                            text={truncateText(note.description, 100)}
+                            highlight={searchQuery}
+                            style={styles.gridCardDescription}
+                            numberOfLines={3}
+                          />
                         </Text>
                       )}
                     </View>
@@ -1124,28 +1144,19 @@ export default function HomeScreen() {
                         </View>
 
                         <View style={styles.noteContent}>
-                          <Text 
-                            style={[styles.noteTitle]} 
+                          <HighlightText 
+                            text={note.title}
+                            highlight={searchQuery}
+                            style={styles.noteTitle}
                             numberOfLines={1}
-                          >
-                            <HighlightText 
-                              text={note.title}
-                              highlight={searchQuery}
-                              style={[styles.noteTitle]}
-                            />
-                          </Text>
-
+                          />
                           {note.description && (
-                            <Text 
-                              style={[styles.noteDescription]} 
+                            <HighlightText 
+                              text={truncateText(note.description, 100)}
+                              highlight={searchQuery}
+                              style={styles.noteDescription}
                               numberOfLines={3}
-                            >
-                              <HighlightText 
-                                text={truncateText(note.description, 100)}
-                                highlight={searchQuery}
-                                style={[styles.noteDescription]}
-                              />
-                            </Text>
+                            />
                           )}
                         </View>
 

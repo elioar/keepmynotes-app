@@ -190,17 +190,15 @@ export default function EditNote({ route }: { route: any }) {
             user-select: text;
           }
 
-          .search-highlight {
-            background-color: ${theme.accentColor}40;
-            border-radius: 2px;
-            padding: 2px 0;
-            transition: all 0.2s ease;
+          /* Custom Scrollbar Styles */
+          ::-webkit-scrollbar {
+            display: none !important;
           }
 
-          .search-highlight.current {
-            background-color: ${theme.accentColor};
-            color: #FFFFFF;
-            box-shadow: 0 1px 4px ${theme.accentColor}40;
+          /* For Firefox */
+          * {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
           }
 
           #editor {
@@ -213,6 +211,28 @@ export default function EditNote({ route }: { route: any }) {
             line-height: 1.6;
             caret-color: ${theme.accentColor};
             background-color: ${theme.backgroundColor};
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          /* Make sure the scrollbar doesn't affect layout */
+          #editor::-webkit-scrollbar {
+            width: 4px !important;
+          }
+
+          #editor::-webkit-scrollbar-track {
+            background: transparent !important;
+          }
+
+          #editor::-webkit-scrollbar-thumb {
+            background-color: ${theme.accentColor} !important;
+            border-radius: 100px !important;
+            opacity: 0.5 !important;
+          }
+
+          #editor:hover::-webkit-scrollbar-thumb {
+            opacity: 0.8 !important;
           }
 
           #editor:empty:before {
@@ -223,18 +243,34 @@ export default function EditNote({ route }: { route: any }) {
             font-size: 15px;
           }
 
+          .search-highlight {
+            background-color: ${theme.accentColor}40;
+            color: ${theme.textColor};
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+          }
+
+          .search-highlight.current {
+            background-color: ${theme.accentColor};
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px ${theme.accentColor}40;
+          }
+
           .toolbar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
             padding: 8px;
-            background: #000000;
+            background: ${theme.isDarkMode ? '#000000' : theme.backgroundColor};
             border-top: 1px solid ${theme.borderColor};
             display: ${isViewMode ? 'none' : 'flex'};
             flex-direction: column;
             gap: 4px;
             max-width: 100%;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
           }
 
           .toolbar-row {
@@ -393,7 +429,7 @@ export default function EditNote({ route }: { route: any }) {
             width: 44px;
             height: 44px;
             padding: 0;
-            background: #2A2A2A;
+            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground} !important;
             border: none;
             border-radius: 10px;
             display: flex;
@@ -445,10 +481,10 @@ export default function EditNote({ route }: { route: any }) {
             min-width: 44px;
             height: 44px;
             padding: 0;
-            background: #2A2A2A;
+            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground};
             border: none;
             border-radius: 12px;
-            color: #FFFFFF;
+            color: ${theme.textColor};
             display: flex;
             align-items: center;
             justify-content: center;
@@ -505,7 +541,7 @@ export default function EditNote({ route }: { route: any }) {
             line-height: 1;
             font-family: -apple-system, system-ui;
             font-weight: 500;
-            color: #FFFFFF;
+            color: ${theme.textColor};
             transition: all 0.3s ease;
             position: relative;
             width: 24px;
@@ -555,11 +591,11 @@ export default function EditNote({ route }: { route: any }) {
             content: '';
             width: 16px;
             height: 2px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             position: absolute;
             right: 0;
             top: 4px;
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            box-shadow: 0 6px 0 ${theme.textColor}, 0 12px 0 ${theme.textColor};
             border-radius: 1px;
           }
 
@@ -568,11 +604,11 @@ export default function EditNote({ route }: { route: any }) {
             width: 4px;
             height: 4px;
             border-radius: 50%;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             position: absolute;
             left: 2px;
             top: 3px;
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            box-shadow: 0 6px 0 ${theme.textColor}, 0 12px 0 ${theme.textColor};
           }
 
           .format-icon.align {
@@ -586,10 +622,10 @@ export default function EditNote({ route }: { route: any }) {
             position: absolute;
             width: 100%;
             height: 2px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             top: 0;
             border-radius: 1px;
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            box-shadow: 0 6px 0 ${theme.textColor}, 0 12px 0 ${theme.textColor};
           }
 
           .format-icon.align-left::before {
@@ -597,10 +633,10 @@ export default function EditNote({ route }: { route: any }) {
             position: absolute;
             width: 100%;
             height: 2px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             top: 0;
             border-radius: 1px;
-            box-shadow: 0 6px 0 #FFFFFF;
+            box-shadow: 0 6px 0 ${theme.textColor};
           }
 
           .format-icon.align-left::after {
@@ -608,7 +644,7 @@ export default function EditNote({ route }: { route: any }) {
             position: absolute;
             width: 60%;
             height: 2px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             bottom: 0;
             left: 0;
             border-radius: 1px;
@@ -617,7 +653,7 @@ export default function EditNote({ route }: { route: any }) {
           .format-icon.align-center::before {
             width: 70%;
             left: 15%;
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+            box-shadow: 0 6px 0 ${theme.textColor}, 0 12px 0 ${theme.textColor};
           }
 
           .format-icon.align-right::before {
@@ -625,10 +661,10 @@ export default function EditNote({ route }: { route: any }) {
             position: absolute;
             width: 100%;
             height: 2px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             top: 0;
             border-radius: 1px;
-            box-shadow: 0 6px 0 #FFFFFF;
+            box-shadow: 0 6px 0 ${theme.textColor};
           }
 
           .format-icon.align-right::after {
@@ -636,7 +672,7 @@ export default function EditNote({ route }: { route: any }) {
             position: absolute;
             width: 60%;
             height: 2px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             bottom: 0;
             right: 0;
             border-radius: 1px;
@@ -652,7 +688,7 @@ export default function EditNote({ route }: { route: any }) {
           .format-icon.expand::after {
             content: '';
             position: absolute;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             border-radius: 1px;
           }
 
@@ -677,6 +713,36 @@ export default function EditNote({ route }: { route: any }) {
           .toolbar button.active .format-icon {
             transform: scale(1.1);
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            color: #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon::before,
+          .toolbar button.active .format-icon::after {
+            background: #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon.list-ul::before {
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon.list-ul::after {
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon.align::before {
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon.align-left::before {
+            box-shadow: 0 6px 0 #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon.align-center::before {
+            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
+          }
+
+          .toolbar button.active .format-icon.align-right::before {
+            box-shadow: 0 6px 0 #FFFFFF;
           }
 
           .highlight-icon {
@@ -704,10 +770,51 @@ export default function EditNote({ route }: { route: any }) {
             position: absolute;
             width: 2px;
             height: 14px;
-            background: #FFFFFF;
+            background: ${theme.textColor};
             transform: rotate(-45deg) translate(2px, -6px);
             border-radius: 1px;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .toolbar button.active .highlight-icon::after {
+            background: #FFFFFF;
+          }
+
+          .no-color-icon {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .no-color-icon::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid ${theme.textColor};
+            border-radius: 2px;
+            opacity: 0.9;
+          }
+
+          .no-color-icon::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 2px;
+            background: ${theme.textColor};
+            transform: rotate(-45deg);
+            opacity: 0.9;
+          }
+
+          #remove-color.selected .no-color-icon::before {
+            border-color: #FFFFFF;
+          }
+
+          #remove-color.selected .no-color-icon::after {
+            background: #FFFFFF;
           }
 
           .color-picker {
@@ -835,42 +942,13 @@ export default function EditNote({ route }: { route: any }) {
             }
           }
 
-          .no-color-icon {
-            position: relative;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
-          .no-color-icon::before {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #FFFFFF;
-            border-radius: 2px;
-            opacity: 0.9;
-          }
-
-          .no-color-icon::after {
-            content: '';
-            position: absolute;
-            width: 20px;
-            height: 2px;
-            background: #FFFFFF;
-            transform: rotate(-45deg);
-            opacity: 0.9;
-          }
-
           #remove-color {
-            background: ${theme.isDarkMode ? '#2A2A2A' : '#F5F5F5'};
+            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground} !important;
             border: none;
           }
 
           #remove-color.selected {
-            background: ${theme.accentColor};
+            background: ${theme.accentColor} !important;
           }
 
           .format-icon.highlight {
@@ -1081,10 +1159,41 @@ export default function EditNote({ route }: { route: any }) {
           editor.addEventListener('keyup', () => {
             updateButtons();
             updateUndoRedoState();
+            ensureCaretVisible();
           });
           editor.addEventListener('mouseup', updateButtons);
 
-          // Add undo/redo event listeners
+          // Add function to ensure caret is visible
+          function ensureCaretVisible() {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              const rect = range.getBoundingClientRect();
+              const toolbarHeight = 220; // Height of the toolbar
+              const buffer = 40; // Extra space above the toolbar
+              
+              if (rect.bottom > window.innerHeight - toolbarHeight) {
+                window.scrollTo({
+                  top: window.scrollY + (rect.bottom - (window.innerHeight - toolbarHeight)) + buffer,
+                  behavior: 'smooth'
+                });
+              }
+            }
+          }
+
+          // Add scroll into view for focus events
+          editor.addEventListener('focus', () => {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              range.getBoundingClientRect().scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+            }
+          });
+
+          // Improve Enter key handling
           document.addEventListener('keydown', function(e) {
             if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
               e.preventDefault();
@@ -1096,24 +1205,9 @@ export default function EditNote({ route }: { route: any }) {
               notifyContent();
               updateButtons();
               updateUndoRedoState();
-            } else if (e.key === 'Enter') {
-              // Add delay to allow the new line to be inserted
-              setTimeout(() => {
-                const selection = window.getSelection();
-                if (selection && selection.rangeCount > 0) {
-                  const range = selection.getRangeAt(0);
-                  const rect = range.getBoundingClientRect();
-                  const toolbarHeight = 220; // Height of the toolbar
-                  const buffer = 40; // Extra space above the toolbar
-                  
-                  if (rect.bottom > window.innerHeight - toolbarHeight) {
-                    window.scrollTo({
-                      top: window.scrollY + (rect.bottom - (window.innerHeight - toolbarHeight)) + buffer,
-                      behavior: 'smooth'
-                    });
-                  }
-                }
-              }, 10);
+            } else if (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete') {
+              // Add delay to allow the content changes to be processed
+              setTimeout(ensureCaretVisible, 10);
             }
           });
 
@@ -1411,42 +1505,87 @@ export default function EditNote({ route }: { route: any }) {
   const handleSearch = (text: string) => {
     setSearchQuery(text);
     
+    if (!text.trim()) {
+      setSearchResultsCount(0);
+      setCurrentMatchIndex(0);
+      editorRef.current?.injectJavaScript(`
+        const editor = document.getElementById('editor');
+        editor.innerHTML = editor.innerHTML.replace(/<mark class="search-highlight[^>]*>(.*?)<\\/mark>/g, '$1');
+        true;
+      `);
+      return;
+    }
+
     editorRef.current?.injectJavaScript(`
       try {
         const editor = document.getElementById('editor');
+        // Remove existing highlights
         editor.innerHTML = editor.innerHTML.replace(/<mark class="search-highlight[^>]*>(.*?)<\\/mark>/g, '$1');
         
-        if (!${JSON.stringify(text.trim())}) {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'searchResults',
-            count: 0
-          }));
-          return true;
-        }
-
         const searchText = ${JSON.stringify(text)};
-        const content = editor.textContent;
-        const regex = new RegExp(searchText, 'gi');
-        const matches = content.match(regex);
-        const count = matches ? matches.length : 0;
-
-        if (count > 0) {
-          editor.innerHTML = editor.innerHTML.replace(
-            new RegExp('(' + searchText + ')', 'gi'),
-            '<mark class="search-highlight">$1</mark>'
-          );
-
-          const highlights = document.getElementsByClassName('search-highlight');
-          if (highlights.length > 0) {
-            highlights[0].style.backgroundColor = '${theme.accentColor}';
-            highlights[0].style.color = '#FFFFFF';
-            highlights[0].scrollIntoView({
-              behavior: 'smooth',
-              block: 'center'
-            });
+        const content = editor.innerHTML;
+        
+        // Create a temporary div to safely manipulate HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        
+        function highlightText(node) {
+          if (node.nodeType === 3) { // Text node
+            const text = node.textContent;
+            const regex = new RegExp(searchText, 'gi');
+            if (regex.test(text)) {
+              const fragment = document.createDocumentFragment();
+              let lastIndex = 0;
+              let match;
+              
+              regex.lastIndex = 0; // Reset regex
+              while ((match = regex.exec(text)) !== null) {
+                // Add text before match
+                if (match.index > lastIndex) {
+                  fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+                }
+                
+                // Add highlighted match
+                const mark = document.createElement('mark');
+                mark.className = 'search-highlight';
+                mark.textContent = match[0];
+                fragment.appendChild(mark);
+                
+                lastIndex = regex.lastIndex;
+              }
+              
+              // Add remaining text
+              if (lastIndex < text.length) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+              }
+              
+              node.parentNode.replaceChild(fragment, node);
+              return true;
+            }
+          } else if (node.nodeType === 1 && !['SCRIPT', 'STYLE', 'MARK'].includes(node.tagName)) {
+            Array.from(node.childNodes).forEach(child => highlightText(child));
           }
+          return false;
         }
-
+        
+        // Process all nodes
+        highlightText(tempDiv);
+        
+        // Update editor content
+        editor.innerHTML = tempDiv.innerHTML;
+        
+        // Count results and highlight first match
+        const highlights = editor.getElementsByClassName('search-highlight');
+        const count = highlights.length;
+        
+        if (count > 0) {
+          highlights[0].classList.add('current');
+          highlights[0].scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }
+        
         window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'searchResults',
           count: count
@@ -1461,30 +1600,21 @@ export default function EditNote({ route }: { route: any }) {
   const handleNextResult = () => {
     if (searchResultsCount <= 1) return;
     
+    const nextIndex = currentMatchIndex % searchResultsCount + 1;
+    setCurrentMatchIndex(nextIndex);
+    
     editorRef.current?.injectJavaScript(`
       try {
         const highlights = document.getElementsByClassName('search-highlight');
-        let currentIndex = -1;
+        let currentIndex = Array.from(highlights).findIndex(h => h.classList.contains('current'));
         
-        // Find current highlighted index
-        for (let i = 0; i < highlights.length; i++) {
-          if (highlights[i].style.backgroundColor === '${theme.accentColor}') {
-            currentIndex = i;
-            break;
-          }
+        if (currentIndex >= 0) {
+          highlights[currentIndex].classList.remove('current');
         }
         
-        // Reset current highlight
-        if (currentIndex !== -1) {
-          highlights[currentIndex].style.backgroundColor = '${theme.accentColor}20';
-          highlights[currentIndex].style.color = '${theme.textColor}';
-        }
-        
-        // Move to next or wrap to first
-        const nextIndex = (currentIndex + 1) % highlights.length;
-        highlights[nextIndex].style.backgroundColor = '${theme.accentColor}';
-        highlights[nextIndex].style.color = '#FFFFFF';
-        highlights[nextIndex].scrollIntoView({
+        currentIndex = (currentIndex + 1) % highlights.length;
+        highlights[currentIndex].classList.add('current');
+        highlights[currentIndex].scrollIntoView({
           behavior: 'smooth',
           block: 'center'
         });
@@ -1493,39 +1623,26 @@ export default function EditNote({ route }: { route: any }) {
       }
       true;
     `);
-    
-    setCurrentMatchIndex(prev => 
-      prev + 1 > searchResultsCount ? 1 : prev + 1
-    );
   };
 
   const handlePreviousResult = () => {
     if (searchResultsCount <= 1) return;
     
+    const prevIndex = currentMatchIndex <= 1 ? searchResultsCount : currentMatchIndex - 1;
+    setCurrentMatchIndex(prevIndex);
+    
     editorRef.current?.injectJavaScript(`
       try {
         const highlights = document.getElementsByClassName('search-highlight');
-        let currentIndex = -1;
+        let currentIndex = Array.from(highlights).findIndex(h => h.classList.contains('current'));
         
-        // Find current highlighted index
-        for (let i = 0; i < highlights.length; i++) {
-          if (highlights[i].style.backgroundColor === '${theme.accentColor}') {
-            currentIndex = i;
-            break;
-          }
+        if (currentIndex >= 0) {
+          highlights[currentIndex].classList.remove('current');
         }
         
-        // Reset current highlight
-        if (currentIndex !== -1) {
-          highlights[currentIndex].style.backgroundColor = '${theme.accentColor}20';
-          highlights[currentIndex].style.color = '${theme.textColor}';
-        }
-        
-        // Move to previous or wrap to last
-        const prevIndex = currentIndex - 1 < 0 ? highlights.length - 1 : currentIndex - 1;
-        highlights[prevIndex].style.backgroundColor = '${theme.accentColor}';
-        highlights[prevIndex].style.color = '#FFFFFF';
-        highlights[prevIndex].scrollIntoView({
+        currentIndex = currentIndex - 1 < 0 ? highlights.length - 1 : currentIndex - 1;
+        highlights[currentIndex].classList.add('current');
+        highlights[currentIndex].scrollIntoView({
           behavior: 'smooth',
           block: 'center'
         });
@@ -1534,10 +1651,6 @@ export default function EditNote({ route }: { route: any }) {
       }
       true;
     `);
-    
-    setCurrentMatchIndex(prev => 
-      prev - 1 < 1 ? searchResultsCount : prev - 1
-    );
   };
 
   const handleDelete = () => {
@@ -1731,7 +1844,13 @@ export default function EditNote({ route }: { route: any }) {
       flex: 1,
       backgroundColor: theme.backgroundColor,
       width: '100%',
-      height: '100%'
+      height: '100%',
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    webView: {
+      backgroundColor: 'transparent',
+      flex: 1,
     },
     buttonsContainer: {
       flexDirection: 'row',
@@ -2115,46 +2234,45 @@ export default function EditNote({ route }: { route: any }) {
       backgroundColor: theme.secondaryBackground,
       borderRadius: 10,
       marginHorizontal: 12,
-      paddingHorizontal: 12,
-      height: 38,
+      paddingHorizontal: 10,
+      height: 36,
     },
     searchInput: {
       flex: 1,
       color: theme.textColor,
-      fontSize: 16,
-      paddingVertical: 8,
-      marginLeft: 8,
+      fontSize: 15,
+      paddingVertical: 6,
+      marginLeft: 6,
     },
     searchControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 2,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
+      borderRadius: 6,
+      padding: 2,
     },
     searchCounter: {
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6,
-      minWidth: 60,
+      paddingHorizontal: 6,
+      minWidth: 40,
       alignItems: 'center',
     },
     searchCounterText: {
-      color: theme.textColor + '90',
+      color: theme.textColor,
       fontSize: 12,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     searchNavButton: {
-      padding: 6,
-      borderRadius: 8,
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
-      opacity: 1,
+      padding: 3,
+      borderRadius: 4,
+      backgroundColor: theme.isDarkMode ? '#3A3A3A' : theme.secondaryBackground,
     },
     searchNavButtonDisabled: {
       opacity: 0.5,
     },
     searchCloseButton: {
-      padding: 8,
-      marginLeft: 4,
+      padding: 6,
+      marginLeft: 2,
     },
     menuOptionDanger: {
       backgroundColor: '#FF4E4E15',
@@ -2202,54 +2320,49 @@ export default function EditNote({ route }: { route: any }) {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <View style={styles.searchControls}>
-                {searchResultsCount > 0 && (
-                  <>
-                    <View style={styles.searchCounter}>
-                      <Text style={styles.searchCounterText}>
-                        {currentMatchIndex}/{searchResultsCount}
-                      </Text>
-                    </View>
-                    <TouchableOpacity 
-                      style={[
-                        styles.searchNavButton,
-                        searchResultsCount <= 1 && styles.searchNavButtonDisabled
-                      ]}
-                      onPress={handlePreviousResult}
-                      disabled={searchResultsCount <= 1}
-                    >
-                      <Ionicons name="chevron-up" size={18} color={theme.textColor} />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={[
-                        styles.searchNavButton,
-                        searchResultsCount <= 1 && styles.searchNavButtonDisabled
-                      ]}
-                      onPress={handleNextResult}
-                      disabled={searchResultsCount <= 1}
-                    >
-                      <Ionicons name="chevron-down" size={18} color={theme.textColor} />
-                    </TouchableOpacity>
-                  </>
-                )}
-                <TouchableOpacity 
-                  style={styles.searchCloseButton}
-                  onPress={() => {
-                    setIsSearchVisible(false);
-                    setSearchQuery('');
-                    setSearchResultsCount(0);
-                    setCurrentMatchIndex(0);
-                    editorRef.current?.injectJavaScript(`
-                      const style = document.getElementById('search-style');
-                      if (style) style.remove();
-                      window.find('');
-                      true;
-                    `);
-                  }}
-                >
-                  <Ionicons name="close" size={20} color={theme.textColor} />
-                </TouchableOpacity>
-              </View>
+              {searchResultsCount > 0 && (
+                <View style={styles.searchControls}>
+                  <TouchableOpacity 
+                    style={[styles.searchNavButton, searchResultsCount <= 1 && styles.searchNavButtonDisabled]}
+                    onPress={handlePreviousResult}
+                    disabled={searchResultsCount <= 1}
+                  >
+                    <Ionicons name="chevron-up" size={18} color={theme.textColor} />
+                  </TouchableOpacity>
+                  <View style={styles.searchCounter}>
+                    <Text style={styles.searchCounterText}>
+                      {currentMatchIndex}/{searchResultsCount}
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={[styles.searchNavButton, searchResultsCount <= 1 && styles.searchNavButtonDisabled]}
+                    onPress={handleNextResult}
+                    disabled={searchResultsCount <= 1}
+                  >
+                    <Ionicons name="chevron-down" size={18} color={theme.textColor} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              <TouchableOpacity 
+                style={styles.searchCloseButton}
+                onPress={() => {
+                  setIsSearchVisible(false);
+                  setSearchQuery('');
+                  setSearchResultsCount(0);
+                  setCurrentMatchIndex(0);
+                  editorRef.current?.injectJavaScript(`
+                    const oldHighlights = document.getElementsByClassName('search-highlight');
+                    while (oldHighlights.length > 0) {
+                      const parent = oldHighlights[0].parentNode;
+                      const text = oldHighlights[0].textContent;
+                      parent.replaceChild(document.createTextNode(text), oldHighlights[0]);
+                    }
+                    true;
+                  `);
+                }}
+              >
+                <Ionicons name="close" size={20} color={theme.textColor} />
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.headerCenter}>
@@ -2416,33 +2529,40 @@ export default function EditNote({ route }: { route: any }) {
         
         <View style={styles.divider} />
         
-        <WebView
-          ref={editorRef}
-          source={{ html: editorHTML }}
-          style={styles.editor}
-          originWhitelist={['*']}
-          onMessage={(event) => {
-            const data = JSON.parse(event.nativeEvent.data);
-            if (data.type === 'content') {
-              setNoteContent(data.content);
-              setCanUndo(data.canUndo);
-              setCanRedo(data.canRedo);
-            } else if (data.type === 'undoRedoState') {
-              setCanUndo(data.canUndo);
-              setCanRedo(data.canRedo);
-            } else if (data.type === 'searchResults') {
-              setSearchResultsCount(data.count);
-              if (data.count > 0) {
-                setCurrentMatchIndex(1);
-              } else {
-                setCurrentMatchIndex(0);
+        <View style={styles.editor}>
+          <WebView
+            ref={editorRef}
+            source={{ html: editorHTML }}
+            style={styles.webView}
+            originWhitelist={['*']}
+            onMessage={(event) => {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data.type === 'content') {
+                setNoteContent(data.content);
+                setCanUndo(data.canUndo);
+                setCanRedo(data.canRedo);
+              } else if (data.type === 'undoRedoState') {
+                setCanUndo(data.canUndo);
+                setCanRedo(data.canRedo);
+              } else if (data.type === 'searchResults') {
+                setSearchResultsCount(data.count);
+                if (data.count > 0) {
+                  setCurrentMatchIndex(1);
+                } else {
+                  setCurrentMatchIndex(0);
+                }
               }
-            }
-          }}
-          scrollEnabled={true}
-          keyboardDisplayRequiresUserAction={false}
-          hideKeyboardAccessoryView={false}
-        />
+            }}
+            scrollEnabled={true}
+            keyboardDisplayRequiresUserAction={false}
+            hideKeyboardAccessoryView={false}
+            showsVerticalScrollIndicator={true}
+            contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
+            decelerationRate={0.998}
+            overScrollMode="never"
+            bounces={false}
+          />
+        </View>
       </View>
 
       {/* History Modal */}

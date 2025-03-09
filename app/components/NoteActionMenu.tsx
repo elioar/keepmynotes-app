@@ -89,25 +89,8 @@ const NoteActionMenu = ({
       try {
         const hasPin = await AsyncStorage.getItem('@secure_pin');
         if (!hasPin) {
-          Alert.alert(
-            t('secureNotes'),
-            t('secureNotesDescription'),
-            [
-              {
-                text: t('cancel'),
-                style: 'cancel',
-                onPress: onClose,
-              },
-              {
-                text: t('setPinCode'),
-                style: 'default',
-                onPress: () => {
-                  onClose();
-                  navigation.navigate('PinScreen' as never);
-                },
-              },
-            ]
-          );
+          onClose();
+          navigation.navigate('PinScreen' as never);
           return;
         }
       } catch (error) {

@@ -30,6 +30,7 @@ type RootStackParamList = {
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
+  Settings: undefined;
 };
 
 const PIN_LENGTH = 4;
@@ -227,7 +228,11 @@ export default function PinScreen({ route }: { route: any }) {
           if (pin.length === PIN_LENGTH && confirmPin.length === PIN_LENGTH) {
             if (pin === confirmPin) {
               await AsyncStorage.setItem(PIN_KEY, pin);
-              navigation.navigate('HiddenNotes');
+              if (navigation.getState().routes[navigation.getState().routes.length - 2]?.name === 'HiddenNotes') {
+                navigation.replace('HiddenNotes');
+              } else {
+                navigation.navigate('HiddenNotes');
+              }
             } else {
               setErrorMessage(t('pinsDontMatch'));
               setPin('');
@@ -252,13 +257,27 @@ export default function PinScreen({ route }: { route: any }) {
   };
 
   const handleSuccessComplete = () => {
-    navigation.navigate('Home');
+    const previousScreen = navigation.getState().routes[navigation.getState().routes.length - 2]?.name;
+    if (previousScreen === 'Settings') {
+      navigation.navigate('Settings');
+    } else {
+      navigation.navigate('Home');
+    }
   };
 
   React.useEffect(() => {
     const checkExistingPin = async () => {
       const savedPin = await AsyncStorage.getItem(PIN_KEY);
       setIsSettingPin(!savedPin);
+      
+      if (!savedPin && (
+        navigation.getState().routes[navigation.getState().routes.length - 2]?.name === 'HiddenNotes' ||
+        route.params?.isChangingPin === false
+      )) {
+        setIsSettingPin(true);
+        setIsVerifyingCurrentPin(false);
+        setIsSettingNewPin(false);
+      }
     };
     checkExistingPin();
   }, []);
@@ -438,49 +457,54 @@ export default function PinScreen({ route }: { route: any }) {
       ) : (
         <>
           <View style={styles.header}>
-            {isChangingPin ? (
-              <>
-                <View style={styles.securityIcon}>
-                  <Ionicons name="shield-checkmark-outline" size={40} color={theme.accentColor} />
-                </View>
-                <View style={styles.progressIndicator}>
+            <View style={styles.securityIcon}>
+              <Ionicons 
+                name={isChangingPin ? "shield-checkmark-outline" : "lock-closed-outline"} 
+                size={40} 
+                color={theme.accentColor} 
+              />
+            </View>
+            <View style={styles.progressIndicator}>
+              {(isChangingPin || isSettingPin) && (
+                <>
                   <View style={[
                     styles.progressStep,
-                    isVerifyingCurrentPin ? styles.progressStepActive : 
-                    (isSettingNewPin ? styles.progressStepCompleted : styles.progressStep)
+                    (!confirmPin.length && pin.length < PIN_LENGTH) ? styles.progressStepActive : 
+                    (pin.length === PIN_LENGTH || confirmPin.length > 0) ? styles.progressStepCompleted : styles.progressStep
                   ]} />
                   <View style={[
                     styles.progressStep,
-                    isSettingNewPin && !confirmPin.length ? styles.progressStepActive :
-                    (confirmPin.length > 0 ? styles.progressStepCompleted : styles.progressStep)
+                    (pin.length === PIN_LENGTH && !confirmPin.length) ? styles.progressStepActive :
+                    (confirmPin.length > 0) ? styles.progressStepCompleted : styles.progressStep
                   ]} />
                   <View style={[
                     styles.progressStep,
                     confirmPin.length > 0 ? styles.progressStepActive : styles.progressStep
                   ]} />
-                </View>
-                <Text style={styles.title}>
-                  {isVerifyingCurrentPin 
-                    ? t('enterCurrentPin')
-                    : isSettingNewPin && confirmPin.length 
+                </>
+              )}
+            </View>
+            <Text style={styles.title}>
+              {isChangingPin ? (
+                isVerifyingCurrentPin 
+                  ? t('enterCurrentPin')
+                  : isSettingNewPin && confirmPin.length 
+                    ? t('confirmPinCode')
+                    : t('setPinCode')
+              ) : (
+                isSettingPin ? (
+                  confirmPin.length > 0 
+                    ? t('confirmPinCode') 
+                    : pin.length === PIN_LENGTH 
                       ? t('confirmPinCode')
-                      : t('setPinCode')}
-                </Text>
-                {isSettingNewPin && !confirmPin.length && (
-                  <Text style={styles.subtitle}>
-                    {t('choosePinCode')}
-                  </Text>
-                )}
-              </>
-            ) : (
-              <>
-                <View style={styles.securityIcon}>
-                  <Ionicons name="lock-closed-outline" size={40} color={theme.accentColor} />
-                </View>
-                <Text style={styles.title}>
-                  {isSettingPin ? t('setPinCode') : t('enterPinCode')}
-                </Text>
-              </>
+                      : t('setPinCode')
+                ) : t('enterPinCode')
+              )}
+            </Text>
+            {((isSettingPin && !confirmPin.length) || (isSettingNewPin && !confirmPin.length)) && (
+              <Text style={styles.subtitle}>
+                {t('choosePinCode')}
+              </Text>
             )}
           </View>
 

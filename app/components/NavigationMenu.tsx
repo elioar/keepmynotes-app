@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
@@ -25,12 +25,27 @@ interface Props {
 export default function NavigationMenu({ onAddPress }: Props) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const addButtonAnim = useRef(new Animated.Value(1)).current;
   
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   
   const isActive = (screenName: string) => currentRoute === screenName;
 
   const handleAddPress = () => {
+    Animated.sequence([
+      Animated.timing(addButtonAnim, {
+        toValue: 0.8,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(addButtonAnim, {
+        toValue: 1,
+        tension: 40,
+        friction: 7,
+        useNativeDriver: true,
+      })
+    ]).start();
+
     if (onAddPress) {
       onAddPress();
     } else {
@@ -76,14 +91,14 @@ export default function NavigationMenu({ onAddPress }: Props) {
       backgroundColor: theme.accentColor,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
+      shadowColor: theme.accentColor,
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: 4,
       },
-      shadowOpacity: 0.25,
-      shadowRadius: 3,
-      elevation: 5,
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
     },
   });
 
@@ -111,12 +126,17 @@ export default function NavigationMenu({ onAddPress }: Props) {
         />
       </TouchableOpacity>
       
-      <TouchableOpacity 
-        style={styles.addButton}
-        onPress={handleAddPress}
-      >
-        <Ionicons name="add" size={24} color="#fff" />
-      </TouchableOpacity>
+      <Animated.View style={{
+        transform: [{ scale: addButtonAnim }]
+      }}>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={handleAddPress}
+          activeOpacity={1}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
       
       <TouchableOpacity 
         style={styles.navItem}

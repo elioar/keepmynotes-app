@@ -8,6 +8,7 @@ export const es = {
   recentlyEdited: 'Editado recientemente',
   characters: 'caracteres',
   words: 'palabras',
+  noFavorites: 'No se encontraron notas favoritas',
   
   // Actions
   edit: 'Editar',

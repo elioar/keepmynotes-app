@@ -45,24 +45,7 @@ export default function HiddenNotesScreen() {
     const checkPin = async () => {
       const hasPin = await AsyncStorage.getItem('@secure_pin');
       if (!hasPin) {
-        Alert.alert(
-          t('secureNotes'),
-          t('secureNotesDescription'),
-          [
-            {
-              text: t('cancel'),
-              style: 'cancel',
-              onPress: () => navigation.navigate('Home'),
-            },
-            {
-              text: t('setPinCode'),
-              style: 'default',
-              onPress: () => {
-                navigation.navigate('PinScreen');
-              },
-            },
-          ]
-        );
+        navigation.replace('PinScreen');
       }
     };
     checkPin();
@@ -462,6 +445,8 @@ export default function HiddenNotesScreen() {
           }}
           onHide={handleHideNote}
           isHidden={true}
+          onColorChange={() => {}}
+          currentColor={null}
         />
       </View>
     </TouchableWithoutFeedback>

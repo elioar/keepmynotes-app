@@ -27,11 +27,11 @@ import { Note } from '../NotesContext';
 
 interface BackupData {
   notes: Note[];
-  settings?: {
-    username?: string;
-    theme?: string;
-    language?: string;
-  };
+  categories?: {
+    id: string;
+    name: string;
+    color: string;
+  }[];
   version: string;
   backupDate: string;
 }
@@ -43,6 +43,15 @@ type RootStackParamList = {
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
 };
+
+const colorTranslationMap = {
+  none: 'tagColors.none',
+  green: 'tagColors.green',
+  purple: 'tagColors.purple',
+  blue: 'tagColors.blue',
+  orange: 'tagColors.orange',
+  red: 'tagColors.red'
+} as const;
 
 export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode, appTheme, setAppTheme } = useTheme();
@@ -123,11 +132,21 @@ export default function SettingsScreen() {
           ...note,
           updatedAt: new Date().toISOString()
         })),
-        settings: {
-          theme: themeMode,
-          language: currentLanguage
-        },
-        version: '1.0.0',
+        categories: notes
+          .map(note => note.color)
+          .filter((color): color is string => !!color)
+          .filter((color, index, self) => self.indexOf(color) === index)
+          .map(color => ({
+            id: color,
+            name: color === 'none' ? t('noTag') :
+                  color === 'green' ? t('personal') :
+                  color === 'purple' ? t('work') :
+                  color === 'blue' ? t('study') :
+                  color === 'orange' ? t('ideas') :
+                  color === 'red' ? t('important') : t('noTag'),
+            color: color
+          })),
+        version: '1.0.2',
         backupDate: new Date().toISOString()
       };
 
@@ -241,6 +260,16 @@ export default function SettingsScreen() {
                   try {
                     // Update importedData with validated notes
                     importedData.notes = validatedNotes;
+                    
+                    // If we have categories in the backup, make sure they are properly formatted
+                    if (importedData.categories && Array.isArray(importedData.categories)) {
+                      importedData.categories = importedData.categories.map((category: { id?: string; name?: string; color?: string }) => ({
+                        id: String(category.id || ''),
+                        name: String(category.name || ''),
+                        color: String(category.color || '')
+                      }));
+                    }
+                    
                     await importNotes(importedData);
                     
                     // Show success message
@@ -709,8 +738,13 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>🔒 {t('security')}</Text>
           <TouchableOpacity 
             style={styles.infoItem}
-            onPress={() => {
-              navigation.navigate('PinScreen', { isChangingPin: true });
+            onPress={async () => {
+              const hasPin = await AsyncStorage.getItem('@secure_pin');
+              if (!hasPin) {
+                navigation.navigate('PinScreen', { isChangingPin: false });
+              } else {
+                navigation.navigate('PinScreen', { isChangingPin: true });
+              }
             }}
           >
             <View style={styles.infoIcon}>
@@ -802,7 +836,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.version}>
-          <Text style={styles.versionText}>📱 Version 1.0.0</Text>
+          <Text style={styles.versionText}>📱 Version 1.0.2</Text>
         </View>
       </ScrollView>
 

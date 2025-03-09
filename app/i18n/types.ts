@@ -8,6 +8,7 @@ export interface Translations {
   recentlyEdited: string;
   characters: string;
   words: string;
+  noFavorites: string;
   
   // Categories
   noTag: string;
@@ -22,6 +23,7 @@ export interface Translations {
   delete: string;
   hide: string;
   unhide: string;
+  hideNote: string;
   save: string;
   cancel: string;
   add: string;
@@ -36,6 +38,7 @@ export interface Translations {
   camera: string;
   drawingSketch: string;
   audioFile: string;
+  taskDescription: string;
 
   // Notes
   noteOptions: string;
@@ -52,6 +55,10 @@ export interface Translations {
   unsavedChangesMessage: string;
   noHiddenNotes: string;
   hiddenNotesDescription: string;
+  hiddenNotes: string;
+  hiddenNote: string;
+  unhideNote: string;
+  unhideNoteConfirm: string;
   noteHistory: string;
   restoreVersion: string;
   noVersionsAvailable: string;
@@ -257,4 +264,5 @@ export interface Translations {
   expiresIn: string;
 }
 
-export default {} as { Translations: Translations }; 
+export { en } from './en';
+export { el } from './el'; 

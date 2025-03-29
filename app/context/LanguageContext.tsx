@@ -1,27 +1,14 @@
 import { createContext, useContext, useState } from 'react';
-import { en } from '../i18n/en';
-import { el } from '../i18n/el';
-import { es } from '../i18n/es';
+import { en } from '../translations/en';
 import { Translations } from '../i18n/types';
 
 type TranslationValue = string | Record<string, string>;
 
-export type Language = 'en' | 'el' | 'es';
-
-const translations: Record<Language, Translations> = {
-  en,
-  el,
-  es,
-};
-
-export const languages = [
-  { code: 'en', name: 'English' },
-  { code: 'el', name: 'Ελληνικά' },
-  { code: 'es', name: 'Español' },
-];
+export type Language = 'en';
+export type TranslationKey = keyof Translations;
 
 interface LanguageContextType {
-  t: (key: keyof Translations) => string;
+  t: (key: TranslationKey) => string;
   setLanguage: (lang: Language) => void;
   currentLanguage: Language;
 }
@@ -31,12 +18,22 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('en');
 
-  const t = (key: keyof Translations): string => {
-    const translation = translations[language][key];
-    if (typeof translation === 'string') {
-      return translation;
+  const t = (key: TranslationKey): string => {
+    try {
+      if (key in en) {
+        const translation = en[key as keyof typeof en];
+        
+        // Handle nested translations (like tagColors)
+        if (typeof translation === 'object') {
+          return JSON.stringify(translation);
+        }
+        
+        return translation;
+      }
+      return String(key);
+    } catch (error) {
+      return String(key);
     }
-    return key;
   };
 
   const value = {

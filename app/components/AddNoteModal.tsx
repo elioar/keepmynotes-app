@@ -29,39 +29,6 @@ const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) =
   const { t } = useLanguage();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
-  const menuAnim = React.useRef(new Animated.Value(0)).current;
-  const bgAnim = React.useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.timing(bgAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.spring(menuAnim, {
-          toValue: 1,
-          tension: 65,
-          friction: 10,
-          useNativeDriver: true,
-        })
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(bgAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(menuAnim, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        })
-      ]).start();
-    }
-  }, [visible]);
 
   const styles = StyleSheet.create({
     overlay: {
@@ -152,31 +119,16 @@ const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) =
   });
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Animated.View style={[
-          styles.blurContainer,
-          {
-            opacity: bgAnim
-          }
-        ]}>
+        <View style={styles.blurContainer}>
           <BlurView 
             intensity={theme.isDarkMode ? 40 : 25}
             tint={theme.isDarkMode ? "dark" : "light"}
             style={{ flex: 1 }}
           />
-        </Animated.View>
-        <Animated.View style={[
-          styles.menuContainer,
-          {
-            transform: [{
-              translateY: menuAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [300, 0]
-              })
-            }]
-          }
-        ]}>
+        </View>
+        <View style={styles.menuContainer}>
           <View style={styles.handle} />
           <View style={styles.optionsContainer}>
             <TouchableOpacity 
@@ -184,7 +136,7 @@ const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) =
               activeOpacity={0.6}
               onPress={() => {
                 onClose();
-                navigation.navigate('Task', { type: 'text' });
+                onSelectOption('note');
               }}
             >
               <View style={styles.iconContainer}>
@@ -205,23 +157,23 @@ const AddNoteModal = ({ visible, onClose, onSelectOption }: AddNoteModalProps) =
               activeOpacity={0.6}
               onPress={() => {
                 onClose();
-                navigation.navigate('Task', { type: 'task' });
+                onSelectOption('task');
               }}
             >
               <View style={styles.iconContainer}>
                 <Ionicons 
-                  name="list" 
+                  name="checkbox" 
                   size={24} 
                   color={theme.accentColor} 
                 />
               </View>
               <View style={styles.optionContent}>
-                <Text style={styles.optionTitle}>{t('newTask')}</Text>
-                <Text style={styles.optionDescription}>{t('taskDescription')}</Text>
+                <Text style={styles.optionTitle}>{t('addNewTask')}</Text>
+                <Text style={styles.optionDescription}>{t('taskListDescription')}</Text>
               </View>
             </TouchableOpacity>
           </View>
-        </Animated.View>
+        </View>
       </Pressable>
     </Modal>
   );

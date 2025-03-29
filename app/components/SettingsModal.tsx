@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   Modal,
+  ToastAndroid,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -60,7 +61,7 @@ export default function SettingsScreen() {
   const [biometricsEnabled, setBiometricsEnabled] = useState(false);
   const [hasBiometrics, setHasBiometrics] = useState(false);
   const [biometricType, setBiometricType] = useState<'fingerprint' | null>(null);
-  const { notes, importNotes } = useNotes();
+  const { notes, importNotes, clearStorage } = useNotes();
   const [username, setUsername] = useState<string | null>(null);
   const [showUsernameInput, setShowUsernameInput] = useState(false);
 
@@ -310,6 +311,35 @@ export default function SettingsScreen() {
       console.error('Error in file selection:', error);
       Alert.alert(t('error'), t('fileSelectionError'));
     }
+  };
+
+  const handleResetStorage = () => {
+    Alert.alert(
+      'Επαναφορά Δεδομένων',
+      'Αυτή η ενέργεια θα διαγράψει όλες τις σημειώσεις. Θέλετε να συνεχίσετε;',
+      [
+        {
+          text: 'Άκυρο',
+          style: 'cancel'
+        },
+        {
+          text: 'Επαναφορά',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearStorage();
+              ToastAndroid.show('Τα δεδομένα διαγράφηκαν επιτυχώς', ToastAndroid.SHORT);
+            } catch (error) {
+              console.error('Error resetting storage:', error);
+              Alert.alert(
+                'Σφάλμα',
+                'Παρουσιάστηκε πρόβλημα κατά την επαναφορά των δεδομένων.'
+              );
+            }
+          }
+        }
+      ]
+    );
   };
 
   const styles = StyleSheet.create({
@@ -593,6 +623,22 @@ export default function SettingsScreen() {
       fontSize: 16,
       fontWeight: '600',
     },
+    settingLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    iconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    settingText: {
+      fontSize: 16,
+      fontWeight: '500',
+    },
   });
 
   return (
@@ -622,7 +668,9 @@ export default function SettingsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👤 {t('information')}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textColor }]}>
+            {t('information')}
+          </Text>
           <TouchableOpacity 
             style={styles.infoItem}
             onPress={() => setShowUsernameInput(true)}
@@ -637,6 +685,25 @@ export default function SettingsScreen() {
             <View style={styles.chevronContainer}>
               <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
             </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.settingItem}
+            onPress={handleResetStorage}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.iconContainer, { backgroundColor: '#FF3B30' }]}>
+                <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={[styles.settingText, { color: theme.textColor }]}>
+                Επαναφορά Δεδομένων
+              </Text>
+            </View>
+            <Ionicons 
+              name="chevron-forward" 
+              size={20} 
+              color={theme.placeholderColor} 
+            />
           </TouchableOpacity>
         </View>
 

@@ -1,14 +1,22 @@
-export const en = {
+import { Translations } from './types';
+
+export const en: Translations = {
   // General
   hello: 'Hello',
   searchHere: 'Search here...',
-  noNotes: 'No notes found',
+  noNotes: 'No notes yet',
+  noTasks: 'No tasks for today',
   whatNotes: 'What would you like to add?',
-  textNotes: 'Text notes',
+  textNotes: 'Create a new text note',
   recentlyEdited: 'Recently edited',
   characters: 'characters',
   words: 'words',
   noFavorites: 'No favorite notes found',
+  suggestions: 'Suggestions',
+  dates: 'Dates',
+  content: 'Content',
+  todayTasks: 'Today\'s Tasks',
+  titleRequired: 'Title is required',
   
   // Categories
   noTag: 'No Category',
@@ -23,22 +31,30 @@ export const en = {
   delete: 'Delete',
   hide: 'Hide',
   unhide: 'Unhide',
+  hideNote: 'Hide note',
   save: 'Save',
   cancel: 'Cancel',
   add: 'Add',
   discard: 'Discard',
-  chooseColor: 'Choose tag',
+  chooseColor: 'Choose label',
   back: 'Back',
   done: 'Done',
 
   // Add Note
-  addNewNote: 'New note',
-  newTask: 'New task',
+  addNewNote: 'Add New Note',
+  newTask: 'New Task',
   camera: 'Camera',
   drawingSketch: 'Drawing',
   audioFile: 'Audio',
-  taskDescription: 'Organize your tasks',
-
+  taskDescription: 'Task description',
+  taskListDescription: 'Create a checklist or to-do list',
+  addNewTask: 'Add New Task',
+  quickTask: 'Quick Task',
+  taskTitle: 'Task Title',
+  enterTask: 'Enter task',
+  addTask: 'Add Task',
+  untitledTask: 'Untitled Task',
+  
   // Notes
   noteOptions: 'Note options',
   noteHidden: 'Note hidden',
@@ -61,6 +77,10 @@ export const en = {
   noteHistory: 'Note History',
   restoreVersion: 'Restore Version',
   noVersionsAvailable: 'No previous versions available',
+  seeMore: 'See more',
+  seeLess: 'See less',
+  restore: 'Restore',
+  restoreVersionConfirm: 'Are you sure you want to restore this version?',
 
   // Filters
   filters: 'Filters',
@@ -206,6 +226,7 @@ export const en = {
   invalidBackupFile: 'Invalid backup file',
   fileSelectionError: 'Error selecting file',
   error: 'Error',
+  errorSavingNote: 'An error occurred while saving the note',
 
   // Settings sections
   information: 'Information',
@@ -257,6 +278,37 @@ export const en = {
   daysRemaining: 'days remaining',
   dayRemaining: 'day remaining',
   expiresIn: 'expires in',
-} as const;
+
+  // Calendar
+  calendar: 'Calendar',
+  noNotesForDate: 'No notes for this date',
+  showMonth: 'Show month view',
+  tasksFor: 'Tasks for',
+  noTasksForDate: 'No tasks for this date',
+
+  // Task
+  dueDate: 'Due date',
+  dueTime: 'Due time',
+  allDay: 'All day',
+  addLocation: 'Add location',
+  reminder: 'Reminder',
+  priority: 'Priority',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  location: 'Location',
+  time: 'Time',
+  date: 'Date',
+  setPriority: 'Set priority',
+  setReminder: 'Set reminder',
+  addReminder: 'Add reminder',
+  taskDetails: 'Task details',
+  taskLocation: 'Task location',
+  taskPriority: 'Task priority',
+  taskReminder: 'Task reminder',
+  taskDueDate: 'Task due date',
+  taskDueTime: 'Task due time',
+  taskAllDay: 'All day task',
+};
 
 export default en; 

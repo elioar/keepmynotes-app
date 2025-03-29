@@ -38,15 +38,22 @@ interface Note {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function EditNote({ route }: { route: any }) {
+  // Αφαιρώ τις περιττές καταγραφές
+  
   const editorRef = useRef<WebView>(null);
   const viewShotRef = useRef<ViewShot>(null);
   const webViewRef = useRef<WebView>(null);
   const { theme } = useTheme();
   const { t, currentLanguage } = useLanguage();
-  const { addNote, updateNote, deleteNote } = useNotes();
+  const { addNote, updateNote, deleteNote, loadNotes } = useNotes();
   const navigation = useNavigation<NavigationProp>();
   
-  const existingNote = route.params?.note;
+  const routeNote = route.params?.note;
+  // Αν η σημείωση έχει isNew=true ή δεν έχει id, τότε είναι νέα σημείωση
+  const isNewNote = routeNote?.isNew === true || !routeNote?.id;
+  // Για νέες σημειώσεις, μόνο κρατάμε τον τύπο από το routeNote
+  const existingNote = isNewNote ? null : routeNote;
+  
   const [noteContent, setNoteContent] = useState(existingNote?.content || '');
   const [title, setTitle] = useState(existingNote?.title || '');
   const [isViewMode, setIsViewMode] = useState(false);
@@ -1330,32 +1337,56 @@ export default function EditNote({ route }: { route: any }) {
 
   const handleSave = async () => {
     try {
-      if (existingNote) {
-        await updateNote({
+      if (!title.trim()) {
+        Alert.alert(t('error'), t('titleRequired'));
+        return;
+      }
+
+      let savedNote;
+      // Ελέγχουμε αν η σημείωση είναι νέα ή υπάρχουσα
+      if (!isNewNote && existingNote) {
+        const updatedNote = {
           ...existingNote,
-          title,
+          title: title.trim(),
           content: noteContent,
           description: stripHtmlTags(noteContent).substring(0, 100),
           updatedAt: new Date().toISOString(),
-          tags
-        });
-        await saveVersion();
+          tags,
+          isFavorite
+        };
+        await updateNote(updatedNote);
+        savedNote = updatedNote;
       } else {
-        const newNote = await addNote({ 
-          title,
+        savedNote = await addNote({ 
+          title: title.trim(),
           content: noteContent,
           description: stripHtmlTags(noteContent).substring(0, 100),
-          type: 'text',
+          type: routeNote?.type || 'text', // Χρησιμοποιούμε τον τύπο από το routeNote
           isFavorite: false,
           isHidden: false,
           tags
         });
+      }
+
+      if (existingNote?.id) {
         await saveVersion();
       }
+
       setHasChanges(false);
+      await loadNotes();
+      
+      // Πλοήγηση στην αρχική οθόνη χωρίς καθυστέρηση
       navigation.navigate('Home');
+    
+      return savedNote;
     } catch (error) {
-      console.error('Error saving note:', error);
+      console.error('❌ Error saving note:', error);
+      Alert.alert(
+        t('error'), 
+        t('errorSavingNote'), 
+        [{ text: t('done'), style: 'default' }]
+      );
+      throw error; // Επαναφέρουμε το σφάλμα για να το χειριστούν οι calling functions
     }
   };
 
@@ -1394,10 +1425,18 @@ export default function EditNote({ route }: { route: any }) {
   };
 
   const handleBack = async () => {
-    if (hasChanges) {
-      await handleSave();
+    try {
+      if (hasChanges) {
+        await handleSave();
+      } else {
+        // Χρησιμοποιούμε ρητά navigate('Home') αντί για goBack()
+        navigation.navigate('Home');
+      }
+    } catch (error) {
+      console.error('Error navigating back:', error);
+      // Σε περίπτωση σφάλματος, πάμε πίσω στην αρχική οθόνη
+      navigation.navigate('Home');
     }
-    navigation.navigate('Home');
   };
 
   // Χειρισμός του hardware back button
@@ -1405,11 +1444,14 @@ export default function EditNote({ route }: { route: any }) {
     React.useCallback(() => {
       const onBackPress = () => {
         if (hasChanges) {
-          handleSave().then(() => {
+          handleSave().catch(err => {
+            console.error('Error saving on back press:', err);
+            // Σε περίπτωση σφάλματος, πάμε πίσω στην αρχική οθόνη
             navigation.navigate('Home');
           });
           return true;
         }
+        // Χρησιμοποιούμε ρητά navigate('Home') αντί για goBack()
         navigation.navigate('Home');
         return true;
       };

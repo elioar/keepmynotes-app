@@ -9,7 +9,7 @@ type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
   Favorites: undefined;
-  HiddenNotes: undefined;
+  Tasks: undefined;
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
   Task: undefined;
@@ -140,16 +140,24 @@ export default function NavigationMenu({ onAddPress }: Props) {
       
       <TouchableOpacity 
         style={styles.navItem}
-        onPress={() => navigation.navigate('PinScreen', { isChangingPin: false })}
+        onPress={() => navigation.navigate('Tasks')}
       >
-        <Ionicons name="lock-closed-outline" size={24} color={theme.placeholderColor} />
+        <Ionicons 
+          name={isActive('Tasks') ? "checkbox" : "checkbox-outline"} 
+          size={24} 
+          color={isActive('Tasks') ? theme.textColor : theme.placeholderColor} 
+        />
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.navItem}
         onPress={() => navigation.navigate('Settings')}
       >
-        <Ionicons name="person-outline" size={24} color={theme.placeholderColor} />
+        <Ionicons 
+          name={isActive('Settings') ? "settings" : "settings-outline"} 
+          size={24} 
+          color={isActive('Settings') ? theme.textColor : theme.placeholderColor} 
+        />
       </TouchableOpacity>
     </View>
   );

@@ -3,12 +3,18 @@ export interface Translations {
   hello: string;
   searchHere: string;
   noNotes: string;
+  noTasks: string;
   whatNotes: string;
   textNotes: string;
   recentlyEdited: string;
   characters: string;
   words: string;
   noFavorites: string;
+  suggestions: string;
+  dates: string;
+  content: string;
+  todayTasks: string;
+  titleRequired: string;
   
   // Categories
   noTag: string;
@@ -39,6 +45,13 @@ export interface Translations {
   drawingSketch: string;
   audioFile: string;
   taskDescription: string;
+  taskListDescription: string;
+  addNewTask: string;
+  quickTask: string;
+  taskTitle: string;
+  enterTask: string;
+  addTask: string;
+  untitledTask: string;
 
   // Notes
   noteOptions: string;
@@ -211,6 +224,7 @@ export interface Translations {
   invalidBackupFile: string;
   fileSelectionError: string;
   error: string;
+  errorSavingNote: string;
 
   // Settings sections
   information: string;
@@ -262,6 +276,37 @@ export interface Translations {
   daysRemaining: string;
   dayRemaining: string;
   expiresIn: string;
+
+  // Calendar
+  calendar: string;
+  noNotesForDate: string;
+  showMonth: string;
+  tasksFor: string;
+  noTasksForDate: string;
+
+  // Task
+  dueDate: string;
+  dueTime: string;
+  allDay: string;
+  addLocation: string;
+  reminder: string;
+  priority: string;
+  low: string;
+  medium: string;
+  high: string;
+  location: string;
+  time: string;
+  date: string;
+  setPriority: string;
+  setReminder: string;
+  addReminder: string;
+  taskDetails: string;
+  taskLocation: string;
+  taskPriority: string;
+  taskReminder: string;
+  taskDueDate: string;
+  taskDueTime: string;
+  taskAllDay: string;
 }
 
 export { en } from './en';

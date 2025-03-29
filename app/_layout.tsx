@@ -7,27 +7,17 @@ import FavoritesScreen from './components/FavoritesScreen';
 import { NotesProvider } from './NotesContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { TaskProvider } from './context/TaskContext';
 import HiddenNotesScreen from './components/HiddenNotesScreen';
 import SecurityCheck from './components/SecurityCheck';
 import PinScreen from './components/PinScreen';
 import EditNote from './components/EditNote';
 import { OnboardingProvider, useOnboarding } from './context/OnboardingContext';
-import { Easing } from 'react-native';
 import WelcomeScreen from './components/WelcomeScreen';
 import UserPreferencesScreen from './components/UserPreferencesScreen';
 import SettingsScreen from './components/SettingsModal';
-
-type RootStackParamList = {
-  Welcome: undefined;
-  UserPreferences: undefined;
-  Home: undefined;
-  Favorites: undefined;
-  HiddenNotes: undefined;
-  PinScreen: { isChangingPin?: boolean };
-  SecurityCheck: undefined;
-  Task: undefined;
-  Settings: undefined;
-};
+import CalendarScreen from './components/CalendarScreen';
+import QuickTaskScreen from './components/QuickTaskScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -45,8 +35,7 @@ function Navigation() {
         },
         presentation: 'card',
         gestureEnabled: false,
-        animation: 'none',
-        animationTypeForReplace: 'pop'
+        animation: 'none'
       }}
     >
       {isFirstLaunch && (
@@ -64,6 +53,10 @@ function Navigation() {
       <Stack.Screen 
         name="Home" 
         component={HomeScreen}
+        options={{
+          freezeOnBlur: true,
+          headerShown: false
+        }}
       />
       <Stack.Screen 
         name="Favorites" 
@@ -74,8 +67,8 @@ function Navigation() {
         component={SecurityCheck}
       />
       <Stack.Screen 
-        name="HiddenNotes" 
-        component={HiddenNotesScreen}
+        name="Tasks" 
+        component={CalendarScreen}
       />
       <Stack.Screen 
         name="PinScreen" 
@@ -89,6 +82,23 @@ function Navigation() {
         name="Settings" 
         component={SettingsScreen}
       />
+      <Stack.Screen 
+        name="QuickTask" 
+        component={QuickTaskScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'none'
+        }}
+      />
+      <Stack.Screen 
+        name="AddEditNote" 
+        component={EditNote}
+        options={{
+          presentation: 'card',
+          animation: 'none',
+          gestureEnabled: false
+        }}
+      />
     </Stack.Navigator>
   );
 }
@@ -98,13 +108,15 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OnboardingProvider>
         <NotesProvider>
-          <ThemeProvider>
-            <LanguageProvider>
-              <View style={{ flex: 1 }}>
-                <Navigation />
-              </View>
-            </LanguageProvider>
-          </ThemeProvider>
+          <TaskProvider>
+            <ThemeProvider>
+              <LanguageProvider>
+                <View style={{ flex: 1 }}>
+                  <Navigation />
+                </View>
+              </LanguageProvider>
+            </ThemeProvider>
+          </TaskProvider>
         </NotesProvider>
       </OnboardingProvider>
     </GestureHandlerRootView>

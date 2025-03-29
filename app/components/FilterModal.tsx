@@ -34,7 +34,6 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
 
   const otherFilters = [
     { id: 'favorites', label: t('favorites'), icon: 'heart-outline' },
-    { id: 'tasks', label: t('tasks'), icon: 'checkbox-outline' },
     { id: 'notes', label: t('textNotes'), icon: 'document-text-outline' },
     { id: 'recent', label: t('recentlyEdited'), icon: 'time-outline' },
   ];

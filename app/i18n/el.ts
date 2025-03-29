@@ -3,12 +3,15 @@ export const el = {
   hello: 'Γεια σας',
   searchHere: 'Αναζήτηση...',
   noNotes: 'Δεν βρέθηκαν σημειώσεις',
+  noTasks: 'Δεν υπάρχουν εργασίες για σήμερα',
   whatNotes: 'Τι θα θέλατε να προσθέσετε;',
   textNotes: 'Σημειώσεις κειμένου',
   recentlyEdited: 'Πρόσφατα επεξεργασμένα',
   characters: 'χαρακτήρες',
   words: 'λέξεις',
   noFavorites: 'Δεν βρέθηκαν αγαπημένες σημειώσεις',
+  todayTasks: 'Σημερινές Εργασίες',
+  titleRequired: 'Ο τίτλος είναι υποχρεωτικός',
   
   // Κατηγορίες
   noTag: 'Χωρίς Κατηγορία',
@@ -37,7 +40,13 @@ export const el = {
   camera: 'Κάμερα',
   drawingSketch: 'Σχέδιο',
   audioFile: 'Ήχος',
-  taskDescription: 'Οργανώστε τις εργασίες σας',
+  taskListDescription: 'Οργανώστε τις εργασίες σας',
+  addNewTask: 'Νέα εργασία',
+  quickTask: 'Γρήγορη εργασία',
+  taskTitle: 'Τίτλος εργασίας',
+  enterTask: 'Εισάγετε εργασία',
+  addTask: 'Προσθήκη εργασίας',
+  untitledTask: 'Εργασία χωρίς τίτλο',
 
   // Σημειώσεις
   noteOptions: 'Επιλογές σημείωσης',
@@ -210,6 +219,7 @@ export const el = {
   invalidBackupFile: 'Μη έγκυρο αρχείο αντιγράφου',
   fileSelectionError: 'Σφάλμα κατά την επιλογή αρχείου',
   error: 'Σφάλμα',
+  errorSavingNote: 'Παρουσιάστηκε σφάλμα κατά την αποθήκευση της σημείωσης',
 
   // Settings sections
   information: 'Πληροφορίες',
@@ -261,6 +271,34 @@ export const el = {
   daysRemaining: 'ημέρες απομένουν',
   dayRemaining: 'ημέρα απομένει',
   expiresIn: 'λήγει σε',
+
+  // Calendar
+  calendar: 'Ημερολόγιο',
+  noNotesForDate: 'Δεν υπάρχουν σημειώσεις για αυτή την ημερομηνία',
+  showMonth: 'Προβολή Μήνα',
+
+  // Task
+  dueDate: 'Ημερομηνία λήξης',
+  dueTime: 'Ώρα λήξης',
+  allDay: 'Ολοήμερο',
+  addLocation: 'Προσθήκη τοποθεσίας',
+  reminder: 'Υπενθύμιση',
+  priority: 'Προτεραιότητα',
+  low: 'Χαμηλή',
+  medium: 'Μεσαία',
+  high: 'Υψηλή',
+  location: 'Τοποθεσία',
+  time: 'Ώρα',
+  date: 'Ημερομηνία',
+  setPriority: 'Ορισμός προτεραιότητας',
+  setReminder: 'Ορισμός υπενθύμισης',
+  taskDetails: 'Λεπτομέρειες εργασίας',
+  taskLocation: 'Τοποθεσία εργασίας',
+  taskPriority: 'Προτεραιότητα εργασίας',
+  taskReminder: 'Υπενθύμιση εργασίας',
+  taskDueDate: 'Ημερομηνία λήξης εργασίας',
+  taskDueTime: 'Ώρα λήξης εργασίας',
+  taskAllDay: 'Ολοήμερη εργασία',
 } as const;
 
 export default el; 

@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOnboarding } from '../context/OnboardingContext';
+import { useNotes } from '../NotesContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -57,6 +58,10 @@ export default function WelcomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+  const { notes } = useNotes();
+
+  // Filter out tasks from notes
+  const displayNotes = notes.filter(note => note.type !== 'task' && !note.isHidden);
 
   const handleGetStarted = async () => {
     await setFirstLaunchComplete();

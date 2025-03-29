@@ -3,12 +3,15 @@ export const es = {
   hello: 'Hola',
   searchHere: 'Buscar aquí...',
   noNotes: 'No se encontraron notas',
+  noTasks: 'No hay tareas para hoy',
   whatNotes: '¿Qué te gustaría añadir?',
   textNotes: 'Notas de texto',
   recentlyEdited: 'Editado recientemente',
   characters: 'caracteres',
   words: 'palabras',
   noFavorites: 'No se encontraron notas favoritas',
+  todayTasks: 'Tareas de Hoy',
+  titleRequired: 'El título es obligatorio',
   
   // Actions
   edit: 'Editar',
@@ -29,6 +32,13 @@ export const es = {
   camera: 'Cámara',
   drawingSketch: 'Dibujo',
   audioFile: 'Audio',
+  taskListDescription: 'Crear lista de tareas o pendientes',
+  addNewTask: 'Añadir nueva tarea',
+  quickTask: 'Tarea rápida',
+  taskTitle: 'Título de tarea',
+  enterTask: 'Ingresar tarea',
+  addTask: 'Añadir tarea',
+  untitledTask: 'Tarea sin título',
 
   // Notes
   noteOptions: 'Opciones de nota',
@@ -197,6 +207,7 @@ export const es = {
   invalidBackupFile: 'Archivo de copia inválido',
   fileSelectionError: 'Error al seleccionar archivo',
   error: 'Error',
+  errorSavingNote: 'Se produjo un error al guardar la nota',
 
   // Settings sections
   information: 'Información',
@@ -239,6 +250,36 @@ export const es = {
   daysRemaining: 'días restantes',
   dayRemaining: 'día restante',
   expiresIn: 'expira en',
+
+  // Calendar
+  calendar: 'Calendario',
+  noNotesForDate: 'No hay notas para esta fecha',
+  showMonth: 'Ver Mes',
+
+  // Task
+  dueDate: 'Fecha de vencimiento',
+  dueTime: 'Hora de vencimiento',
+  allDay: 'Todo el día',
+  addLocation: 'Agregar ubicación',
+  reminder: 'Recordatorio',
+  priority: 'Prioridad',
+  low: 'Baja',
+  medium: 'Media',
+  high: 'Alta',
+  location: 'Ubicación',
+  time: 'Hora',
+  date: 'Fecha',
+  setPriority: 'Establecer prioridad',
+  setReminder: 'Establecer recordatorio',
+  addReminder: 'Agregar recordatorio',
+  taskDetails: 'Detalles de la tarea',
+  taskDescription: 'Descripción de la tarea',
+  taskLocation: 'Ubicación de la tarea',
+  taskPriority: 'Prioridad de la tarea',
+  taskReminder: 'Recordatorio de la tarea',
+  taskDueDate: 'Fecha de vencimiento de la tarea',
+  taskDueTime: 'Hora de vencimiento de la tarea',
+  taskAllDay: 'Tarea de todo el día',
 } as const;
 
 export default es; 

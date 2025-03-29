@@ -129,6 +129,8 @@ export default function HomeScreen() {
   const [isGridView, setIsGridView] = useState(false);
   const [isViewPreferenceLoaded, setIsViewPreferenceLoaded] = useState(false);
   const [localUsername, setLocalUsername] = useState<string | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<Array<{ type: 'date' | 'text' | 'filter', value: string }>>([]);
 
   // Load username from AsyncStorage
   useEffect(() => {
@@ -256,21 +258,125 @@ export default function HomeScreen() {
       .trim();
   };
 
+  const isDateQuery = (query: string): boolean => {
+    // Υποστήριξη διαφόρων μορφών ημερομηνίας
+    const datePatterns = [
+      /\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/, // dd/mm/yyyy, dd-mm-yyyy
+      /\d{1,2}[-/]\d{1,2}/, // dd/mm
+      /\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{0,4}/i, // 15 january 2024, 15 jan
+      /\d{1,2}\s+days?\s+ago/i, // X days ago
+      /yesterday/i,
+      /today/i,
+      /last\s+week/i,
+      /last\s+month/i,
+      /this\s+month/i,
+      /this\s+week/i
+    ];
+    return datePatterns.some(pattern => pattern.test(query.trim()));
+  };
+
+  const parseDate = (query: string): Date | null => {
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    // Σήμερα
+    if (normalizedQuery === 'today') {
+      return new Date();
+    }
+    
+    // Χθες
+    if (normalizedQuery === 'yesterday') {
+      const date = new Date();
+      date.setDate(date.getDate() - 1);
+      return date;
+    }
+    
+    // X μέρες πριν
+    const daysAgoMatch = normalizedQuery.match(/(\d+)\s+days?\s+ago/);
+    if (daysAgoMatch) {
+      const date = new Date();
+      date.setDate(date.getDate() - parseInt(daysAgoMatch[1]));
+      return date;
+    }
+    
+    // Αυτή την εβδομάδα
+    if (normalizedQuery === 'this week') {
+      const date = new Date();
+      date.setDate(date.getDate() - date.getDay());
+      return date;
+    }
+    
+    // Την προηγούμενη εβδομάδα
+    if (normalizedQuery === 'last week') {
+      const date = new Date();
+      date.setDate(date.getDate() - date.getDay() - 7);
+      return date;
+    }
+    
+    // Αυτό το μήνα
+    if (normalizedQuery === 'this month') {
+      const date = new Date();
+      date.setDate(1);
+      return date;
+    }
+    
+    // Τον προηγούμενο μήνα
+    if (normalizedQuery === 'last month') {
+      const date = new Date();
+      date.setMonth(date.getMonth() - 1);
+      date.setDate(1);
+      return date;
+    }
+    
+    // Προσπάθεια ανάλυσης συγκεκριμένης ημερομηνίας
+    try {
+      const date = new Date(normalizedQuery);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    } catch (e) {}
+    
+    return null;
+  };
+
+  const matchesDateQuery = (noteDate: string, searchDate: Date): boolean => {
+    const date = new Date(noteDate);
+    return date.toDateString() === searchDate.toDateString();
+  };
+
   const getFilteredNotes = () => {
     let filteredNotes = notes.filter(note => !note.isHidden);
 
-    // Sort by creation date (newest first)
+    // Ταξινόμηση με βάση την ημερομηνία δημιουργίας (νεότερα πρώτα)
     filteredNotes = filteredNotes.sort((a, b) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
-      filteredNotes = filteredNotes.filter(note => 
-        note.title.toLowerCase().includes(searchLower) ||
-        note.description?.toLowerCase().includes(searchLower) ||
-        (note.content && stripHtmlTags(note.content).toLowerCase().includes(searchLower))
-      );
+      const searchLower = searchQuery.toLowerCase().trim();
+      
+      // Έλεγχος αν η αναζήτηση είναι για ημερομηνία
+      if (isDateQuery(searchQuery)) {
+        const searchDate = parseDate(searchQuery);
+        if (searchDate) {
+          filteredNotes = filteredNotes.filter(note => 
+            matchesDateQuery(note.createdAt, searchDate)
+          );
+        }
+      } else {
+        // Κανονική αναζήτηση κειμένου
+        const searchTerms = searchLower.split(' ').filter(term => term.length > 0);
+        
+        filteredNotes = filteredNotes.filter(note => {
+          const noteContent = [
+            note.title.toLowerCase(),
+            note.description?.toLowerCase() || '',
+            stripHtmlTags(note.content || '').toLowerCase()
+          ].join(' ');
+          
+          // Όλοι οι όροι αναζήτησης πρέπει να ταιριάζουν
+          return searchTerms.every(term => noteContent.includes(term));
+        });
+      }
     }
 
     if (activeFilters.length > 0) {
@@ -499,6 +605,87 @@ export default function HomeScreen() {
     }
   };
 
+  const getSearchSuggestions = (query: string) => {
+    const suggestions: Array<{ type: 'date' | 'text' | 'filter', value: string }> = [];
+    const queryLower = query.toLowerCase().trim();
+
+    // Ημερομηνίες
+    const dateKeywords = [
+      { key: 'to', value: 'today' },
+      { key: 'ye', value: 'yesterday' },
+      { key: 'th', value: 'this week' },
+      { key: 'la', value: 'last week' },
+      { key: 'thi', value: 'this month' },
+      { key: 'las', value: 'last month' },
+      { key: 'mon', value: 'monday' },
+      { key: 'tue', value: 'tuesday' },
+      { key: 'wed', value: 'wednesday' },
+      { key: 'thu', value: 'thursday' },
+      { key: 'fri', value: 'friday' },
+      { key: 'sat', value: 'saturday' },
+      { key: 'sun', value: 'sunday' },
+      { key: 'jan', value: 'january' },
+      { key: 'feb', value: 'february' },
+      { key: 'mar', value: 'march' },
+      { key: 'apr', value: 'april' },
+      { key: 'may', value: 'may' },
+      { key: 'jun', value: 'june' },
+      { key: 'jul', value: 'july' },
+      { key: 'aug', value: 'august' },
+      { key: 'sep', value: 'september' },
+      { key: 'oct', value: 'october' },
+      { key: 'nov', value: 'november' },
+      { key: 'dec', value: 'december' }
+    ];
+
+    // Φίλτρα
+    const filterKeywords = [
+      { key: 'fav', value: 'favorites' },
+      { key: 'imp', value: 'important' },
+      { key: 'task', value: 'tasks' },
+      { key: 'note', value: 'notes' },
+      { key: 'per', value: 'personal' },
+      { key: 'work', value: 'work' },
+      { key: 'stud', value: 'study' },
+      { key: 'idea', value: 'ideas' },
+      { key: 'rec', value: 'recent' }
+    ];
+
+    // Προσθήκη προτάσεων ημερομηνίας
+    dateKeywords.forEach(({ key, value }) => {
+      if (value.startsWith(queryLower) || key.startsWith(queryLower)) {
+        suggestions.push({ type: 'date', value });
+      }
+    });
+
+    // Προσθήκη προτάσεων φίλτρων
+    filterKeywords.forEach(({ key, value }) => {
+      if (value.startsWith(queryLower) || key.startsWith(queryLower)) {
+        suggestions.push({ type: 'filter', value });
+      }
+    });
+
+    // Προσθήκη προτάσεων για "X days ago"
+    if (queryLower.match(/^\d+$/)) {
+      suggestions.push({ type: 'date', value: `${queryLower} days ago` });
+      suggestions.push({ type: 'date', value: `${queryLower} weeks ago` });
+      suggestions.push({ type: 'date', value: `${queryLower} months ago` });
+    }
+
+    // Προσθήκη προτάσεων από τις υπάρχουσες σημειώσεις
+    const noteSuggestions = notes
+      .filter(note => !note.isHidden)
+      .flatMap(note => [
+        ...(note.title.toLowerCase().includes(queryLower) ? [note.title] : []),
+        ...(note.description?.toLowerCase().includes(queryLower) ? [note.description] : [])
+      ])
+      .filter((value, index, self) => self.indexOf(value) === index)
+      .slice(0, 3)
+      .map(value => ({ type: 'text' as const, value }));
+
+    return [...suggestions.slice(0, 5), ...noteSuggestions];
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -560,6 +747,7 @@ export default function HomeScreen() {
       elevation: isSearchFocused ? 5 : 3,
       borderWidth: 2,
       borderColor: isSearchFocused ? theme.accentColor : 'transparent',
+      zIndex: 100,
     },
     searchInput: {
       flex: 1,
@@ -847,6 +1035,86 @@ export default function HomeScreen() {
       borderRadius: 8,
       marginLeft: -14,
     },
+    suggestionsContainer: {
+      position: 'absolute',
+      top: '100%',
+      left: -3,
+      right: -3,
+      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      borderRadius: 16,
+      marginTop: 8,
+      paddingVertical: 8,
+      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 8,
+      },
+      shadowOpacity: theme.isDarkMode ? 0.4 : 0.15,
+      shadowRadius: 16,
+      elevation: 8,
+      zIndex: 99,
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? '#2A2A2A' : `${theme.accentColor}10`,
+    },
+    suggestionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      gap: 10,
+      marginHorizontal: 6,
+      borderRadius: 10,
+      marginVertical: 1,
+    },
+    suggestionItemActive: {
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : `${theme.accentColor}08`,
+    },
+    suggestionIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: theme.isDarkMode ? '#333' : `${theme.accentColor}10`,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    suggestionText: {
+      color: theme.textColor,
+      fontSize: 15,
+      flex: 1,
+      fontWeight: '500',
+    },
+    smartSearchBadge: {
+      backgroundColor: theme.isDarkMode ? `${theme.accentColor}15` : `${theme.accentColor}10`,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    smartSearchText: {
+      color: theme.accentColor,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    suggestionDivider: {
+      height: 1,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : `${theme.accentColor}10`,
+      marginVertical: 12,
+      marginHorizontal: 20,
+    },
+    suggestionHeader: {
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      opacity: 0.7,
+    },
+    suggestionHeaderText: {
+      color: theme.placeholderColor,
+      fontSize: 14,
+      fontWeight: '600',
+      letterSpacing: -0.3,
+      textTransform: 'uppercase',
+    },
   });
 
   return (
@@ -934,15 +1202,40 @@ export default function HomeScreen() {
               placeholder={t('searchHere')}
               placeholderTextColor={theme.placeholderColor}
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                if (text.trim()) {
+                  const suggestions = getSearchSuggestions(text);
+                  setSearchSuggestions(suggestions);
+                  setShowSuggestions(suggestions.length > 0);
+                } else {
+                  setShowSuggestions(false);
+                }
+              }}
               autoCapitalize="none"
               autoCorrect={false}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
+              onFocus={() => {
+                setIsSearchFocused(true);
+                if (searchQuery.trim()) {
+                  const suggestions = getSearchSuggestions(searchQuery);
+                  setSearchSuggestions(suggestions);
+                  setShowSuggestions(suggestions.length > 0);
+                }
+              }}
+              onBlur={() => {
+                // Μικρή καθυστέρηση για να προλάβει να γίνει το tap στην πρόταση
+                setTimeout(() => {
+                  setIsSearchFocused(false);
+                  setShowSuggestions(false);
+                }, 200);
+              }}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity 
-                onPress={() => setSearchQuery('')}
+                onPress={() => {
+                  setSearchQuery('');
+                  setShowSuggestions(false);
+                }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Ionicons 
@@ -951,6 +1244,43 @@ export default function HomeScreen() {
                   color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
                 />
               </TouchableOpacity>
+            )}
+            {showSuggestions && (
+              <View style={styles.suggestionsContainer}>
+                {searchSuggestions.map((suggestion, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.suggestionItem,
+                      suggestion.type === 'date' && styles.suggestionItemActive
+                    ]}
+                    onPress={() => {
+                      setSearchQuery(suggestion.value);
+                      setShowSuggestions(false);
+                      // Εστίαση στο search input για καλύτερη εμπειρία χρήστη
+                      Keyboard.dismiss();
+                      setIsSearchFocused(true);
+                    }}
+                  >
+                    <View style={styles.suggestionIcon}>
+                      <Ionicons 
+                        name={suggestion.type === 'date' ? "calendar-outline" : "search-outline"}
+                        size={16} 
+                        color={suggestion.type === 'date' ? theme.accentColor : theme.textColor} 
+                      />
+                    </View>
+                    <Text style={styles.suggestionText} numberOfLines={1}>
+                      {suggestion.value}
+                    </Text>
+                    {suggestion.type === 'date' && (
+                      <View style={styles.smartSearchBadge}>
+                        <Ionicons name="flash-outline" size={12} color={theme.accentColor} />
+                        <Text style={styles.smartSearchText}>AI</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
           </View>
 

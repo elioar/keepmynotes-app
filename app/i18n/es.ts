@@ -280,6 +280,38 @@ export const es = {
   taskDueDate: 'Fecha de vencimiento de la tarea',
   taskDueTime: 'Hora de vencimiento de la tarea',
   taskAllDay: 'Tarea de todo el día',
+
+  // New translations
+  suggestions: 'Sugerencias',
+  dates: 'Fechas',
+  content: 'Contenido',
+  hideNote: 'Ocultar nota',
+  tasksFor: 'Tareas para',
+  noTasksForDate: 'No hay tareas para esta fecha',
+  seeMore: 'Ver más',
+  seeLess: 'Ver menos',
+  restore: 'Restaurar',
+  restoreVersionConfirm: '¿Estás seguro de que quieres restaurar esta versión?',
+  
+  // Reset Data
+  resetData: 'Restablecer Datos',
+  resetDataConfirm: 'Esta acción eliminará todas las notas. ¿Desea continuar?',
+  reset: 'Restablecer',
+  dataDeletedSuccess: 'Datos eliminados con éxito',
+  resetDataError: 'Se produjo un error al restablecer los datos',
+  dangerZone: 'Zona de Peligro',
+  resetDataWarning: 'Advertencia: Esta acción eliminará permanentemente todas sus notas y no se puede deshacer.',
+  finalWarning: 'Advertencia Final',
+  noUndoWarning: 'Esta es su última oportunidad. Una vez eliminados, sus datos NO PUEDEN ser recuperados.',
+  
+  // Menú Lateral
+  sideMenuMain: 'Principal',
+  sideMenuTasks: 'Tareas',
+  sideMenuOther: 'Otros',
+  home: 'Inicio',
+  sideMenuFavorites: 'Favoritos',
+  sideMenuSettings: 'Ajustes',
+  yourNotes: 'Tus Notas',
 } as const;
 
 export default es; 

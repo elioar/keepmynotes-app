@@ -299,6 +299,36 @@ export const el = {
   taskDueDate: 'Ημερομηνία λήξης εργασίας',
   taskDueTime: 'Ώρα λήξης εργασίας',
   taskAllDay: 'Ολοήμερη εργασία',
+
+  // New translations
+  suggestions: 'Προτάσεις',
+  dates: 'Ημερομηνίες',
+  content: 'Περιεχόμενο',
+  taskDescription: 'Περιγραφή εργασίας',
+  hideNote: 'Απόκρυψη σημείωσης',
+  tasksFor: 'Εργασίες για',
+  noTasksForDate: 'Δεν υπάρχουν εργασίες για αυτή την ημερομηνία',
+  addReminder: 'Προσθήκη υπενθύμισης',
+  
+  // Reset Data
+  resetData: 'Επαναφορά Δεδομένων',
+  resetDataConfirm: 'Αυτή η ενέργεια θα διαγράψει όλες τις σημειώσεις. Θέλετε να συνεχίσετε;',
+  reset: 'Επαναφορά',
+  dataDeletedSuccess: 'Τα δεδομένα διαγράφηκαν επιτυχώς',
+  resetDataError: 'Παρουσιάστηκε πρόβλημα κατά την επαναφορά των δεδομένων.',
+  dangerZone: 'Ζώνη Κινδύνου',
+  resetDataWarning: 'Προσοχή: Αυτή η ενέργεια θα διαγράψει μόνιμα όλες τις σημειώσεις σας και δεν μπορεί να αναιρεθεί.',
+  finalWarning: 'Τελική Προειδοποίηση',
+  noUndoWarning: 'Αυτή είναι η τελευταία σας ευκαιρία. Μόλις διαγραφούν, τα δεδομένα σας ΔΕΝ ΜΠΟΡΟΥΝ να ανακτηθούν.',
+  
+  // Πλαϊνό Μενού
+  sideMenuMain: 'Κύριο Μενού',
+  sideMenuTasks: 'Εργασίες',
+  sideMenuOther: 'Άλλα',
+  home: 'Αρχική',
+  sideMenuFavorites: 'Αγαπημένα',
+  sideMenuSettings: 'Ρυθμίσεις',
+  yourNotes: 'Οι Σημειώσεις σας',
 } as const;
 
 export default el; 

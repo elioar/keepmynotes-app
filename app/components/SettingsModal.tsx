@@ -147,7 +147,7 @@ export default function SettingsScreen() {
                   color === 'red' ? t('important') : t('noTag'),
             color: color
           })),
-        version: '1.0.2',
+        version: '1.0.6',
         backupDate: new Date().toISOString()
       };
 
@@ -314,28 +314,46 @@ export default function SettingsScreen() {
   };
 
   const handleResetStorage = () => {
+    // Πρώτο μήνυμα επιβεβαίωσης
     Alert.alert(
-      'Επαναφορά Δεδομένων',
-      'Αυτή η ενέργεια θα διαγράψει όλες τις σημειώσεις. Θέλετε να συνεχίσετε;',
+      t('resetData'),
+      t('resetDataConfirm'),
       [
         {
-          text: 'Άκυρο',
+          text: t('cancel'),
           style: 'cancel'
         },
         {
-          text: 'Επαναφορά',
+          text: t('continue'), 
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await clearStorage();
-              ToastAndroid.show('Τα δεδομένα διαγράφηκαν επιτυχώς', ToastAndroid.SHORT);
-            } catch (error) {
-              console.error('Error resetting storage:', error);
-              Alert.alert(
-                'Σφάλμα',
-                'Παρουσιάστηκε πρόβλημα κατά την επαναφορά των δεδομένων.'
-              );
-            }
+          onPress: () => {
+            // Δεύτερο μήνυμα επιβεβαίωσης
+            Alert.alert(
+              t('finalWarning'),
+              t('noUndoWarning'),
+              [
+                {
+                  text: t('cancel'),
+                  style: 'cancel'
+                },
+                {
+                  text: t('reset'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await clearStorage();
+                      ToastAndroid.show(t('dataDeletedSuccess'), ToastAndroid.SHORT);
+                    } catch (error) {
+                      console.error('Error resetting storage:', error);
+                      Alert.alert(
+                        t('error'),
+                        t('resetDataError')
+                      );
+                    }
+                  }
+                }
+              ]
+            );
           }
         }
       ]
@@ -639,6 +657,45 @@ export default function SettingsScreen() {
       fontSize: 16,
       fontWeight: '500',
     },
+    dangerZone: {
+      marginTop: 24,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#FF3B30',
+      borderRadius: 12,
+      backgroundColor: 'rgba(255, 59, 48, 0.05)',
+    },
+    dangerZoneHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    dangerZoneTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#FF3B30',
+      marginLeft: 8,
+    },
+    dangerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 12,
+      borderRadius: 12,
+      marginBottom: 12,
+    },
+    dangerButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    dangerZoneDescription: {
+      color: theme.placeholderColor,
+      fontSize: 13,
+      fontWeight: '400',
+      lineHeight: 18,
+      textAlign: 'center',
+    },
   });
 
   return (
@@ -685,25 +742,6 @@ export default function SettingsScreen() {
             <View style={styles.chevronContainer}>
               <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleResetStorage}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FF3B30' }]}>
-                <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
-              </View>
-              <Text style={[styles.settingText, { color: theme.textColor }]}>
-                Επαναφορά Δεδομένων
-              </Text>
-            </View>
-            <Ionicons 
-              name="chevron-forward" 
-              size={20} 
-              color={theme.placeholderColor} 
-            />
           </TouchableOpacity>
         </View>
 
@@ -903,7 +941,22 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.version}>
-          <Text style={styles.versionText}>📱 Version 1.0.2</Text>
+          <Text style={styles.versionText}>📱 Version 1.0.6</Text>
+        </View>
+
+        <View style={styles.dangerZone}>
+          <View style={styles.dangerZoneHeader}>
+            <Ionicons name="warning" size={22} color="#FF3B30" />
+            <Text style={styles.dangerZoneTitle}>{t('dangerZone')}</Text>
+          </View>
+          <TouchableOpacity 
+            style={[styles.dangerButton, { backgroundColor: '#FF3B30' }]}
+            onPress={handleResetStorage}
+          >
+            <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+            <Text style={[styles.dangerButtonText, { color: '#FFFFFF' }]}>{t('resetData')}</Text>
+          </TouchableOpacity>
+          <Text style={styles.dangerZoneDescription}>{t('resetDataWarning')}</Text>
         </View>
       </ScrollView>
 

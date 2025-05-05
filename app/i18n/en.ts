@@ -309,6 +309,26 @@ export const en: Translations = {
   taskDueDate: 'Task due date',
   taskDueTime: 'Task due time',
   taskAllDay: 'All day task',
+
+  // Reset Data
+  resetData: 'Reset Data',
+  resetDataConfirm: 'This action will delete all notes. Do you want to continue?',
+  reset: 'Reset',
+  dataDeletedSuccess: 'Data successfully deleted',
+  resetDataError: 'An error occurred while resetting data',
+  dangerZone: 'Danger Zone',
+  resetDataWarning: 'Warning: This action will permanently delete all your notes and cannot be undone.',
+  finalWarning: 'Final Warning',
+  noUndoWarning: 'This is your last chance. Once deleted, your data CANNOT be recovered.',
+  
+  // Side Menu
+  sideMenuMain: 'Main',
+  sideMenuTasks: 'Tasks',
+  sideMenuOther: 'Other',
+  home: 'Home',
+  sideMenuFavorites: 'Favorites',
+  sideMenuSettings: 'Settings',
+  yourNotes: 'Your Notes',
 };
 
 export default en; 

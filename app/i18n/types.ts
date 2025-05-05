@@ -205,7 +205,6 @@ export interface Translations {
   // User Preferences Setup
   setupProfile: string;
   setupProfileDescription: string;
-  continue: string;
 
   // Backup functionality
   backupNotes: string;
@@ -307,6 +306,27 @@ export interface Translations {
   taskDueDate: string;
   taskDueTime: string;
   taskAllDay: string;
+
+  // Reset Data
+  resetData: string;
+  resetDataConfirm: string;
+  reset: string;
+  dataDeletedSuccess: string;
+  resetDataError: string;
+  dangerZone: string;
+  resetDataWarning: string;
+  finalWarning: string;
+  noUndoWarning: string;
+  continue: string;
+
+  // Side Menu
+  sideMenuMain: string;
+  sideMenuTasks: string;
+  sideMenuOther: string;
+  home: string;
+  sideMenuFavorites: string;
+  sideMenuSettings: string;
+  yourNotes: string;
 }
 
 export { en } from './en';

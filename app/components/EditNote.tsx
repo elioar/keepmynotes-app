@@ -1456,8 +1456,8 @@ export default function EditNote({ route }: { route: any }) {
         return true;
       };
 
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => backHandler.remove();
     }, [hasChanges, navigation, handleSave])
   );
 

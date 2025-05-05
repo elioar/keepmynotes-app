@@ -18,10 +18,11 @@ import {
   Easing,
   ToastAndroid,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect, DrawerActions } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNotes } from './NotesContext';
@@ -37,6 +38,7 @@ import FilterModal from './components/FilterModal';
 import NoteActionMenu from './components/NoteActionMenu';
 import * as Haptics from 'expo-haptics';
 import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
+import * as ImagePicker from 'expo-image-picker';
 
 const TAG_LABELS: Record<TagColor, string> = {
   none: 'No Category',
@@ -51,9 +53,10 @@ type RootStackParamList = {
   Home: undefined;
   AddEditNote: { note?: any };
   Favorites: undefined;
-  Task: { note?: any };
+  Tasks: undefined;
   Settings: undefined;
   QuickTask: undefined;
+  Calendar: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -130,6 +133,34 @@ export default function HomeScreen() {
   const [isGridView, setIsGridView] = useState(false);
   const [isViewPreferenceLoaded, setIsViewPreferenceLoaded] = useState(false);
   const [localUsername, setLocalUsername] = useState<string | null>(null);
+  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const sideMenuAnim = useRef(new Animated.Value(-300)).current;
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+  const currentRoute = navigation.getState().routes[navigation.getState().index].name;
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const toggleSideMenu = () => {
+    const toValue = isSideMenuOpen ? -300 : 0;
+    const overlayToValue = isSideMenuOpen ? 0 : 0.5;
+
+    Animated.parallel([
+      Animated.spring(sideMenuAnim, {
+        toValue,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+        velocity: 1
+      }),
+      Animated.timing(overlayAnim, {
+        toValue: overlayToValue,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true
+      })
+    ]).start();
+
+    setIsSideMenuOpen(!isSideMenuOpen);
+  };
 
   // Add logging to see notes on mount
   useEffect(() => {
@@ -180,6 +211,21 @@ export default function HomeScreen() {
       }
     };
     loadViewPreference();
+  }, []);
+
+  // Load profile image when component mounts
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      try {
+        const savedImage = await AsyncStorage.getItem('@profile_image');
+        if (savedImage) {
+          setProfileImage(savedImage);
+        }
+      } catch (error) {
+        console.error('Error loading profile image:', error);
+      }
+    };
+    loadProfileImage();
   }, []);
 
   // Save view preference when it changes
@@ -518,6 +564,25 @@ export default function HomeScreen() {
       setSelectedNote(null);
     } catch (error) {
       console.error('Error changing note color:', error);
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+        setProfileImage(imageUri);
+        await AsyncStorage.setItem('@profile_image', imageUri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
     }
   };
 
@@ -873,12 +938,167 @@ export default function HomeScreen() {
       backgroundColor: `${theme.accentColor}15`,
       transform: [{ scale: 1.1 }],
     },
+    sideMenu: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      width: 300,
+      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      zIndex: 1000,
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 4,
+        height: 0,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      borderTopRightRadius: 20,
+      borderBottomRightRadius: 20,
+    },
+    menuOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: '#000',
+      zIndex: 999,
+    },
+    menuHeader: {
+      paddingTop: Platform.OS === 'ios' ? 60 : 40,
+      paddingBottom: 20,
+      paddingHorizontal: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: `${theme.borderColor}40`,
+      marginBottom: 10,
+      backgroundColor: theme.isDarkMode ? '#000000' : theme.secondaryBackground,
+      borderTopRightRadius: 20,
+    },
+    profileSection: {
+      alignItems: 'center',
+      marginBottom: 15,
+    },
+    profileImageContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+      shadowColor: theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 5,
+      elevation: 5,
+    },
+    profileImage: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+    },
+    addPhotoButton: {
+      position: 'absolute',
+      bottom: -6,
+      right: -6,
+      backgroundColor: theme.accentColor,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+    },
+    menuHeaderText: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.textColor,
+      textAlign: 'center',
+    },
+    menuHeaderSubtext: {
+      fontSize: 14,
+      color: theme.placeholderColor,
+      textAlign: 'center',
+      marginTop: 4,
+    },
+    menuContent: {
+      flex: 1,
+      paddingTop: 10,
+    },
+    menuSection: {
+      marginBottom: 20,
+    },
+    menuSectionTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.placeholderColor,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginLeft: 20,
+      marginBottom: 12,
+      marginTop: 10,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      paddingHorizontal: 20,
+      marginBottom: 4,
+      borderRadius: 12,
+      marginHorizontal: 10,
+    },
+    menuItemActive: {
+      backgroundColor: `${theme.accentColor}15`,
+    },
+    menuItemContent: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    menuItemIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    menuItemText: {
+      fontSize: 15,
+      color: theme.textColor,
+      fontWeight: '500',
+    },
+    menuItemTextActive: {
+      color: theme.accentColor,
+      fontWeight: '600',
+    },
+    menuItemBadge: {
+      backgroundColor: theme.accentColor,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 10,
+      marginLeft: 8,
+    },
+    menuItemBadgeText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '600',
+    },
   });
 
   return (
     <TouchableWithoutFeedback onPress={() => {
       Keyboard.dismiss();
       setIsSearchFocused(false);
+      if (isSideMenuOpen) {
+        toggleSideMenu();
+      }
     }}>
       <View style={styles.container}>
         <StatusBar 
@@ -901,16 +1121,6 @@ export default function HomeScreen() {
             </View>
             <View style={styles.headerButtons}>
               <TouchableOpacity 
-                style={[styles.iconButton, styles.burgerButton]}
-                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-              >
-                <Ionicons 
-                  name="menu" 
-                  size={normalize(28)} 
-                  color={theme.accentColor} 
-                />
-              </TouchableOpacity>
-              <TouchableOpacity 
                 style={styles.iconButton}
                 onPress={toggleViewMode}
               >
@@ -932,6 +1142,16 @@ export default function HomeScreen() {
                   />
                   {activeFilters.length > 0 && <View style={styles.filterDot} />}
                 </View>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.iconButton, styles.burgerButton]}
+                onPress={toggleSideMenu}
+              >
+                <Ionicons 
+                  name="menu" 
+                  size={normalize(28)} 
+                  color={theme.accentColor} 
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -1233,6 +1453,194 @@ export default function HomeScreen() {
           currentColor={selectedNote?.color || '#4CAF50'}
           isHidden={false}
         />
+
+        {/* Side Menu */}
+        <Animated.View 
+          style={[
+            styles.menuOverlay, 
+            { 
+              opacity: overlayAnim,
+              display: isSideMenuOpen ? 'flex' : 'none'
+            }
+          ]} 
+        />
+        <Animated.View 
+          style={[
+            styles.sideMenu,
+            {
+              transform: [{ translateX: sideMenuAnim }]
+            }
+          ]}
+        >
+          <View style={styles.menuHeader}>
+            <View style={styles.profileSection}>
+              <TouchableOpacity 
+                style={styles.profileImageContainer}
+                onPress={pickImage}
+              >
+                {profileImage ? (
+                  <Image 
+                    source={{ uri: profileImage }} 
+                    style={styles.profileImage}
+                  />
+                ) : (
+                  <Ionicons 
+                    name="person" 
+                    size={40} 
+                    color={theme.placeholderColor} 
+                  />
+                )}
+                <View style={styles.addPhotoButton}>
+                  <Ionicons 
+                    name="camera" 
+                    size={14} 
+                    color="#FFFFFF" 
+                  />
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.menuHeaderText}>
+                {localUsername ? localUsername : t('hello')}
+              </Text>
+              <Text style={styles.menuHeaderSubtext}>
+                {t('yourNotes')}
+              </Text>
+            </View>
+          </View>
+
+          <ScrollView style={styles.menuContent}>
+            <View style={styles.menuSection}>
+              <Text style={styles.menuSectionTitle}>{t('sideMenuMain')}</Text>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.menuItem, 
+                  currentRoute === 'Home' && styles.menuItemActive
+                ]}
+                onPress={() => {
+                  navigation.navigate('Home');
+                  toggleSideMenu();
+                }}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[
+                    styles.menuItemIcon,
+                    { backgroundColor: currentRoute === 'Home' ? `${theme.accentColor}15` : 'transparent' }
+                  ]}>
+                    <Ionicons 
+                      name="home-outline" 
+                      size={22} 
+                      color={currentRoute === 'Home' ? theme.accentColor : theme.textColor} 
+                    />
+                  </View>
+                  <Text style={[
+                    styles.menuItemText,
+                    currentRoute === 'Home' && styles.menuItemTextActive
+                  ]}>
+                    {t('home')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  styles.menuItem, 
+                  currentRoute === 'Favorites' && styles.menuItemActive
+                ]}
+                onPress={() => {
+                  navigation.navigate('Favorites');
+                  toggleSideMenu();
+                }}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[
+                    styles.menuItemIcon,
+                    { backgroundColor: currentRoute === 'Favorites' ? `${theme.accentColor}15` : 'transparent' }
+                  ]}>
+                    <Ionicons 
+                      name="heart-outline" 
+                      size={22} 
+                      color={currentRoute === 'Favorites' ? theme.accentColor : theme.textColor} 
+                    />
+                  </View>
+                  <Text style={[
+                    styles.menuItemText,
+                    currentRoute === 'Favorites' && styles.menuItemTextActive
+                  ]}>
+                    {t('sideMenuFavorites')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.menuSection}>
+              <Text style={styles.menuSectionTitle}>{t('sideMenuTasks')}</Text>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.menuItem, 
+                  currentRoute === 'Tasks' && styles.menuItemActive
+                ]}
+                onPress={() => {
+                  navigation.navigate('Tasks');
+                  toggleSideMenu();
+                }}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[
+                    styles.menuItemIcon,
+                    { backgroundColor: currentRoute === 'Tasks' ? `${theme.accentColor}15` : 'transparent' }
+                  ]}>
+                    <Ionicons 
+                      name="calendar-outline" 
+                      size={22} 
+                      color={currentRoute === 'Tasks' ? theme.accentColor : theme.textColor} 
+                    />
+                  </View>
+                  <Text style={[
+                    styles.menuItemText,
+                    currentRoute === 'Tasks' && styles.menuItemTextActive
+                  ]}>
+                    {t('tasks')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.menuSection}>
+              <Text style={styles.menuSectionTitle}>{t('sideMenuOther')}</Text>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.menuItem, 
+                  currentRoute === 'Settings' && styles.menuItemActive
+                ]}
+                onPress={() => {
+                  navigation.navigate('Settings');
+                  toggleSideMenu();
+                }}
+              >
+                <View style={styles.menuItemContent}>
+                  <View style={[
+                    styles.menuItemIcon,
+                    { backgroundColor: currentRoute === 'Settings' ? `${theme.accentColor}15` : 'transparent' }
+                  ]}>
+                    <Ionicons 
+                      name="settings-outline" 
+                      size={22} 
+                      color={currentRoute === 'Settings' ? theme.accentColor : theme.textColor} 
+                    />
+                  </View>
+                  <Text style={[
+                    styles.menuItemText,
+                    currentRoute === 'Settings' && styles.menuItemTextActive
+                  ]}>
+                    {t('sideMenuSettings')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </Animated.View>
       </View>
     </TouchableWithoutFeedback>
   );

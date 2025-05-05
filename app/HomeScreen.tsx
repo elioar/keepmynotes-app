@@ -19,6 +19,8 @@ import {
   ToastAndroid,
   Dimensions,
   Image,
+  Alert,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -57,6 +59,11 @@ type RootStackParamList = {
   Settings: undefined;
   QuickTask: undefined;
   Calendar: undefined;
+  Trash: undefined;
+  BackupRestore: undefined;
+  HiddenNotes: undefined;
+  PinScreen: { isChangingPin?: boolean };
+  SecurityCheck: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -121,7 +128,7 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const { notes, deleteNote, updateNote, loadNotes } = useNotes();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { theme } = useTheme();
+  const { theme, toggleColorScheme } = useTheme();
   const { t } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
@@ -311,6 +318,13 @@ export default function HomeScreen() {
         await deleteNote(noteId);
         setFadingNoteId(null);
         scrollY.setValue(0);
+        
+        // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
+        if (Platform.OS === 'android') {
+          ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
+        } else {
+          Alert.alert('', t('noteMovedToTrash'));
+        }
       });
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -323,8 +337,8 @@ export default function HomeScreen() {
     }
     
     try {
-      // Exclude hidden notes and checklist tasks from HomeScreen
-      let filteredNotes = notes.filter(note => !note.isHidden && note.type !== 'checklist');
+      // Exclude hidden notes, deleted notes, and checklist tasks from HomeScreen
+      let filteredNotes = notes.filter(note => !note.isHidden && !note.isDeleted && note.type !== 'checklist');
 
       // Sort by creation date (newest first)
       filteredNotes = filteredNotes.sort((a, b) => {
@@ -483,6 +497,13 @@ export default function HomeScreen() {
             await deleteNote(selectedNote.id);
             setFadingNoteId(null);
             scrollY.setValue(0);
+            
+            // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
+            if (Platform.OS === 'android') {
+              ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
+            } else {
+              Alert.alert('', t('noteMovedToTrash'));
+            }
           });
           break;
 
@@ -583,6 +604,19 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
+    }
+  };
+
+  const getTimeBasedGreeting = () => {
+    const now = new Date();
+    const hours = now.getHours();
+
+    if (hours < 12) {
+      return 'Good morning';
+    } else if (hours < 18) {
+      return 'Good afternoon';
+    } else {
+      return 'Good evening';
     }
   };
 
@@ -935,8 +969,19 @@ export default function HomeScreen() {
       marginLeft: -14,
     },
     burgerButton: {
-      backgroundColor: `${theme.accentColor}15`,
-      transform: [{ scale: 1.1 }],
+      marginLeft: 15 ,
+      backgroundColor: `rgba(255, 255, 255, 0.15)`,  // Semi-transparent white for glassy effect
+      transform: [{ scale: 1.15 }],  // Slight scale effect for interactivity
+      borderRadius: 12,  // Rounded corners
+      opacity: 0.9,  // Slight opacity for subtlety
+      borderWidth: 2,  // Border thickness
+      borderColor: theme.accentColor,  // Accent color for the border
+      shadowColor: theme.accentColor,  // Color of the shadow
+      shadowRadius: 8,  // Blur radius for shadow glow
+      elevation: 5,  // Elevation for Android devices
+      backdropFilter: 'blur(10px)',  // Applies a blur effect for the glassy look (works on supported platforms)
+      // Adding the "shine" effect to the border
+      boxShadow: `0 0 2px ${theme.accentColor}, 0 0 5px ${theme.accentColor}`,  // Shine effect on the border
     },
     sideMenu: {
       position: 'absolute',
@@ -944,7 +989,7 @@ export default function HomeScreen() {
       left: 0,
       bottom: 0,
       width: 300,
-      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+      backgroundColor: theme.isDarkMode ? '#121212' : '#F8F9FA',
       zIndex: 1000,
       elevation: 8,
       shadowColor: '#000',
@@ -954,8 +999,13 @@ export default function HomeScreen() {
       },
       shadowOpacity: 0.3,
       shadowRadius: 8,
-      borderTopRightRadius: 20,
-      borderBottomRightRadius: 20,
+      paddingTop: Platform.OS === 'ios' ? 50 : 35,
+      paddingBottom: 24,
+      paddingHorizontal: 20,
+      display: 'flex',
+      flexDirection: 'column',
+      borderTopRightRadius: 30,
+      borderBottomRightRadius: 30,
     },
     menuOverlay: {
       position: 'absolute',
@@ -966,129 +1016,86 @@ export default function HomeScreen() {
       backgroundColor: '#000',
       zIndex: 999,
     },
-    menuHeader: {
-      paddingTop: Platform.OS === 'ios' ? 60 : 40,
-      paddingBottom: 20,
-      paddingHorizontal: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: `${theme.borderColor}40`,
-      marginBottom: 10,
-      backgroundColor: theme.isDarkMode ? '#000000' : theme.secondaryBackground,
-      borderTopRightRadius: 20,
-    },
     profileSection: {
       alignItems: 'center',
-      marginBottom: 15,
+      flexDirection: 'row',
+      paddingVertical: 16,
+      paddingHorizontal: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+      marginBottom: 20,
     },
     profileImageContainer: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
+      width: 70,
+      height: 70,
+      borderRadius: 35,
+      backgroundColor: theme.accentColor + '40',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 12,
-      shadowColor: theme.accentColor,
-      shadowOffset: {
-        width: 0,
-        height: 4,
-      },
-      shadowOpacity: 0.2,
-      shadowRadius: 5,
-      elevation: 5,
+      marginRight: 14,
+      overflow: 'hidden',
     },
     profileImage: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: 65,
+      height: 65,
+      borderRadius: 35,
     },
-    addPhotoButton: {
-      position: 'absolute',
-      bottom: -6,
-      right: -6,
-      backgroundColor: theme.accentColor,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
+    profileInfo: {
+      flex: 1,
     },
-    menuHeaderText: {
+    profileName: {
       fontSize: 20,
       fontWeight: '600',
       color: theme.textColor,
-      textAlign: 'center',
+      marginBottom: 3,
     },
-    menuHeaderSubtext: {
-      fontSize: 14,
-      color: theme.placeholderColor,
-      textAlign: 'center',
-      marginTop: 4,
-    },
-    menuContent: {
-      flex: 1,
-      paddingTop: 10,
-    },
-    menuSection: {
-      marginBottom: 20,
-    },
-    menuSectionTitle: {
+    profileEmail: {
       fontSize: 13,
-      fontWeight: '600',
       color: theme.placeholderColor,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginLeft: 20,
-      marginBottom: 12,
-      marginTop: 10,
     },
     menuItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 12,
-      paddingHorizontal: 20,
-      marginBottom: 4,
-      borderRadius: 12,
-      marginHorizontal: 10,
-    },
-    menuItemActive: {
-      backgroundColor: `${theme.accentColor}15`,
-    },
-    menuItemContent: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 12,
     },
     menuItemIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
+      width: 24,
+      height: 24,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 12,
+      marginRight: 16,
     },
     menuItemText: {
       fontSize: 15,
       color: theme.textColor,
       fontWeight: '500',
     },
-    menuItemTextActive: {
-      color: theme.accentColor,
-      fontWeight: '600',
+    menuDivider: {
+      height: 1,
+      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      marginVertical: 10,
+      marginHorizontal: 12,
     },
-    menuItemBadge: {
-      backgroundColor: theme.accentColor,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 10,
-      marginLeft: 8,
+    darkModeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 12,
     },
-    menuItemBadgeText: {
-      color: '#FFFFFF',
-      fontSize: 12,
-      fontWeight: '600',
+    darkModeText: {
+      fontSize: 15,
+      color: theme.textColor,
+      fontWeight: '500',
+      flex: 1,
+      marginLeft: 16,
+    },
+    toggleSwitch: {
+      transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
+    },
+    spacer: {
+      flex: 1,
     },
   });
 
@@ -1463,7 +1470,9 @@ export default function HomeScreen() {
               display: isSideMenuOpen ? 'flex' : 'none'
             }
           ]} 
+          onTouchStart={toggleSideMenu}
         />
+        
         <Animated.View 
           style={[
             styles.sideMenu,
@@ -1472,174 +1481,115 @@ export default function HomeScreen() {
             }
           ]}
         >
-          <View style={styles.menuHeader}>
-            <View style={styles.profileSection}>
-              <TouchableOpacity 
-                style={styles.profileImageContainer}
-                onPress={pickImage}
-              >
-                {profileImage ? (
-                  <Image 
-                    source={{ uri: profileImage }} 
-                    style={styles.profileImage}
-                  />
-                ) : (
-                  <Ionicons 
-                    name="person" 
-                    size={40} 
-                    color={theme.placeholderColor} 
-                  />
-                )}
-                <View style={styles.addPhotoButton}>
-                  <Ionicons 
-                    name="camera" 
-                    size={14} 
-                    color="#FFFFFF" 
-                  />
-                </View>
-              </TouchableOpacity>
-              <Text style={styles.menuHeaderText}>
-                {localUsername ? localUsername : t('hello')}
-              </Text>
-              <Text style={styles.menuHeaderSubtext}>
-                {t('yourNotes')}
-              </Text>
+          {/* Profile section */}
+          <View style={styles.profileSection}>
+            <TouchableOpacity 
+              style={styles.profileImageContainer}
+              onPress={pickImage}
+            >
+              {profileImage ? (
+                <Image 
+                  source={{ uri: profileImage }} 
+                  style={styles.profileImage}
+                />
+              ) : (
+                <Ionicons 
+                  name="person" 
+                  size={24} 
+                  color="#FFFFFF" 
+                />
+              )}
+            </TouchableOpacity>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{localUsername || 'James Hall'}</Text>
+              <Text style={styles.profileEmail}>{getTimeBasedGreeting()}</Text>
             </View>
           </View>
-
-          <ScrollView style={styles.menuContent}>
-            <View style={styles.menuSection}>
-              <Text style={styles.menuSectionTitle}>{t('sideMenuMain')}</Text>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.menuItem, 
-                  currentRoute === 'Home' && styles.menuItemActive
-                ]}
-                onPress={() => {
-                  navigation.navigate('Home');
-                  toggleSideMenu();
-                }}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[
-                    styles.menuItemIcon,
-                    { backgroundColor: currentRoute === 'Home' ? `${theme.accentColor}15` : 'transparent' }
-                  ]}>
-                    <Ionicons 
-                      name="home-outline" 
-                      size={22} 
-                      color={currentRoute === 'Home' ? theme.accentColor : theme.textColor} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.menuItemText,
-                    currentRoute === 'Home' && styles.menuItemTextActive
-                  ]}>
-                    {t('home')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[
-                  styles.menuItem, 
-                  currentRoute === 'Favorites' && styles.menuItemActive
-                ]}
-                onPress={() => {
-                  navigation.navigate('Favorites');
-                  toggleSideMenu();
-                }}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[
-                    styles.menuItemIcon,
-                    { backgroundColor: currentRoute === 'Favorites' ? `${theme.accentColor}15` : 'transparent' }
-                  ]}>
-                    <Ionicons 
-                      name="heart-outline" 
-                      size={22} 
-                      color={currentRoute === 'Favorites' ? theme.accentColor : theme.textColor} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.menuItemText,
-                    currentRoute === 'Favorites' && styles.menuItemTextActive
-                  ]}>
-                    {t('sideMenuFavorites')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+          
+          {/* Menu Items */}
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              navigation.navigate('Tasks');
+              toggleSideMenu();
+            }}
+          >
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="checkbox-outline" size={22} color={theme.accentColor} />
             </View>
-
-            <View style={styles.menuSection}>
-              <Text style={styles.menuSectionTitle}>{t('sideMenuTasks')}</Text>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.menuItem, 
-                  currentRoute === 'Tasks' && styles.menuItemActive
-                ]}
-                onPress={() => {
-                  navigation.navigate('Tasks');
-                  toggleSideMenu();
-                }}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[
-                    styles.menuItemIcon,
-                    { backgroundColor: currentRoute === 'Tasks' ? `${theme.accentColor}15` : 'transparent' }
-                  ]}>
-                    <Ionicons 
-                      name="calendar-outline" 
-                      size={22} 
-                      color={currentRoute === 'Tasks' ? theme.accentColor : theme.textColor} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.menuItemText,
-                    currentRoute === 'Tasks' && styles.menuItemTextActive
-                  ]}>
-                    {t('tasks')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+            <Text style={styles.menuItemText}>{t('tasks')}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              navigation.navigate('Favorites');
+              toggleSideMenu();
+            }}
+          >
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="heart-outline" size={22} color={theme.accentColor} />
             </View>
-
-            <View style={styles.menuSection}>
-              <Text style={styles.menuSectionTitle}>{t('sideMenuOther')}</Text>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.menuItem, 
-                  currentRoute === 'Settings' && styles.menuItemActive
-                ]}
-                onPress={() => {
-                  navigation.navigate('Settings');
-                  toggleSideMenu();
-                }}
-              >
-                <View style={styles.menuItemContent}>
-                  <View style={[
-                    styles.menuItemIcon,
-                    { backgroundColor: currentRoute === 'Settings' ? `${theme.accentColor}15` : 'transparent' }
-                  ]}>
-                    <Ionicons 
-                      name="settings-outline" 
-                      size={22} 
-                      color={currentRoute === 'Settings' ? theme.accentColor : theme.textColor} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.menuItemText,
-                    currentRoute === 'Settings' && styles.menuItemTextActive
-                  ]}>
-                    {t('sideMenuSettings')}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+            <Text style={styles.menuItemText}>{t('favorites')}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              navigation.navigate('Settings');
+              toggleSideMenu();
+            }}
+          >
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="settings-outline" size={22} color={theme.accentColor} />
             </View>
-          </ScrollView>
+            <Text style={styles.menuItemText}>{t('settings')}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              navigation.navigate('SecurityCheck');
+              toggleSideMenu();
+            }}
+          >
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="eye-off-outline" size={22} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('hiddenNotes')}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => {
+              navigation.navigate('Trash');
+              toggleSideMenu();
+            }}
+          >
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="trash-outline" size={22} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('trash')}</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.menuDivider} />
+          
+          <View style={styles.darkModeContainer}>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="moon-outline" size={22} color={theme.accentColor} />
+            </View>
+            <Text style={styles.darkModeText}>{t('darkMode')}</Text>
+            <Switch
+              trackColor={{ false: '#767577', true: theme.accentColor }}
+              thumbColor={theme.isDarkMode ? '#FFFFFF' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={toggleColorScheme}
+              value={theme.isDarkMode}
+              style={styles.toggleSwitch}
+            />
+          </View>
+          
+          <View style={styles.spacer} />
         </Animated.View>
       </View>
     </TouchableWithoutFeedback>

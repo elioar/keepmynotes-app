@@ -43,6 +43,7 @@ type RootStackParamList = {
   Favorites: undefined;
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
+  BackupRestore: undefined;
 };
 
 const colorTranslationMap = {
@@ -901,38 +902,18 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>💾 {t('backupNotes')}</Text>
           <TouchableOpacity 
             style={styles.infoItem}
-            onPress={handleExportNotes}
+            onPress={() => navigation.navigate('BackupRestore')}
           >
             <View style={styles.infoIcon}>
               <Ionicons 
-                name="download-outline" 
+                name="server-outline" 
                 size={22} 
                 color={theme.accentColor}
               />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>{t('downloadBackup')}</Text>
-              <Text style={styles.infoValue}>{t('downloadBackupDescription')}</Text>
-            </View>
-            <View style={styles.chevronContainer}>
-              <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.infoItem, { marginTop: 8 }]}
-            onPress={handleImportNotes}
-          >
-            <View style={styles.infoIcon}>
-              <Ionicons 
-                name="cloud-upload-outline" 
-                size={22} 
-                color={theme.accentColor}
-              />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>{t('uploadBackup')}</Text>
-              <Text style={styles.infoValue}>{t('uploadBackupDescription')}</Text>
+              <Text style={styles.infoLabel}>{t('backupAndRestore')}</Text>
+              <Text style={styles.infoValue}>{t('backupAndRestoreDescription')}</Text>
             </View>
             <View style={styles.chevronContainer}>
               <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
@@ -942,21 +923,6 @@ export default function SettingsScreen() {
 
         <View style={styles.version}>
           <Text style={styles.versionText}>📱 Version 1.0.6</Text>
-        </View>
-
-        <View style={styles.dangerZone}>
-          <View style={styles.dangerZoneHeader}>
-            <Ionicons name="warning" size={22} color="#FF3B30" />
-            <Text style={styles.dangerZoneTitle}>{t('dangerZone')}</Text>
-          </View>
-          <TouchableOpacity 
-            style={[styles.dangerButton, { backgroundColor: '#FF3B30' }]}
-            onPress={handleResetStorage}
-          >
-            <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
-            <Text style={[styles.dangerButtonText, { color: '#FFFFFF' }]}>{t('resetData')}</Text>
-          </TouchableOpacity>
-          <Text style={styles.dangerZoneDescription}>{t('resetDataWarning')}</Text>
         </View>
       </ScrollView>
 

@@ -22,6 +22,8 @@ export interface Note {
   type: 'text' | 'checklist' | 'task';
   isFavorite: boolean;
   isHidden: boolean;
+  isDeleted?: boolean;
+  deletedAt?: string;
   tasks?: TaskItem[];
   color?: string;
   tags?: string[];
@@ -49,19 +51,29 @@ interface NotesContextType {
   importNotes: (importedData: BackupData) => Promise<void>;
   loadNotes: () => Promise<void>;
   clearStorage: () => Promise<void>;
+  restoreFromTrash: (id: string) => Promise<void>;
+  emptyTrash: () => Promise<void>;
+  permanentlyDeleteNote: (id: string) => Promise<void>;
+  getTrashNotes: () => Note[];
+  cleanupExpiredTrash: () => Promise<void>;
+  trashRetentionDays: number;
+  updateTrashRetentionDays: (days: number) => Promise<void>;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
 
 const STORAGE_KEY = '@keep_my_notes';
+const TRASH_RETENTION_KEY = '@trash_retention_days';
+const DEFAULT_TRASH_RETENTION_DAYS = 30;
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache expiry
 
 export function NotesProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [lastFetch, setLastFetch] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [trashRetentionDays, setTrashRetentionDays] = useState<number>(DEFAULT_TRASH_RETENTION_DAYS);
 
-  // Memoize stripped HTML function
+  // Μεμονωμένη συνάρτηση για αποκοπή HTML
   const stripHtmlTags = useCallback((html: string) => {
     return html
       .replace(/<[^>]*>/g, '')
@@ -70,7 +82,39 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       .trim();
   }, []);
 
-  // Optimized load notes function
+  // Φόρτωση της ρύθμισης διατήρησης κάδου ανακύκλωσης
+  useEffect(() => {
+    const loadTrashRetentionDays = async () => {
+      try {
+        const storedDays = await AsyncStorage.getItem(TRASH_RETENTION_KEY);
+        if (storedDays) {
+          const days = parseInt(storedDays, 10);
+          if (!isNaN(days) && days > 0) {
+            setTrashRetentionDays(days);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading trash retention days:', error);
+      }
+    };
+    
+    loadTrashRetentionDays();
+  }, []);
+
+  // Ενημέρωση της ρύθμισης διατήρησης κάδου ανακύκλωσης
+  const updateTrashRetentionDays = useCallback(async (days: number) => {
+    try {
+      if (days > 0) {
+        await AsyncStorage.setItem(TRASH_RETENTION_KEY, days.toString());
+        setTrashRetentionDays(days);
+      }
+    } catch (error) {
+      console.error('❌ Error updating trash retention days:', error);
+      throw error;
+    }
+  }, []);
+
+  // Βελτιστοποιημένη φόρτωση σημειώσεων
   const loadNotes = useCallback(async (force: boolean = false) => {
     try {
       // Check cache validity unless force refresh is requested
@@ -175,13 +219,114 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   // Optimized delete note function
   const deleteNote = useCallback(async (id: string) => {
     try {
-      const updatedNotes = notes.filter(note => note.id !== id);
+      // Βρίσκουμε τη σημείωση
+      const noteToTrash = notes.find(note => note.id === id);
+      if (!noteToTrash) return;
+      
+      // Τη σημαδεύουμε ως διαγραμμένη
+      const trashedNote = {
+        ...noteToTrash,
+        isDeleted: true,
+        deletedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Ενημερώνουμε τις σημειώσεις με την τροποποιημένη σημείωση
+      const updatedNotes = notes.map(note => 
+        note.id === id ? trashedNote : note
+      );
+      
       await saveNotes(updatedNotes);
     } catch (error) {
       console.error('❌ Error deleting note:', error);
       throw error;
     }
   }, [notes, saveNotes]);
+
+  // Restore note from trash
+  const restoreFromTrash = useCallback(async (id: string) => {
+    try {
+      const noteToRestore = notes.find(note => note.id === id && note.isDeleted);
+      if (!noteToRestore) return;
+      
+      const restoredNote = {
+        ...noteToRestore,
+        isDeleted: false,
+        deletedAt: undefined,
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updatedNotes = notes.map(note => 
+        note.id === id ? restoredNote : note
+      );
+      
+      await saveNotes(updatedNotes);
+    } catch (error) {
+      console.error('❌ Error restoring note from trash:', error);
+      throw error;
+    }
+  }, [notes, saveNotes]);
+
+  // Permanently delete a note
+  const permanentlyDeleteNote = useCallback(async (id: string) => {
+    try {
+      const updatedNotes = notes.filter(note => note.id !== id);
+      await saveNotes(updatedNotes);
+    } catch (error) {
+      console.error('❌ Error permanently deleting note:', error);
+      throw error;
+    }
+  }, [notes, saveNotes]);
+
+  // Empty trash (permanently delete all notes in trash)
+  const emptyTrash = useCallback(async () => {
+    try {
+      const updatedNotes = notes.filter(note => !note.isDeleted);
+      await saveNotes(updatedNotes);
+    } catch (error) {
+      console.error('❌ Error emptying trash:', error);
+      throw error;
+    }
+  }, [notes, saveNotes]);
+
+  // Get trash notes
+  const getTrashNotes = useCallback(() => {
+    return notes.filter(note => note.isDeleted === true);
+  }, [notes]);
+
+  // Cleanup expired trash (auto-delete notes based on retention setting)
+  const cleanupExpiredTrash = useCallback(async () => {
+    try {
+      const now = new Date();
+      const retentionPeriodMs = trashRetentionDays * 24 * 60 * 60 * 1000;
+      const cutoffDate = new Date(now.getTime() - retentionPeriodMs);
+      
+      const updatedNotes = notes.filter(note => {
+        // Κρατάμε τις σημειώσεις που δεν είναι διαγραμμένες
+        if (!note.isDeleted) return true;
+        
+        // Ελέγχουμε αν η σημείωση είναι διαγραμμένη για περισσότερο από το χρονικό διάστημα διατήρησης
+        if (note.deletedAt) {
+          const deletedDate = new Date(note.deletedAt);
+          return deletedDate > cutoffDate; // Κρατάμε μόνο αυτές που διαγράφηκαν πιο πρόσφατα
+        }
+        
+        return true; // Αν δεν υπάρχει ημερομηνία διαγραφής, κρατάμε τη σημείωση
+      });
+      
+      if (updatedNotes.length !== notes.length) {
+        await saveNotes(updatedNotes);
+      }
+    } catch (error) {
+      console.error('❌ Error cleaning up trash:', error);
+      throw error;
+    }
+  }, [notes, saveNotes, trashRetentionDays]);
+
+  // Εκτελούμε το cleanupExpiredTrash κάθε φορά που φορτώνεται το context
+  useEffect(() => {
+    cleanupExpiredTrash();
+  }, [cleanupExpiredTrash]);
 
   // Optimized hide/unhide functions
   const hideNote = useCallback(async (id: string) => {
@@ -242,6 +387,8 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         type: ((note.type === 'checklist' || note.type === 'task') ? 'checklist' : 'text') as Note['type'],
         isFavorite: Boolean(note.isFavorite),
         isHidden: Boolean(note.isHidden),
+        isDeleted: Boolean(note.isDeleted),
+        deletedAt: note.deletedAt,
         tasks: Array.isArray(note.tasks) ? note.tasks.map(task => ({
           text: String(task.text || ''),
           isCompleted: Boolean(task.isCompleted)
@@ -267,7 +414,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mergedNotes));
       setNotes(mergedNotes);
-
+      
       if (importedData.settings?.username) {
         await AsyncStorage.setItem('@username', importedData.settings.username);
       }
@@ -301,8 +448,17 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     unhideNote,
     importNotes,
     loadNotes,
-    clearStorage
-  }), [notes, isLoading, addNote, updateNote, deleteNote, hideNote, unhideNote, loadNotes]);
+    clearStorage,
+    restoreFromTrash,
+    emptyTrash,
+    permanentlyDeleteNote,
+    getTrashNotes,
+    cleanupExpiredTrash,
+    trashRetentionDays,
+    updateTrashRetentionDays
+  }), [notes, isLoading, addNote, updateNote, deleteNote, hideNote, unhideNote, loadNotes, 
+       trashRetentionDays, updateTrashRetentionDays, restoreFromTrash, emptyTrash, 
+       permanentlyDeleteNote, getTrashNotes, cleanupExpiredTrash]);
 
   return (
     <NotesContext.Provider value={contextValue}>

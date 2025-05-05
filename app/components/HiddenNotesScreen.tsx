@@ -28,7 +28,7 @@ type RootStackParamList = {
   Task: { note?: any };
   Favorites: undefined;
   HiddenNotes: undefined;
-  PinScreen: undefined;
+  PinScreen: { isChangingPin?: boolean };
 };
 
 export default function HiddenNotesScreen() {
@@ -45,11 +45,11 @@ export default function HiddenNotesScreen() {
     const checkPin = async () => {
       const hasPin = await AsyncStorage.getItem('@secure_pin');
       if (!hasPin) {
-        navigation.replace('PinScreen');
+        navigation.replace('PinScreen', { isChangingPin: false });
       }
     };
     checkPin();
-  }, []);
+  }, [navigation]);
 
   React.useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -60,7 +60,7 @@ export default function HiddenNotesScreen() {
     return () => backHandler.remove();
   }, [navigation]);
 
-  const hiddenNotes = notes.filter(note => note.isHidden === true);
+  const hiddenNotes = notes.filter(note => note.isHidden === true && !note.isDeleted);
   const handleNotePress = (note: any) => {
     if (note.type === 'task') {
       navigation.navigate('Task', { note });

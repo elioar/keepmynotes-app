@@ -12,6 +12,9 @@ export const el = {
   noFavorites: 'Δεν βρέθηκαν αγαπημένες σημειώσεις',
   todayTasks: 'Σημερινές Εργασίες',
   titleRequired: 'Ο τίτλος είναι υποχρεωτικός',
+  logout: 'Αποσύνδεση',
+  profile: 'Προφίλ',
+  close: 'Κλείσιμο',
   
   // Κατηγορίες
   noTag: 'Χωρίς Κατηγορία',
@@ -329,6 +332,33 @@ export const el = {
   sideMenuFavorites: 'Αγαπημένα',
   sideMenuSettings: 'Ρυθμίσεις',
   yourNotes: 'Οι Σημειώσεις σας',
+  
+  // Αντίγραφα ασφαλείας & Επαναφορά
+  backupAndRestore: 'Αντίγραφα & Επαναφορά',
+  backupAndRestoreTitle: 'Αντίγραφα & Επαναφορά',
+  backupAndRestoreDescription: 'Δημιουργήστε αντίγραφα ασφαλείας ή επαναφέρετε από προηγούμενο αντίγραφο',
+
+  // Κάδος Ανακύκλωσης
+  trash: 'Κάδος Ανακύκλωσης',
+  trashDescription: 'Οι διαγραμμένες σημειώσεις αποθηκεύονται εδώ για 30 ημέρες πριν διαγραφούν οριστικά',
+  noTrashItems: 'Δεν υπάρχουν σημειώσεις στον κάδο',
+  restoreFromTrash: 'Επαναφορά',
+  deleteForever: 'Οριστική Διαγραφή',
+  emptyTrash: 'Άδειασμα Κάδου',
+  emptyTrashConfirm: 'Είστε βέβαιοι ότι θέλετε να διαγράψετε οριστικά όλες τις σημειώσεις στον κάδο;',
+  noteMovedToTrash: 'Η σημείωση μετακινήθηκε στον κάδο',
+  noteRestoredFromTrash: 'Η σημείωση επαναφέρθηκε από τον κάδο',
+  noteDeletedForever: 'Η σημείωση διαγράφηκε οριστικά',
+  daysUntilDeletion: 'Θα διαγραφεί οριστικά σε {days} ημέρες',
+  autoDeleteWarning: 'Τα στοιχεία στον κάδο διαγράφονται αυτόματα μετά από 30 ημέρες',
+  
+  // Ρυθμίσεις Κάδου Ανακύκλωσης
+  trashSettings: 'Ρυθμίσεις Κάδου',
+  retentionPeriod: 'Περίοδος Διατήρησης',
+  retentionPeriodDescription: 'Τα στοιχεία στον κάδο θα διαγράφονται αυτόματα μετά από αυτό το διάστημα',
+  days: 'ημέρες',
+  customRetention: 'Προσαρμοσμένη περίοδος διατήρησης',
+  setRetentionPeriod: 'Ορισμός Περιόδου Διατήρησης',
 } as const;
 
 export default el; 

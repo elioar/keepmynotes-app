@@ -9,7 +9,7 @@ type RootStackParamList = {
   AddEditNote: { note?: any };
   Favorites: undefined;
   HiddenNotes: undefined;
-  PinScreen: { isChangingPin?: boolean };
+  PinScreen: { isChangingPin?: boolean; redirectTo: string };
   SecurityCheck: undefined;
 };
 
@@ -24,8 +24,8 @@ export default function SecurityCheck() {
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       if (!hasHardware) {
-        Alert.alert('Error', 'Device does not support biometric authentication');
-        navigation.goBack();
+        // Δεν υπάρχει υποστήριξη βιομετρικών, χρήση PIN
+        navigation.navigate('PinScreen', { redirectTo: 'HiddenNotes' });
         return;
       }
 
@@ -37,11 +37,13 @@ export default function SecurityCheck() {
       if (result.success) {
         navigation.navigate('HiddenNotes');
       } else {
-        navigation.goBack();
+        // Ο έλεγχος απέτυχε ή ακυρώθηκε, χρήση PIN
+        navigation.navigate('PinScreen', { redirectTo: 'HiddenNotes' });
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      navigation.goBack();
+      // Σε περίπτωση σφάλματος, χρήση PIN
+      navigation.navigate('PinScreen', { redirectTo: 'HiddenNotes' });
     }
   };
 

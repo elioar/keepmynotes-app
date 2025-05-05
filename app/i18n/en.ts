@@ -17,6 +17,9 @@ export const en: Translations = {
   content: 'Content',
   todayTasks: 'Today\'s Tasks',
   titleRequired: 'Title is required',
+  logout: 'Log out',
+  profile: 'Profile',
+  close: 'Close',
   
   // Categories
   noTag: 'No Category',
@@ -97,6 +100,7 @@ export const en: Translations = {
   notes: 'Notes',
   tasks: 'Tasks',
   favorites: 'Favorites',
+  favorite: 'Favorite',
   today: 'Today',
   week: 'Week',
   month: 'Month',
@@ -329,6 +333,33 @@ export const en: Translations = {
   sideMenuFavorites: 'Favorites',
   sideMenuSettings: 'Settings',
   yourNotes: 'Your Notes',
+  
+  // Backup & Restore
+  backupAndRestore: 'Backup & Restore',
+  backupAndRestoreTitle: 'Backup & Restore',
+  backupAndRestoreDescription: 'Backup your notes or restore from a previous backup',
+
+  // Trash
+  trash: 'Trash',
+  trashDescription: 'Deleted notes are stored here for 30 days before being permanently deleted',
+  noTrashItems: 'No items in trash',
+  restoreFromTrash: 'Restore',
+  deleteForever: 'Delete Forever',
+  emptyTrash: 'Empty Trash',
+  emptyTrashConfirm: 'Are you sure you want to permanently delete all notes in trash?',
+  noteMovedToTrash: 'Note moved to trash',
+  noteRestoredFromTrash: 'Note restored from trash',
+  noteDeletedForever: 'Note permanently deleted',
+  daysUntilDeletion: 'Will be deleted permanently in {days} days',
+  autoDeleteWarning: 'Items in trash are automatically deleted after 30 days',
+  
+  // Trash Settings
+  trashSettings: 'Trash Settings',
+  retentionPeriod: 'Retention Period',
+  retentionPeriodDescription: 'Items in trash will be automatically deleted after this period',
+  days: 'days',
+  customRetention: 'Custom Retention Period',
+  setRetentionPeriod: 'Set Retention Period',
 };
 
 export default en; 

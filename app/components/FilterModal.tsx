@@ -27,9 +27,9 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
   const { t } = useLanguage();
 
   const dateFilters = [
-    { id: 'today', label: t('today') },
-    { id: 'week', label: t('thisWeek') },
-    { id: 'month', label: t('thisMonth') },
+    { id: 'today', label: t('today'), icon: 'today-outline' },
+    { id: 'week', label: t('thisWeek'), icon: 'calendar-outline' },
+    { id: 'month', label: t('thisMonth'), icon: 'calendar-clear-outline' },
   ];
 
   const otherFilters = [
@@ -85,19 +85,17 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
     },
     modalContainer: {
       backgroundColor: theme.isDarkMode ? 
-        theme.secondaryBackground : 
-        '#FFFFFF',
-      borderRadius: 20,
+        '#121212' : 
+        '#F8F9FA',
+      borderRadius: 30,
       width: '85%',
       maxWidth: 320,
-      maxHeight: '70%',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
       elevation: 5,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
+      overflow: 'hidden',
     },
     contentContainer: {
       padding: 16,
@@ -107,12 +105,27 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 16,
-      paddingTop: 8,
+      paddingTop: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.isDarkMode ? 
+        'rgba(255, 255, 255, 0.1)' : 
+        'rgba(0, 0, 0, 0.1)',
+      paddingBottom: 12,
     },
     title: {
       fontSize: 20,
       fontWeight: '600',
-      color: theme.textColor,
+      color: theme.accentColor,
+    },
+    closeButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: theme.isDarkMode ? 
+        'rgba(255, 255, 255, 0.1)' : 
+        'rgba(0, 0, 0, 0.05)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     section: {
       marginBottom: 16,
@@ -120,26 +133,26 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
     sectionTitle: {
       fontSize: 15,
       fontWeight: '600',
-      color: theme.textColor,
+      color: theme.accentColor,
       marginBottom: 12,
       paddingLeft: 4,
     },
     dateFiltersRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      marginBottom: 12,
     },
     dateCard: {
       width: '31%',
       backgroundColor: theme.isDarkMode ? 
-        `${theme.backgroundColor}80` : 
-        theme.secondaryBackground,
-      borderRadius: 8,
+        'rgba(255, 255, 255, 0.1)' : 
+        'rgba(0, 0, 0, 0.05)',
+      borderRadius: 10,
       padding: 8,
       alignItems: 'center',
     },
     dateCardActive: {
-      backgroundColor: `${theme.accentColor}15`,
+      backgroundColor: `${theme.accentColor}20`,
       borderColor: theme.accentColor,
       borderWidth: 1,
     },
@@ -157,15 +170,15 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       flexDirection: 'row',
       alignItems: 'center',
       padding: 10,
-      borderRadius: 8,
-      marginBottom: 6,
+      borderRadius: 10,
+      marginBottom: 8,
       backgroundColor: theme.isDarkMode ? 
-        `${theme.backgroundColor}80` : 
-        theme.secondaryBackground,
+        'rgba(255, 255, 255, 0.1)' : 
+        'rgba(0, 0, 0, 0.05)',
     },
     filterText: {
       fontSize: 13,
-      marginLeft: 8,
+      marginLeft: 10,
       fontWeight: '500',
       color: theme.textColor,
     },
@@ -175,12 +188,12 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       justifyContent: 'space-between',
       padding: 12,
       borderTopWidth: 1,
-      borderTopColor: theme.borderColor,
+      borderTopColor: theme.isDarkMode ? 
+        'rgba(255, 255, 255, 0.1)' : 
+        'rgba(0, 0, 0, 0.1)',
       backgroundColor: theme.isDarkMode ? 
-        `${theme.backgroundColor}90` : 
-        theme.backgroundColor,
-      borderBottomLeftRadius: 20,
-      borderBottomRightRadius: 20,
+        '#121212' : 
+        '#F8F9FA',
     },
     resultText: {
       color: theme.placeholderColor,
@@ -194,10 +207,10 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       marginLeft: 4,
     },
     clearButton: {
-      backgroundColor: `${theme.accentColor}15`,
+      backgroundColor: `${theme.accentColor}20`,
       paddingVertical: 6,
       paddingHorizontal: 12,
-      borderRadius: 6,
+      borderRadius: 8,
     },
     clearText: {
       color: theme.accentColor,
@@ -216,96 +229,89 @@ export default function FilterModal({ visible, onClose, onSelectFilter, activeFi
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <BlurView 
-            intensity={10}
+            intensity={theme.isDarkMode ? 15 : 10}
             tint={theme.isDarkMode ? "dark" : "light"}
             style={styles.blurContainer}
           />
-          <TouchableWithoutFeedback>
-            <View style={styles.modalContainer}>
-              <ScrollView>
-                <View style={styles.contentContainer}>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.title}>{t('filterBy')}</Text>
-                    <TouchableOpacity onPress={onClose}>
-                      <Ionicons name="close" size={20} color={theme.textColor} />
+          <Animated.View style={styles.modalContainer}>
+            <View style={styles.contentContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.title}>{t('filterBy')}</Text>
+                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                  <Ionicons name="close" size={20} color={theme.textColor} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('filterByDate')}</Text>
+                <View style={styles.dateFiltersRow}>
+                  {dateFilters.map((filter) => (
+                    <TouchableOpacity
+                      key={filter.id}
+                      style={[
+                        styles.dateCard,
+                        activeFilters.includes(filter.id) && styles.dateCardActive
+                      ]}
+                      onPress={() => handleFilterToggle(filter.id)}
+                    >
+                      <Ionicons
+                        name={filter.icon as any}
+                        size={18}
+                        color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
+                      />
+                      <Text style={[
+                        styles.dateCardLabel,
+                        activeFilters.includes(filter.id) && styles.dateCardLabelActive
+                      ]}>
+                        {filter.label}
+                      </Text>
                     </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>{t('filterByDate')}</Text>
-                    <View style={styles.dateFiltersRow}>
-                      {dateFilters.map((filter) => (
-                        <TouchableOpacity
-                          key={filter.id}
-                          style={[
-                            styles.dateCard,
-                            activeFilters.includes(filter.id) && styles.dateCardActive
-                          ]}
-                          onPress={() => handleFilterToggle(filter.id)}
-                        >
-                          <Ionicons
-                            name={
-                              filter.id === 'today' ? 'today-outline' :
-                              filter.id === 'week' ? 'calendar-outline' : 'calendar-clear-outline'
-                            }
-                            size={18}
-                            color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
-                          />
-                          <Text style={[
-                            styles.dateCardLabel,
-                            activeFilters.includes(filter.id) && styles.dateCardLabelActive
-                          ]}>
-                            {filter.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>{t('filterByType')}</Text>
-                    {otherFilters.map((filter) => (
-                      <TouchableOpacity
-                        key={filter.id}
-                        style={[
-                          styles.filterOption,
-                          activeFilters.includes(filter.id) && { backgroundColor: `${theme.accentColor}15` }
-                        ]}
-                        onPress={() => handleFilterToggle(filter.id)}
-                      >
-                        <Ionicons
-                          name={filter.icon as any}
-                          size={18}
-                          color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
-                        />
-                        <Text style={[
-                          styles.filterText,
-                          { color: activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor }
-                        ]}>
-                          {filter.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  ))}
                 </View>
-              </ScrollView>
+              </View>
 
-              <View style={styles.resultCount}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.resultText}>{t('showingResults')}</Text>
-                  <Text style={styles.resultNumber}>{filteredCount}</Text>
-                </View>
-                {activeFilters.length > 0 && (
-                  <TouchableOpacity 
-                    style={styles.clearButton}
-                    onPress={handleClearFilters}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('filterByType')}</Text>
+                {otherFilters.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterOption,
+                      activeFilters.includes(filter.id) && { backgroundColor: `${theme.accentColor}20` }
+                    ]}
+                    onPress={() => handleFilterToggle(filter.id)}
                   >
-                    <Text style={styles.clearText}>{t('clearFilters')}</Text>
+                    <Ionicons
+                      name={filter.icon as any}
+                      size={18}
+                      color={activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor}
+                    />
+                    <Text style={[
+                      styles.filterText,
+                      { color: activeFilters.includes(filter.id) ? theme.accentColor : theme.textColor }
+                    ]}>
+                      {filter.label}
+                    </Text>
                   </TouchableOpacity>
-                )}
+                ))}
               </View>
             </View>
-          </TouchableWithoutFeedback>
+
+            <View style={styles.resultCount}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.resultText}>{t('showingResults')}</Text>
+                <Text style={styles.resultNumber}>{filteredCount}</Text>
+              </View>
+              {activeFilters.length > 0 && (
+                <TouchableOpacity 
+                  style={styles.clearButton}
+                  onPress={handleClearFilters}
+                >
+                  <Text style={styles.clearText}>{t('clearFilters')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </Animated.View>
         </View>
       </TouchableWithoutFeedback>
     </Modal>

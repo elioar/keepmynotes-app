@@ -23,6 +23,7 @@ export const en = {
   untitledTask: 'Untitled Task',
   cancel: 'Cancel',
   save: 'Save',
+  hiddenNotes: 'Hidden Notes',
   
   // Time translations
   now: 'now',

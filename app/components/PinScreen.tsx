@@ -28,7 +28,7 @@ type RootStackParamList = {
   AddEditNote: { note?: any };
   Favorites: undefined;
   HiddenNotes: undefined;
-  PinScreen: { isChangingPin?: boolean };
+  PinScreen: { isChangingPin?: boolean; redirectTo?: string };
   SecurityCheck: undefined;
   Settings: undefined;
 };
@@ -107,6 +107,7 @@ const SuccessAnimation = ({ theme, onComplete }: { theme: any; onComplete: () =>
 
 export default function PinScreen({ route }: { route: any }) {
   const isChangingPin = route.params?.isChangingPin;
+  const redirectTo = route.params?.redirectTo;
   const [pin, setPin] = useState<string>('');
   const [isSettingPin, setIsSettingPin] = useState(false);
   const [confirmPin, setConfirmPin] = useState<string>('');
@@ -149,6 +150,8 @@ export default function PinScreen({ route }: { route: any }) {
           setIsSettingNewPin(true);
           setPin('');
           setErrorMessage('');
+        } else if (redirectTo) {
+          navigation.navigate(redirectTo as any);
         } else {
           navigation.navigate('HiddenNotes');
         }
@@ -228,7 +231,10 @@ export default function PinScreen({ route }: { route: any }) {
           if (pin.length === PIN_LENGTH && confirmPin.length === PIN_LENGTH) {
             if (pin === confirmPin) {
               await AsyncStorage.setItem(PIN_KEY, pin);
-              if (navigation.getState().routes[navigation.getState().routes.length - 2]?.name === 'HiddenNotes') {
+              if (redirectTo) {
+                navigation.navigate(redirectTo as any);
+              } else if (navigation.getState().routes.length > 1 && 
+                         navigation.getState().routes[navigation.getState().routes.length - 2]?.name === 'HiddenNotes') {
                 navigation.replace('HiddenNotes');
               } else {
                 navigation.navigate('HiddenNotes');
@@ -243,7 +249,11 @@ export default function PinScreen({ route }: { route: any }) {
         } else {
           const savedPin = await AsyncStorage.getItem(PIN_KEY);
           if (savedPin === pin) {
-            navigation.navigate('HiddenNotes');
+            if (redirectTo) {
+              navigation.navigate(redirectTo as any);
+            } else {
+              navigation.navigate('HiddenNotes');
+            }
           } else {
             setErrorMessage(t('incorrectPin'));
             setPin('');

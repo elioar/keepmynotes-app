@@ -37,7 +37,7 @@ export default function FavoritesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  const favoriteNotes = notes.filter(note => note.isFavorite);
+  const favoriteNotes = notes.filter(note => note.isFavorite && !note.isDeleted);
 
   const filteredFavoriteNotes = favoriteNotes.filter(note => {
     const searchLower = searchQuery.toLowerCase().trim();

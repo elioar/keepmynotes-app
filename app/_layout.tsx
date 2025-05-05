@@ -18,6 +18,8 @@ import UserPreferencesScreen from './components/UserPreferencesScreen';
 import SettingsScreen from './components/SettingsModal';
 import CalendarScreen from './components/CalendarScreen';
 import QuickTaskScreen from './components/QuickTaskScreen';
+import BackupRestoreScreen from './components/BackupRestoreScreen';
+import TrashScreen from './components/TrashScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -98,6 +100,18 @@ function Navigation() {
           animation: 'none',
           gestureEnabled: false
         }}
+      />
+      <Stack.Screen 
+        name="BackupRestore" 
+        component={BackupRestoreScreen}
+      />
+      <Stack.Screen 
+        name="Trash" 
+        component={TrashScreen}
+      />
+      <Stack.Screen 
+        name="HiddenNotes" 
+        component={HiddenNotesScreen}
       />
     </Stack.Navigator>
   );

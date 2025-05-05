@@ -12,6 +12,9 @@ export const es = {
   noFavorites: 'No se encontraron notas favoritas',
   todayTasks: 'Tareas de Hoy',
   titleRequired: 'El título es obligatorio',
+  logout: 'Cerrar sesión',
+  profile: 'Perfil',
+  close: 'Cerrar',
   
   // Actions
   edit: 'Editar',
@@ -312,6 +315,33 @@ export const es = {
   sideMenuFavorites: 'Favoritos',
   sideMenuSettings: 'Ajustes',
   yourNotes: 'Tus Notas',
+  
+  // Copia de seguridad y Restauración
+  backupAndRestore: 'Copia y Restauración',
+  backupAndRestoreTitle: 'Copia de seguridad y Restauración',
+  backupAndRestoreDescription: 'Haga una copia de seguridad de sus notas o restaure desde una copia anterior',
+
+  // Trash
+  trash: 'Papelera',
+  trashDescription: 'Las notas eliminadas se almacenan aquí durante 30 días antes de eliminarse permanentemente',
+  noTrashItems: 'No hay elementos en la papelera',
+  restoreFromTrash: 'Restaurar',
+  deleteForever: 'Eliminar para siempre',
+  emptyTrash: 'Vaciar papelera',
+  emptyTrashConfirm: '¿Está seguro de que desea eliminar permanentemente todas las notas en la papelera?',
+  noteMovedToTrash: 'Nota movida a la papelera',
+  noteRestoredFromTrash: 'Nota restaurada de la papelera',
+  noteDeletedForever: 'Nota eliminada permanentemente',
+  daysUntilDeletion: 'Se eliminará permanentemente en {days} días',
+  autoDeleteWarning: 'Los elementos en la papelera se eliminan automáticamente después de 30 días',
+  
+  // Trash Settings
+  trashSettings: 'Configuración de Papelera',
+  retentionPeriod: 'Período de Retención',
+  retentionPeriodDescription: 'Los elementos en la papelera se eliminarán automáticamente después de este período',
+  days: 'días',
+  customRetention: 'Período de retención personalizado',
+  setRetentionPeriod: 'Establecer período de retención',
 } as const;
 
 export default es; 

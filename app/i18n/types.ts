@@ -15,6 +15,9 @@ export interface Translations {
   content: string;
   todayTasks: string;
   titleRequired: string;
+  logout: string;
+  profile: string;
+  close: string;
   
   // Categories
   noTag: string;
@@ -95,6 +98,7 @@ export interface Translations {
   notes: string;
   tasks: string;
   favorites: string;
+  favorite: string;
   today: string;
   week: string;
   month: string;
@@ -327,6 +331,33 @@ export interface Translations {
   sideMenuFavorites: string;
   sideMenuSettings: string;
   yourNotes: string;
+  
+  // Backup & Restore
+  backupAndRestore: string;
+  backupAndRestoreTitle: string;
+  backupAndRestoreDescription: string;
+
+  // Trash
+  trash: string;
+  trashDescription: string;
+  noTrashItems: string;
+  restoreFromTrash: string;
+  deleteForever: string;
+  emptyTrash: string;
+  emptyTrashConfirm: string;
+  noteMovedToTrash: string;
+  noteRestoredFromTrash: string;
+  noteDeletedForever: string;
+  daysUntilDeletion: string;
+  autoDeleteWarning: string;
+
+  // Trash Settings
+  trashSettings: string;
+  retentionPeriod: string;
+  retentionPeriodDescription: string;
+  days: string;
+  customRetention: string;
+  setRetentionPeriod: string;
 }
 
 export { en } from './en';

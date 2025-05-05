@@ -84,8 +84,8 @@ export default function CalendarScreen() {
   const getMarkedDates = () => {
     const markedDates: any = {};
     notes.forEach(note => {
-      // Only mark dates with tasks
-      if (note.type === 'checklist' && note.tasks?.[0]?.dueDate) {
+      // Only mark dates with tasks that are not deleted
+      if (note.type === 'checklist' && note.tasks?.[0]?.dueDate && !note.isDeleted) {
         const date = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
         
         if (!markedDates[date]) {
@@ -122,12 +122,12 @@ export default function CalendarScreen() {
   useEffect(() => {
     if (selectedDate) {
       const filteredTasks = notes.filter(note => {
-        // Only show tasks (checklist items)
-        if (note.type === 'checklist' && note.tasks?.[0]?.dueDate) {
+        // Only show tasks (checklist items) that are not deleted
+        if (note.type === 'checklist' && note.tasks?.[0]?.dueDate && !note.isDeleted) {
           const taskDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
           return taskDate === selectedDate;
         }
-        return false; // Skip regular notes
+        return false; // Skip regular notes and deleted notes
       });
       setTasksForSelectedDate(filteredTasks);
     }
@@ -576,6 +576,7 @@ export default function CalendarScreen() {
             {currentWeek.map((date) => {
               const isSelected = date === selectedDate;
               const hasTasks = notes.some(note => {
+                if (note.isDeleted) return false; // Skip deleted notes
                 if (note.type === 'checklist' && note.tasks?.[0]?.dueDate) {
                   const taskDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
                   return taskDate === date;

@@ -148,7 +148,7 @@ export default function SettingsScreen() {
                   color === 'red' ? t('important') : t('noTag'),
             color: color
           })),
-        version: '1.0.7',
+        version: '1.0.6',
         backupDate: new Date().toISOString()
       };
 
@@ -249,7 +249,7 @@ export default function SettingsScreen() {
             t('backupDetails')
               .replace('{count}', validatedNotes.length.toString())
               .replace('{date}', new Date(importedData.backupDate || Date.now()).toLocaleDateString())
-              .replace('{version}', importedData.version || '1.0.7'),
+              .replace('{version}', importedData.version || '1.0.0'),
             [
               {
                 text: t('cancel'),
@@ -922,7 +922,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.version}>
-          <Text style={styles.versionText}>📱 Version 1.0.7</Text>
+          <Text style={styles.versionText}>📱 Version 1.0.6</Text>
         </View>
       </ScrollView>
 

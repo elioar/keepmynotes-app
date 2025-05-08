@@ -611,13 +611,11 @@ export default function HomeScreen() {
     const now = new Date();
     const hours = now.getHours();
 
-    if (hours < 12) {
-      return 'Good morning';
-    } else if (hours < 18) {
-      return 'Good afternoon';
-    } else {
-      return 'Good evening';
-    }
+
+    if (hours >= 5 && hours < 12) return 'Good morning';
+    if (hours >= 12 && hours < 17) return 'Good afternoon';
+    if (hours >= 17 && hours < 22) return 'Good evening';
+    return 'Good night';
   };
 
   const styles = StyleSheet.create({
@@ -969,19 +967,21 @@ export default function HomeScreen() {
       marginLeft: -14,
     },
     burgerButton: {
-      marginLeft: 15 ,
-      backgroundColor: `rgba(255, 255, 255, 0.15)`,  // Semi-transparent white for glassy effect
-      transform: [{ scale: 1.15 }],  // Slight scale effect for interactivity
-      borderRadius: 12,  // Rounded corners
-      opacity: 0.9,  // Slight opacity for subtlety
-      borderWidth: 2,  // Border thickness
-      borderColor: theme.accentColor,  // Accent color for the border
-      shadowColor: theme.accentColor,  // Color of the shadow
-      shadowRadius: 8,  // Blur radius for shadow glow
-      elevation: 5,  // Elevation for Android devices
-      backdropFilter: 'blur(10px)',  // Applies a blur effect for the glassy look (works on supported platforms)
-      // Adding the "shine" effect to the border
-      boxShadow: `0 0 2px ${theme.accentColor}, 0 0 5px ${theme.accentColor}`,  // Shine effect on the border
+      marginLeft: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: 12,
+      opacity: 1,
+      borderWidth: 2.5,
+      borderColor: theme.accentColor, // Assuming this is resolved properly
+      shadowColor: theme.accentColor, // iOS only
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.8,
+      shadowRadius: 8,
+      elevation: 5, // Android shadow
+      width: 45,
+      height: 45,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     sideMenu: {
       position: 'absolute',
@@ -1043,15 +1043,15 @@ export default function HomeScreen() {
     profileInfo: {
       flex: 1,
     },
+    greetingText: {
+      fontSize: 13,
+      color: theme.placeholderColor,
+      marginBottom: 3,
+    },
     profileName: {
       fontSize: 20,
       fontWeight: '600',
       color: theme.textColor,
-      marginBottom: 3,
-    },
-    profileEmail: {
-      fontSize: 13,
-      color: theme.placeholderColor,
     },
     menuItem: {
       flexDirection: 'row',
@@ -1501,9 +1501,9 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{localUsername || 'James Hall'}</Text>
-              <Text style={styles.profileEmail}>{getTimeBasedGreeting()}</Text>
-            </View>
+  <Text style={styles.greetingText}>{getTimeBasedGreeting()}</Text>
+  <Text style={styles.profileName}>{localUsername || 'James Hall'}</Text>
+</View>
           </View>
           
           {/* Menu Items */}

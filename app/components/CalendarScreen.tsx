@@ -21,6 +21,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TAG_COLORS, TagColor } from '../constants/tags';
 
+
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Responsive sizing utilities
@@ -262,7 +264,7 @@ export default function CalendarScreen() {
     },
     tasksContainer: {
       flex: 1,
-      paddingHorizontal: 20,
+      paddingHorizontal: 15,
       paddingTop: 20,
     },
     dateHeader: {
@@ -338,7 +340,6 @@ export default function CalendarScreen() {
       flex: 1,
     },
     tagContainer: {
-      paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: 20,
       backgroundColor: theme.accentColor + '15',
@@ -395,7 +396,6 @@ export default function CalendarScreen() {
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: 20,
-      paddingHorizontal: 4,
     },
     modalTitle: {
       fontSize: 20,
@@ -429,20 +429,19 @@ export default function CalendarScreen() {
       overflow: 'hidden',
     },
     modernTaskCard: {
-      backgroundColor: theme.isDarkMode ? 'rgba(35, 37, 48, 0.85)' : 'rgba(252, 252, 255, 0.95)',
+      backgroundColor: theme.isDarkMode
+    ? 'rgba(20, 20, 20, 0.8)'  // dark gray/black glass effect
+    : 'rgba(240, 240, 240, 0.85)', // light grey glass effect
       borderRadius: wp(6),
       padding: wp(4),
       marginBottom: hp(1.8),
       minHeight: hp(10),
       flexDirection: 'column',
       shadowColor: theme.isDarkMode ? '#000' : 'rgba(0, 0, 0, 0.15)',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
+      shadowOffset: { width: 0, height: 8 },
       shadowOpacity: theme.isDarkMode ? 0.3 : 0.1,
-      shadowRadius: 8,
-      elevation: 4,
+      shadowRadius: 12,
+      elevation: 6,
       overflow: 'hidden',
       borderWidth: 0,
       borderLeftWidth: 4,
@@ -452,7 +451,6 @@ export default function CalendarScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: hp(0.25),
-      paddingHorizontal: wp(1.5),
       backgroundColor: 'transparent',
       borderRadius: wp(4),
       alignSelf: 'flex-start',
@@ -485,7 +483,6 @@ export default function CalendarScreen() {
       marginVertical: hp(0.4),
       lineHeight: normalize(18),
       paddingVertical: 0,
-      paddingHorizontal: 0,
     },
     taskPriority: {
       flexDirection: 'row',
@@ -507,22 +504,42 @@ export default function CalendarScreen() {
       gap: wp(1.5),
       marginTop: hp(1),
     },
+
     taskMetadataItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: hp(0.25),
-      paddingHorizontal: wp(1.5),
-      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+      paddingVertical: hp(0.5),
+      paddingHorizontal: wp(3),
+      backgroundColor: theme.isDarkMode
+        ? 'rgba(40, 40, 40, 0.6)' // Dark background in dark mode
+        : 'rgba(255, 255, 255, 0.85)', // Clean white background in light mode
       borderRadius: wp(3.5),
-      marginRight: wp(1),
-      borderWidth: 0,
+      marginRight: wp(2),
+      borderWidth: 1,
+      borderColor: theme.isDarkMode
+        ? 'rgba(255, 255, 255, 0.08)'
+        : 'rgba(0, 0, 0, 0.05)',
+      minHeight: hp(3.5), // Make sure all task metadata items have a consistent height
+      justifyContent: 'center', // Center align the content vertically
     },
+    
+    taskText: {
+      fontSize: wp(4), // Standardize text size for all task metadata items
+      color: theme.isDarkMode ? '#fff' : '#000', // Ensure text color is correct for both modes
+      flexWrap: 'wrap', // Ensure text wraps inside the container
+      maxWidth: wp(50), // Control maximum width of text to prevent overflow
+    },
+    
+    
+    
+    
     taskMetadataText: {
-      fontSize: normalize(11),
-      color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(40, 40, 50, 0.7)',
-      marginLeft: wp(1),
+      color: theme.isDarkMode ? '#fff' : '#000',
+      fontSize: wp(3.2),
       fontWeight: '500',
+      letterSpacing: 0.3,
     },
+    
   });
 
   const formatTime = (date: string) => {
@@ -768,51 +785,8 @@ export default function CalendarScreen() {
                 textDayFontSize: 15,
                 textMonthFontSize: 18,
                 textDayHeaderFontSize: 13,
-                'stylesheet.calendar.header': {
-                  week: {
-                    marginTop: 5,
-                    flexDirection: 'row',
-                    justifyContent: 'space-around',
-                    paddingHorizontal: 5,
-                    paddingVertical: 10,
-                    backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
-                    borderRadius: 12,
-                    marginHorizontal: -4,
-                  }
-                },
-                'stylesheet.calendar.main': {
-                  container: {
-                    height: 340,
-                  },
-                  monthView: {
-                    backgroundColor: 'transparent'
-                  },
-                  week: {
-                    marginVertical: 2,
-                    flexDirection: 'row',
-                    justifyContent: 'space-around',
-                  }
-                },
-                'stylesheet.day.basic': {
-                  base: {
-                    width: 32,
-                    height: 32,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 16,
-                  },
-                  selected: {
-                    backgroundColor: theme.accentColor,
-                    borderRadius: 16,
-                  },
-                  today: {
-                    backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-                    borderRadius: 16,
-                  },
-                  disabled: {
-                    opacity: 0.3
-                  }
-                }
+
+                
               }}
               markingType={'multi-dot'}
               markedDates={getMarkedDates()}

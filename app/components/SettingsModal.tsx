@@ -498,9 +498,9 @@ export default function SettingsScreen() {
       borderRadius: 12,
     },
     themeIcon: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
+      width: 40,
+      height: 40,
+      borderRadius: 15,
       backgroundColor: `${theme.accentColor}15`,
       justifyContent: 'center',
       alignItems: 'center',

@@ -14,12 +14,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useNotes, TaskItem } from '../NotesContext';
+import { useNotes, TaskItem, Note } from '../NotesContext';
 import NavigationMenu from './NavigationMenu';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TAG_COLORS, TagColor } from '../constants/tags';
+import type { MarkedDates } from 'react-native-calendars/src/types';
 
 
 
@@ -50,6 +51,111 @@ type RootStackParamList = {
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+function getRepeatingDates(note: any, startDate: Date, endDate: Date): string[] {
+  const dates: string[] = [];
+  const task = note.tasks[0];
+  
+  if (!task.repeat || task.repeat === 'none') {
+    return dates;
+  }
+
+  const originalDate = new Date(task.dueDate);
+  let currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    if (task.repeat === 'weekly') {
+      // Check if the current date is the same day of the week as the original date
+      if (currentDate.getDay() === originalDate.getDay()) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      }
+    } else if (task.repeat === 'daily') {
+      dates.push(currentDate.toISOString().split('T')[0]);
+    } else if (task.repeat === 'monthly') {
+      if (currentDate.getDate() === originalDate.getDate()) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      }
+    } else if (task.repeat === 'yearly') {
+      if (currentDate.getDate() === originalDate.getDate() && 
+          currentDate.getMonth() === originalDate.getMonth()) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      }
+    } else if (task.repeat === 'custom' && task.customRepeat) {
+      const { frequency, unit } = task.customRepeat;
+      const diffTime = Math.abs(currentDate.getTime() - originalDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (unit === 'days' && diffDays % frequency === 0) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      } else if (unit === 'weeks' && diffDays % (frequency * 7) === 0) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      } else if (unit === 'months' && 
+                 currentDate.getDate() === originalDate.getDate() && 
+                 diffDays % (frequency * 30) === 0) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      } else if (unit === 'years' && 
+                 currentDate.getDate() === originalDate.getDate() && 
+                 currentDate.getMonth() === originalDate.getMonth() && 
+                 diffDays % (frequency * 365) === 0) {
+        dates.push(currentDate.toISOString().split('T')[0]);
+      }
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return dates;
+}
+
+function getMarkedDates(notes: Note[]): MarkedDates {
+  const { theme } = useTheme();
+  const marked: MarkedDates = {};
+  
+  notes.forEach(note => {
+    if (note.type === 'task' && note.tasks && note.tasks.length > 0) {
+      const task = note.tasks[0];
+      if (task.dueDate) {
+        // Add the original date
+        marked[task.dueDate] = {
+          ...marked[task.dueDate],
+          dots: [
+            ...(marked[task.dueDate]?.dots || []),
+            {
+              color: note.color || theme.accentColor,
+              key: note.id,
+            },
+          ],
+        };
+
+        // Add repeating dates
+        if (task.repeat && task.repeat !== 'none') {
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 3); // Show next 3 months of repeating tasks
+          
+          const repeatingDates = getRepeatingDates(note, startDate, endDate);
+          
+          repeatingDates.forEach(date => {
+            if (date !== task.dueDate) { // Don't duplicate the original date
+              marked[date] = {
+                ...marked[date],
+                dots: [
+                  ...(marked[date]?.dots || []),
+                  {
+                    color: note.color || theme.accentColor,
+                    key: note.id,
+                  },
+                ],
+              };
+            }
+          });
+        }
+      }
+    }
+  });
+  
+  return marked;
+}
 
 export default function CalendarScreen() {
   const { theme } = useTheme();
@@ -86,26 +192,37 @@ export default function CalendarScreen() {
   // Get marked dates for calendar
   const getMarkedDates = () => {
     const markedDates: any = {};
+    const startDate = new Date(currentWeek[0]);
+    const endDate = new Date(currentWeek[6]);
+    endDate.setHours(23, 59, 59, 999);
+
     notes.forEach(note => {
-      // Only mark dates with tasks that are not deleted
       if (note.type === 'checklist' && note.tasks?.[0]?.dueDate && !note.isDeleted) {
-        const date = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
+        const repeatingDates = getRepeatingDates(note, startDate, endDate);
         
-        if (!markedDates[date]) {
-          markedDates[date] = {
-            dots: [{
+        // Add the original date if it's not already included
+        const originalDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
+        if (!repeatingDates.includes(originalDate)) {
+          repeatingDates.push(originalDate);
+        }
+
+        repeatingDates.forEach(date => {
+          if (!markedDates[date]) {
+            markedDates[date] = {
+              dots: [{
+                key: note.color || 'default',
+                color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor,
+                selectedDotColor: '#FFFFFF'
+              }]
+            };
+          } else {
+            markedDates[date].dots.push({
               key: note.color || 'default',
               color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor,
               selectedDotColor: '#FFFFFF'
-            }]
-          };
-        } else {
-          markedDates[date].dots.push({
-            key: note.color || 'default',
-            color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor,
-            selectedDotColor: '#FFFFFF'
-          });
-        }
+            });
+          }
+        });
       }
     });
     
@@ -125,12 +242,22 @@ export default function CalendarScreen() {
   useEffect(() => {
     if (selectedDate) {
       const filteredTasks = notes.filter(note => {
-        // Only show tasks (checklist items) that are not deleted
         if (note.type === 'checklist' && note.tasks?.[0]?.dueDate && !note.isDeleted) {
           const taskDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
+          
+          // Check if the task is repeating and if the selected date matches the pattern
+          if (note.tasks[0].repeat && note.tasks[0].repeat !== 'none') {
+            const repeatingDates = getRepeatingDates(
+              note,
+              new Date(selectedDate),
+              new Date(selectedDate)
+            );
+            return repeatingDates.includes(selectedDate);
+          }
+          
           return taskDate === selectedDate;
         }
-        return false; // Skip regular notes and deleted notes
+        return false;
       });
       setTasksForSelectedDate(filteredTasks);
     }

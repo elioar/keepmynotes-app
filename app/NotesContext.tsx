@@ -9,7 +9,12 @@ export interface TaskItem {
   priority?: 'low' | 'medium' | 'high';
   location?: string;
   isAllDay?: boolean;
-  reminder?: string;
+  reminder?: boolean;
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+  customRepeat?: {
+    frequency: number;
+    unit: 'days' | 'weeks' | 'months' | 'years';
+  };
 }
 
 export interface Note {
@@ -27,6 +32,22 @@ export interface Note {
   tasks?: TaskItem[];
   color?: string;
   tags?: string[];
+}
+
+export interface Task {
+  text: string;
+  isCompleted: boolean;
+  priority: 'low' | 'medium' | 'high';
+  dueDate: string;
+  dueTime?: string;
+  location?: string;
+  isAllDay: boolean;
+  reminder: boolean;
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+  customRepeat?: {
+    frequency: number;
+    unit: 'days' | 'weeks' | 'months' | 'years';
+  };
 }
 
 interface BackupData {

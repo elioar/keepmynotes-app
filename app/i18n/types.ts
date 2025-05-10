@@ -358,6 +358,19 @@ export interface Translations {
   days: string;
   customRetention: string;
   setRetentionPeriod: string;
+
+  // Task Repeat Options
+  repeat: string;
+  customRepeat: string;
+  none: string;
+  daily: string;
+  weekly: string;
+  monthly: string;
+  yearly: string;
+  custom: string;
+  weeks: string;
+  months: string;
+  years: string;
 }
 
 export { en } from './en';

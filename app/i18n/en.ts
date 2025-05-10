@@ -360,6 +360,19 @@ export const en: Translations = {
   days: 'days',
   customRetention: 'Custom Retention Period',
   setRetentionPeriod: 'Set Retention Period',
+  // Additional necessary keys
+  repeat: 'Repeat',
+  customRepeat: 'Custom Repeat',
+  none: 'None',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+  custom: 'Custom',
+  weeks: 'Weeks',
+  months: 'Months',
+  years: 'Years',
+
 };
 
 export default en; 

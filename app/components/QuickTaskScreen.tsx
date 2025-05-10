@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   Modal,
   Switch,
+  Alert,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -19,14 +20,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { scheduleTaskNotification, cancelTaskNotification, requestNotificationPermissions } from '../utils/notifications';
+import { useTranslation } from 'react-i18next';
+import { Translations } from '../i18n/types';
+import { formatDate } from '../utils/dateUtils';
+import { Priority, RepeatOption, RepeatUnit } from '../types';
 
 type RootStackParamList = {
   Calendar: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-type Priority = 'low' | 'medium' | 'high';
 
 interface TaskDetails {
   title: string;
@@ -37,6 +41,11 @@ interface TaskDetails {
   priority: Priority;
   isAllDay: boolean;
   reminder: boolean;
+  repeat: RepeatOption;
+  customRepeat?: {
+    frequency: number;
+    unit: 'days' | 'weeks' | 'months' | 'years';
+  };
 }
 
 export default function QuickTaskScreen({ route }: { route: any }) {
@@ -46,6 +55,12 @@ export default function QuickTaskScreen({ route }: { route: any }) {
   const navigation = useNavigation<NavigationProp>();
   const existingNote = route.params?.note;
   
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showRepeatModal, setShowRepeatModal] = useState(false);
+  const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
+  const [customRepeatValue, setCustomRepeatValue] = useState(1);
+
   const [taskDetails, setTaskDetails] = useState<TaskDetails>({
     title: existingNote?.title || '',
     description: existingNote?.description || '',
@@ -55,13 +70,38 @@ export default function QuickTaskScreen({ route }: { route: any }) {
     priority: existingNote?.tasks?.[0]?.priority || 'medium',
     isAllDay: existingNote?.tasks?.[0]?.isAllDay ?? true,
     reminder: existingNote?.tasks?.[0]?.reminder ?? false,
+    repeat: existingNote?.tasks?.[0]?.repeat || 'none',
+    customRepeat: existingNote?.tasks?.[0]?.customRepeat,
   });
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
+
+  async function scheduleNotification(taskDetails: TaskDetails) {
+    if (!taskDetails.reminder) return;
+
+    const hasPermission = await requestNotificationPermissions();
+    if (!hasPermission) return;
+
+    // Cancel any existing notifications for this task
+    if (existingNote?.id) {
+      await cancelTaskNotification(existingNote.id);
+    }
+
+    const triggerDate = taskDetails.isAllDay 
+      ? new Date(taskDetails.dueDate.setHours(9, 0, 0)) // 9 AM on due date
+      : taskDetails.dueTime || taskDetails.dueDate;
+
+    await scheduleTaskNotification(
+      taskDetails.title,
+      taskDetails.description || 'Task reminder',
+      triggerDate,
+      existingNote?.id?.toString() || Date.now().toString()
+    );
+  }
 
   const handleSave = async () => {
-    console.log('Saving task with description:', taskDetails.description);
     if (!taskDetails.title.trim()) return;
 
     try {
@@ -80,6 +120,9 @@ export default function QuickTaskScreen({ route }: { route: any }) {
           dueTime: taskDetails.dueTime?.toISOString(),
           location: taskDetails.location,
           isAllDay: taskDetails.isAllDay,
+          reminder: taskDetails.reminder,
+          repeat: taskDetails.repeat,
+          customRepeat: taskDetails.customRepeat,
         }]
       };
 
@@ -88,9 +131,14 @@ export default function QuickTaskScreen({ route }: { route: any }) {
       } else {
         await addNote(taskData);
       }
+
+      // Schedule notification if reminder is enabled
+      await scheduleNotification(taskDetails);
+      
       navigation.goBack();
     } catch (error) {
       console.error('Error saving task:', error);
+      Alert.alert('Error', 'Failed to save task. Please try again.');
     }
   };
 
@@ -113,14 +161,141 @@ export default function QuickTaskScreen({ route }: { route: any }) {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  const RepeatModal = () => (
+    <Modal
+      visible={showRepeatModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowRepeatModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('repeat' as keyof typeof t)}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowRepeatModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.textColor} />
+            </TouchableOpacity>
+          </View>
+          
+          {(['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RepeatOption[]).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={styles.repeatOption}
+              onPress={() => {
+                if (option === 'custom') {
+                  setShowCustomRepeatModal(true);
+                } else {
+                  setTaskDetails(prev => ({ ...prev, repeat: option }));
+                  setShowRepeatModal(false);
+                }
+              }}
+            >
+              <Text style={[
+                styles.repeatOptionText,
+                taskDetails.repeat === option && styles.repeatOptionTextSelected
+              ]}>
+                {t(option as keyof Translations)}
+              </Text>
+              {taskDetails.repeat === option && (
+                <Ionicons name="checkmark" size={24} color={theme.accentColor} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const CustomRepeatModal = () => (
+    <Modal
+      visible={showCustomRepeatModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowCustomRepeatModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('customRepeat')}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowCustomRepeatModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.textColor} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.frequencyContainer}>
+            <Text style={styles.frequencyLabel}>{t('days')}</Text>
+            <View style={styles.frequencyInputContainer}>
+              <TouchableOpacity
+                style={styles.frequencyButton}
+                onPress={() => setCustomRepeatValue(prev => Math.max(prev - 1, 1))}
+              >
+                <Text style={styles.frequencyButtonText}>-</Text>
+              </TouchableOpacity>
+              <Text style={styles.frequencyValue}>{customRepeatValue}</Text>
+              <TouchableOpacity
+                style={styles.frequencyButton}
+                onPress={() => setCustomRepeatValue(prev => Math.min(prev + 1, 365))}
+              >
+                <Text style={styles.frequencyButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.unitContainer}>
+            {(['days', 'weeks', 'months', 'years'] as const).map((unit) => (
+              <TouchableOpacity
+                key={unit}
+                style={[
+                  styles.unitButton,
+                  taskDetails.customRepeat?.unit === unit && styles.selectedUnitButton,
+                ]}
+                onPress={() => {
+                  setTaskDetails(prev => ({
+                    ...prev,
+                    repeat: 'custom',
+                    customRepeat: {
+                      frequency: customRepeatValue,
+                      unit
+                    }
+                  }));
+                  setShowCustomRepeatModal(false);
+                  setShowRepeatModal(false);
+                }}
+              >
+                <Text style={[
+                  styles.unitButtonText,
+                  taskDetails.customRepeat?.unit === unit && styles.selectedUnitButtonText,
+                ]}>
+                  {t(unit as keyof Translations)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowCustomRepeatModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton]}
+              onPress={handleSave}
+            >
+              <Text style={styles.saveButtonText}>{t('save')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const styles = StyleSheet.create({
     container: {
@@ -264,6 +439,146 @@ export default function QuickTaskScreen({ route }: { route: any }) {
       fontSize: 16,
       color: theme.textColor,
     },
+    repeatOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+    },
+    repeatOptionText: {
+      fontSize: 16,
+      color: theme.textColor,
+    },
+    repeatOptionTextSelected: {
+      color: theme.accentColor,
+      fontWeight: '600',
+    },
+    customRepeatContainer: {
+      padding: 20,
+    },
+    customRepeatInput: {
+      fontSize: 24,
+      color: theme.textColor,
+      textAlign: 'center',
+      marginBottom: 20,
+      padding: 10,
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: 10,
+    },
+    unitSelector: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    unitButton: {
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 20,
+      backgroundColor: theme.secondaryBackground,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    selectedUnitButton: {
+      backgroundColor: theme.accentColor,
+      borderColor: theme.accentColor,
+    },
+    unitButtonText: {
+      fontSize: 14,
+      color: theme.textColor,
+    },
+    selectedUnitButtonText: {
+      color: '#FFFFFF',
+      fontWeight: '600',
+    },
+    repeatOptionsContainer: {
+      padding: 20,
+    },
+    repeatOptionsTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textColor,
+      marginBottom: 12,
+    },
+    repeatOptionStyle: {
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.borderColor,
+    },
+    selectedRepeatOption: {
+      backgroundColor: theme.accentColor,
+    },
+    selectedRepeatOptionText: {
+      color: '#FFFFFF',
+      fontWeight: '600',
+    },
+    frequencyContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    frequencyLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textColor,
+      marginRight: 12,
+    },
+    frequencyInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    frequencyButton: {
+      padding: 10,
+      borderRadius: 10,
+      backgroundColor: theme.secondaryBackground,
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    frequencyButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textColor,
+    },
+    frequencyValue: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textColor,
+      marginHorizontal: 12,
+    },
+    unitContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 10,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 20,
+    },
+    cancelButton: {
+      backgroundColor: theme.secondaryBackground,
+    },
+    cancelButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textColor,
+    },
+    modalButton: {
+      flex: 1,
+      padding: 16,
+      borderRadius: 10,
+      marginHorizontal: 8,
+      alignItems: 'center',
+    },
+    saveButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
   });
 
   return (
@@ -342,7 +657,13 @@ export default function QuickTaskScreen({ route }: { route: any }) {
             <Text style={styles.optionText}>{t('allDay')}</Text>
             <Switch
               value={taskDetails.isAllDay}
-              onValueChange={(value) => setTaskDetails(prev => ({ ...prev, isAllDay: value }))}
+              onValueChange={(value) => {
+                setTaskDetails(prev => ({ 
+                  ...prev, 
+                  isAllDay: value,
+                  dueTime: value ? null : prev.dueTime || new Date()
+                }));
+              }}
               trackColor={{ false: theme.borderColor, true: theme.accentColor }}
               thumbColor={theme.backgroundColor}
             />
@@ -362,6 +683,21 @@ export default function QuickTaskScreen({ route }: { route: any }) {
               </Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={styles.optionRow}
+            onPress={() => setShowRepeatModal(true)}
+          >
+            <View style={styles.optionIcon}>
+              <Ionicons name="repeat-outline" size={20} color={theme.accentColor} />
+            </View>
+            <Text style={styles.optionText}>{t('repeat')}</Text>
+            <Text style={styles.optionValue}>
+              {taskDetails.repeat === 'custom' 
+                ? `${taskDetails.customRepeat?.frequency} ${t(taskDetails.customRepeat?.unit as keyof Translations)}`
+                : t(taskDetails.repeat as keyof Translations)}
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.optionRow}>
             <View style={styles.optionIcon}>
@@ -411,7 +747,7 @@ export default function QuickTaskScreen({ route }: { route: any }) {
                   styles.priorityText,
                   { color: getPriorityColor(priority) }
                 ]}>
-                  {t(priority)}
+                  {t(priority as keyof Translations)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -432,6 +768,8 @@ export default function QuickTaskScreen({ route }: { route: any }) {
           }}
         />
       )}
+      <RepeatModal />
+      <CustomRepeatModal />
     </KeyboardAvoidingView>
   );
 } 

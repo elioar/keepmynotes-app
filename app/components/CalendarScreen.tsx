@@ -21,9 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TAG_COLORS, TagColor } from '../constants/tags';
 import type { MarkedDates } from 'react-native-calendars/src/types';
-
-
-
+import AddNoteModal from './AddNoteModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -160,11 +158,12 @@ function getMarkedDates(notes: Note[]): MarkedDates {
 export default function CalendarScreen() {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { notes } = useNotes();
+  const { notes, updateNote } = useNotes();
   const navigation = useNavigation<NavigationProp>();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [tasksForSelectedDate, setTasksForSelectedDate] = useState<any[]>([]);
   const [showMonthView, setShowMonthView] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [currentWeek, setCurrentWeek] = useState<string[]>([]);
   const monthViewAnim = useRef(new Animated.Value(0)).current;
   
@@ -359,7 +358,7 @@ export default function CalendarScreen() {
       </Text>
       <TouchableOpacity 
         style={emptyStateStyles.addTaskButton}
-        onPress={() => navigation.navigate('Task', { note: undefined })}
+        onPress={() => navigation.navigate('QuickTask', { note: undefined })}
         activeOpacity={0.8}
       >
         <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
@@ -637,155 +636,145 @@ export default function CalendarScreen() {
       elevation: 3,
       overflow: 'hidden',
     },
-// Enhanced task card styles - place these in your StyleSheet
-modernTaskCard: {
-  backgroundColor: theme.isDarkMode
-    ? 'rgba(30, 32, 40, 0.92)'  // Slightly darker for better contrast
-    : 'rgba(255, 255, 255, 0.98)', // Slightly more solid white for better readability
-  borderRadius: wp(6),  // Slightly less rounded for a more professional look
-  padding: wp(4.5),
-  marginVertical: hp(1.2),
-  flexDirection: 'column',
-  shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: theme.isDarkMode ? 0.3 : 0.15,
-  shadowRadius: 8,
-  elevation: 5,
-  borderLeftWidth: 4, // Slightly thicker border for emphasis
-  // Add subtle top and bottom border for definition
-  borderTopWidth: 0.5,
-  borderBottomWidth: 0.5,
-  borderTopColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.03)',
-  borderBottomColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.03)',
-},
-
-// Refined task type indicator with gradient-like effect
-taskTypeIndicator: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingVertical: hp(0.4),
-  paddingHorizontal: wp(2),
-  backgroundColor: theme.isDarkMode 
-    ? 'rgba(255, 255, 255, 0.09)' 
-    : 'rgba(0, 0, 0, 0.04)',
-  borderRadius: wp(4),
-  alignSelf: 'flex-start',
-  marginBottom: hp(1.2),
-  borderWidth: 0.5,
-  borderColor: theme.isDarkMode 
-    ? 'rgba(255, 255, 255, 0.12)' 
-    : 'rgba(0, 0, 0, 0.05)',
-},
-
-taskTypeText: {
-  fontSize: normalize(11),
-  fontWeight: '600',
-  color: theme.accentColor,
-  marginLeft: wp(1.2),
-  letterSpacing: 0.3,
-},
-
-// Improved task title with better spacing
-taskTitle: {
-  fontSize: normalize(16),
-  fontWeight: '700',
-  color: theme.isDarkMode ? '#ffffff' : '#222222',
-  flex: 1,
-  marginBottom: hp(0.8),
-  letterSpacing: -0.2,
-  lineHeight: normalize(21),
-  maxWidth: wp(55), // Limit width to prevent overflow
-},
-
-// More readable task description
-taskDescription: {
-  fontSize: normalize(13),
-  color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(40, 40, 50, 0.8)',
-  marginVertical: hp(0.8),
-  lineHeight: normalize(18),
-  fontWeight: '400',
-  maxHeight: hp(4), // Limit height to ensure consistent card size
-  overflow: 'hidden',
-},
-
-// Enhanced metadata section with more distinct items
-taskMetadata: {
-  flexDirection: 'row',
-  justifyContent: 'center',     // 👈 center the whole row
-  alignItems: 'center',
-  gap: wp(2),                   // space between items
-  marginTop: hp(2),
-},
-
-// More refined metadata items
-taskMetadataItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingVertical: hp(0.5),
-  paddingHorizontal: wp(3),
-  backgroundColor: theme.isDarkMode
-    ? 'rgba(255, 255, 255, 0.07)'
-    : 'rgba(0, 0, 0, 0.035)',
-  borderRadius: wp(3),
-  borderWidth: 0.5,
-  borderColor: theme.isDarkMode 
-    ? 'rgba(255, 255, 255, 0.1)' 
-    : 'rgba(0, 0, 0, 0.03)',
-  width: wp(25),  // 🔒 fixed width so all are equal
-  height: hp(3.2),
-},
-
-
-
-taskMetadataText: {
-  color: theme.isDarkMode ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.75)',
-  fontSize: normalize(11),
-  fontWeight: '500',
-  marginLeft: wp(1),
-},
-
-
-
-// Enhanced completion status with subtle animation setup
-taskCompletionStatus: {
-  position: 'absolute',
-  top: wp(4),
-  right: wp(4),
-  width: wp(7),
-  height: wp(7),
-  borderRadius: wp(3.5),
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 10,
-},
-
-// Task info container with improved spacing
-taskInfoContainer: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  marginBottom: hp(0.5),
-},
-
-// Enhanced priority indicator
-taskPriority: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingHorizontal: wp(2.2),
-  paddingVertical: hp(0.5),
-  borderRadius: wp(3.5),
-  gap: wp(1),
-  marginLeft: wp(2),
-  borderWidth: 0.5,
-},
-
-taskPriorityText: {
-  fontSize: normalize(12),
-  fontWeight: '500',
-  color: theme.isDarkMode ? '#ffffff' : '#222222',
-},
-    
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? 
+        `${theme.backgroundColor}80` : 
+        theme.secondaryBackground,
+    },
+    optionText: {
+      color: theme.textColor,
+      fontSize: 16,
+      marginLeft: 12,
+      fontWeight: '500',
+    },
+    modernTaskCard: {
+      backgroundColor: theme.isDarkMode
+        ? 'rgba(30, 32, 40, 0.92)'
+        : 'rgba(255, 255, 255, 0.98)',
+      borderRadius: wp(6),
+      padding: wp(4.5),
+      marginVertical: hp(1.2),
+      flexDirection: 'column',
+      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: theme.isDarkMode ? 0.3 : 0.15,
+      shadowRadius: 8,
+      elevation: 5,
+      borderLeftWidth: 4,
+      borderTopWidth: 0.5,
+      borderBottomWidth: 0.5,
+      borderTopColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.03)',
+      borderBottomColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.03)',
+    },
+    taskTypeIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: hp(0.4),
+      paddingHorizontal: wp(2),
+      backgroundColor: theme.isDarkMode 
+        ? 'rgba(255, 255, 255, 0.09)' 
+        : 'rgba(0, 0, 0, 0.04)',
+      borderRadius: wp(4),
+      alignSelf: 'flex-start',
+      marginBottom: hp(1.2),
+      borderWidth: 0.5,
+      borderColor: theme.isDarkMode 
+        ? 'rgba(255, 255, 255, 0.12)' 
+        : 'rgba(0, 0, 0, 0.05)',
+    },
+    taskTypeText: {
+      fontSize: normalize(11),
+      fontWeight: '600',
+      color: theme.accentColor,
+      marginLeft: wp(1.2),
+      letterSpacing: 0.3,
+    },
+    taskTitle: {
+      fontSize: normalize(16),
+      fontWeight: '700',
+      color: theme.isDarkMode ? '#ffffff' : '#222222',
+      flex: 1,
+      marginBottom: hp(0.8),
+      letterSpacing: -0.2,
+      lineHeight: normalize(21),
+      maxWidth: wp(55),
+    },
+    taskDescription: {
+      fontSize: normalize(13),
+      color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(40, 40, 50, 0.8)',
+      marginVertical: hp(0.8),
+      lineHeight: normalize(18),
+      fontWeight: '400',
+      maxHeight: hp(4),
+      overflow: 'hidden',
+    },
+    taskMetadata: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: wp(2),
+      marginTop: hp(2),
+    },
+    taskMetadataItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: hp(0.5),
+      paddingHorizontal: wp(3),
+      backgroundColor: theme.isDarkMode
+        ? 'rgba(255, 255, 255, 0.07)'
+        : 'rgba(0, 0, 0, 0.035)',
+      borderRadius: wp(3),
+      borderWidth: 0.5,
+      borderColor: theme.isDarkMode 
+        ? 'rgba(255, 255, 255, 0.1)' 
+        : 'rgba(0, 0, 0, 0.03)',
+      width: wp(25),
+      height: hp(3.2),
+    },
+    taskMetadataText: {
+      color: theme.isDarkMode ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.75)',
+      fontSize: normalize(11),
+      fontWeight: '500',
+      marginLeft: wp(1),
+    },
+    taskCompletionStatus: {
+      position: 'absolute',
+      top: wp(4),
+      right: wp(4),
+      width: wp(7),
+      height: wp(7),
+      borderRadius: wp(3.5),
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 10,
+    },
+    taskInfoContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: hp(0.5),
+    },
+    taskPriority: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(2.2),
+      paddingVertical: hp(0.5),
+      borderRadius: wp(3.5),
+      gap: wp(1),
+      marginLeft: wp(2),
+      borderWidth: 0.5,
+    },
+    taskPriorityText: {
+      fontSize: normalize(12),
+      fontWeight: '500',
+      color: theme.isDarkMode ? '#ffffff' : '#222222',
+    },
   });
 
   const formatTime = (date: string) => {
@@ -795,6 +784,19 @@ taskPriorityText: {
       day: '2-digit',
       month: 'short'
     });
+  };
+
+  const handleOptionSelect = (type: string) => {
+    setShowAddMenu(false);
+    
+    switch (type) {
+      case 'note':
+        navigation.navigate('AddEditNote', { note: { type: 'text', isNew: true } });
+        break;
+      case 'task':
+        navigation.navigate('QuickTask', { note: undefined });
+        break;
+    }
   };
 
   return (
@@ -900,7 +902,8 @@ taskPriorityText: {
         {
           borderLeftColor: note.tasks?.[0]?.priority === 'high' ? '#FF4E4E' :
                          note.tasks?.[0]?.priority === 'medium' ? '#FFA726' : 
-                         note.tasks?.[0]?.priority === 'low' ? '#66BB6A' : theme.accentColor
+                         note.tasks?.[0]?.priority === 'low' ? '#66BB6A' : theme.accentColor,
+          opacity: note.tasks?.[0]?.completed || note.tasks?.[0]?.isCompleted ? 0.6 : 1,
         }
       ]}
       onPress={() => navigation.navigate('QuickTask', { note })}
@@ -922,7 +925,7 @@ taskPriorityText: {
         
         {/* Task header with title and priority */}
         <View style={styles.taskInfoContainer}>
-          <Text style={styles.taskTitle} numberOfLines={2}>
+          <Text style={[styles.taskTitle, note.tasks?.[0]?.completed || note.tasks?.[0]?.isCompleted ? { textDecorationLine: 'line-through', color: theme.placeholderColor } : null]} numberOfLines={2}>
             {note.title}
           </Text>
           
@@ -975,14 +978,10 @@ taskPriorityText: {
                 color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
               />
               <Text style={styles.taskMetadataText}>
-                {new Date(note.tasks[0].dueDate).toLocaleDateString(undefined, { 
-                  day: 'numeric', 
-                  month: 'short' 
-                })}
+                {new Date(note.tasks[0].dueDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
               </Text>
             </View>
           )}
-          
           {/* Due Time */}
           {note.tasks?.[0]?.dueTime && (
             <View style={styles.taskMetadataItem}>
@@ -992,10 +991,7 @@ taskPriorityText: {
                 color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
               />
               <Text style={styles.taskMetadataText}>
-                {new Date(note.tasks[0].dueTime).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
+                {new Date(note.tasks[0].dueTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Text>
             </View>
           )}
@@ -1016,15 +1012,59 @@ taskPriorityText: {
         </View>
       </View>
       
-      {/* Task completion status indicator */}
-      <View style={styles.taskCompletionStatus}>
-        <Ionicons 
-          name={note.tasks?.[0]?.completed ? "checkmark-circle" : "ellipse-outline"} 
-          size={22} 
-          color={note.tasks?.[0]?.completed ? 
-            (theme.isDarkMode ? '#66BB6A' : '#4CAF50') : 
-            (theme.isDarkMode ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.25)')} 
-        />
+      {/* Task status & info icons row */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', position: 'absolute', top: wp(4), right: wp(4), zIndex: 10, gap: 4 }}>
+        {/* Repeat icon */}
+        {note.tasks?.[0]?.repeat && note.tasks[0].repeat !== 'none' && (
+          <Ionicons
+            name="repeat-outline"
+            size={16}
+            color={theme.accentColor}
+            style={{ opacity: 0.7 }}
+          />
+        )}
+        {/* Reminder icon */}
+        {note.tasks?.[0]?.reminder && (
+          <Ionicons
+            name="notifications"
+            size={16}
+            color={theme.accentColor}
+            style={{ opacity: 0.7 }}
+          />
+        )}
+        {/* Task completion status indicator */}
+        <TouchableOpacity
+          onPress={async () => {
+            if (!note.tasks?.[0]) return;
+            const updatedNote = {
+              ...note,
+              tasks: [
+                {
+                  ...note.tasks[0],
+                  completed: !(note.tasks[0].completed || note.tasks[0].isCompleted),
+                  isCompleted: !(note.tasks[0].completed || note.tasks[0].isCompleted),
+                },
+                ...note.tasks.slice(1)
+              ]
+            };
+            await updateNote(updatedNote);
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          {note.tasks?.[0]?.completed || note.tasks?.[0]?.isCompleted ? (
+            <Ionicons
+              name="checkmark-circle"
+              size={22}
+              color={theme.isDarkMode ? '#66BB6A' : '#4CAF50'}
+            />
+          ) : (
+            <Ionicons
+              name="ellipse-outline"
+              size={22}
+              color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.25)'}
+            />
+          )}
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   ))
@@ -1043,6 +1083,20 @@ taskPriorityText: {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            {/* Νέα κεφαλίδα modal με τίτλο και κουμπί κλεισίματος */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: theme.accentColor, flex: 1, textAlign: 'center', letterSpacing: -0.5 }}>
+                {t('calendar')}
+              </Text>
+              <TouchableOpacity
+                style={[styles.closeButton, { position: 'absolute', right: 0, top: -4, zIndex: 10 }]}
+                onPress={() => setShowMonthView(false)}
+                accessibilityRole="button"
+                accessibilityLabel={t('close')}
+              >
+                <Ionicons name="close" size={24} color={theme.textColor} />
+              </TouchableOpacity>
+            </View>
             <Calendar
               theme={{
                 backgroundColor: 'transparent',
@@ -1063,8 +1117,6 @@ taskPriorityText: {
                 textDayFontSize: 15,
                 textMonthFontSize: 18,
                 textDayHeaderFontSize: 13,
-
-                
               }}
               markingType={'multi-dot'}
               markedDates={getMarkedDates()}
@@ -1075,12 +1127,23 @@ taskPriorityText: {
               }}
               enableSwipeMonths={true}
               current={selectedDate}
+              renderHeader={(date) => (
+                <Text style={{ fontSize: 18, fontWeight: '700', color: theme.textColor, textAlign: 'center', marginVertical: 8 }}>
+                  {new Date(date).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                </Text>
+              )}
             />
           </View>
         </View>
       </Modal>
 
-      <NavigationMenu />
+      <NavigationMenu onAddPress={() => setShowAddMenu(true)} />
+
+      <AddNoteModal
+        visible={showAddMenu}
+        onClose={() => setShowAddMenu(false)}
+        onSelectOption={handleOptionSelect}
+      />
     </View>
   );
 } 

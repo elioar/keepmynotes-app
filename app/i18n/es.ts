@@ -163,6 +163,10 @@ export const es = {
   monthsAgo: 'meses atrás',
   yearAgo: 'año atrás',
   yearsAgo: 'años atrás',
+  months: 'meses',
+  years: 'años',
+  every: 'Cada',
+  set: 'Establecer',
 
   // Tags
   tags: 'Etiquetas',

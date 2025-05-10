@@ -371,6 +371,10 @@ export interface Translations {
   weeks: string;
   months: string;
   years: string;
+
+  // Custom repeat modal
+  every: string;
+  set: string;
 }
 
 export { en } from './en';

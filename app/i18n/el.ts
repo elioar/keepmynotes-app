@@ -359,6 +359,22 @@ export const el = {
   days: 'ημέρες',
   customRetention: 'Προσαρμοσμένη περίοδος διατήρησης',
   setRetentionPeriod: 'Ορισμός Περιόδου Διατήρησης',
+
+  // Additional necessary keys
+repeat: 'Επανάληψη',
+customRepeat: 'Προσαρμοσμένη Επανάληψη',
+none: 'Καμία',
+daily: 'Καθημερινά',
+weekly: 'Εβδομαδιαία',
+monthly: 'Μηνιαία',
+yearly: 'Ετήσια',
+custom: 'Προσαρμοσμένο',
+weeks: 'Εβδομάδες',
+months: 'Μήνες',
+years: 'Χρόνια',
+every: 'Κάθε',
+set: 'Ορισμός',
+
 } as const;
 
 export default el; 

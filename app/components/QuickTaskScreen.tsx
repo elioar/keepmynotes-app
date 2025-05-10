@@ -58,8 +58,6 @@ export default function QuickTaskScreen({ route }: { route: any }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showRepeatModal, setShowRepeatModal] = useState(false);
-  const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
-  const [customRepeatValue, setCustomRepeatValue] = useState(1);
 
   const [taskDetails, setTaskDetails] = useState<TaskDetails>({
     title: existingNote?.title || '',
@@ -165,132 +163,42 @@ export default function QuickTaskScreen({ route }: { route: any }) {
     <Modal
       visible={showRepeatModal}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={() => setShowRepeatModal(false)}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.repeatModalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('repeat' as keyof typeof t)}</Text>
+            <Text style={styles.modalTitle}>{t('repeat')}</Text>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowRepeatModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t('close')}
             >
               <Ionicons name="close" size={24} color={theme.textColor} />
             </TouchableOpacity>
           </View>
-          
-          {(['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as RepeatOption[]).map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={styles.repeatOption}
-              onPress={() => {
-                if (option === 'custom') {
-                  setShowCustomRepeatModal(true);
-                } else {
+          <View style={styles.repeatOptionsList}>
+            {(['none', 'daily', 'weekly', 'monthly', 'yearly'] as RepeatOption[]).map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[styles.repeatOptionRow, taskDetails.repeat === option && styles.repeatOptionRowSelected]}
+                onPress={() => {
                   setTaskDetails(prev => ({ ...prev, repeat: option }));
                   setShowRepeatModal(false);
-                }
-              }}
-            >
-              <Text style={[
-                styles.repeatOptionText,
-                taskDetails.repeat === option && styles.repeatOptionTextSelected
-              ]}>
-                {t(option as keyof Translations)}
-              </Text>
-              {taskDetails.repeat === option && (
-                <Ionicons name="checkmark" size={24} color={theme.accentColor} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    </Modal>
-  );
-
-  const CustomRepeatModal = () => (
-    <Modal
-      visible={showCustomRepeatModal}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setShowCustomRepeatModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('customRepeat')}</Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowCustomRepeatModal(false)}
-            >
-              <Ionicons name="close" size={24} color={theme.textColor} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.frequencyContainer}>
-            <Text style={styles.frequencyLabel}>{t('days')}</Text>
-            <View style={styles.frequencyInputContainer}>
-              <TouchableOpacity
-                style={styles.frequencyButton}
-                onPress={() => setCustomRepeatValue(prev => Math.max(prev - 1, 1))}
-              >
-                <Text style={styles.frequencyButtonText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.frequencyValue}>{customRepeatValue}</Text>
-              <TouchableOpacity
-                style={styles.frequencyButton}
-                onPress={() => setCustomRepeatValue(prev => Math.min(prev + 1, 365))}
-              >
-                <Text style={styles.frequencyButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.unitContainer}>
-            {(['days', 'weeks', 'months', 'years'] as const).map((unit) => (
-              <TouchableOpacity
-                key={unit}
-                style={[
-                  styles.unitButton,
-                  taskDetails.customRepeat?.unit === unit && styles.selectedUnitButton,
-                ]}
-                onPress={() => {
-                  setTaskDetails(prev => ({
-                    ...prev,
-                    repeat: 'custom',
-                    customRepeat: {
-                      frequency: customRepeatValue,
-                      unit
-                    }
-                  }));
-                  setShowCustomRepeatModal(false);
-                  setShowRepeatModal(false);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={t(option as keyof Translations)}
               >
-                <Text style={[
-                  styles.unitButtonText,
-                  taskDetails.customRepeat?.unit === unit && styles.selectedUnitButtonText,
-                ]}>
-                  {t(unit as keyof Translations)}
+                <Text style={[styles.repeatOptionText, taskDetails.repeat === option && styles.repeatOptionTextSelected]}>
+                  {t(option as keyof Translations)}
                 </Text>
+                {taskDetails.repeat === option && (
+                  <Ionicons name="checkmark-circle" size={22} color={theme.accentColor} style={{ marginLeft: 8 }} />
+                )}
               </TouchableOpacity>
             ))}
-          </View>
-
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowCustomRepeatModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.saveButton]}
-              onPress={handleSave}
-            >
-              <Text style={styles.saveButtonText}>{t('save')}</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -331,7 +239,12 @@ export default function QuickTaskScreen({ route }: { route: any }) {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: taskDetails.title.trim() ? theme.accentColor : theme.secondaryBackground,
+      backgroundColor: theme.accentColor,
+      shadowColor: theme.accentColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.18,
+      shadowRadius: 6,
+      elevation: 4,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -407,16 +320,46 @@ export default function QuickTaskScreen({ route }: { route: any }) {
       fontSize: 14,
       fontWeight: '600',
     },
-    modalContainer: {
+    modalOverlay: {
       flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    modalContent: {
-      backgroundColor: theme.backgroundColor,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
-      padding: 20,
+    repeatModalContent: {
+      width: '90%',
+      backgroundColor: theme.isDarkMode ? 'rgba(30, 30, 30, 1)' : theme.backgroundColor,
+      borderRadius: 24,
+      padding: 24,
+      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.18,
+      shadowRadius: 16,
+      elevation: 10,
+    },
+    repeatOptionsList: {
+      marginTop: 8,
+    },
+    repeatOptionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 16,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      marginBottom: 8,
+      backgroundColor: 'transparent',
+    },
+    repeatOptionRowSelected: {
+      backgroundColor: `${theme.accentColor}22`,
+    },
+    repeatOptionText: {
+      fontSize: 16,
+      color: theme.textColor,
+    },
+    repeatOptionTextSelected: {
+      color: theme.accentColor,
+      fontWeight: '700',
     },
     modalHeader: {
       flexDirection: 'row',
@@ -439,145 +382,28 @@ export default function QuickTaskScreen({ route }: { route: any }) {
       fontSize: 16,
       color: theme.textColor,
     },
-    repeatOption: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+    modalButton: {
+      flex: 1,
       paddingVertical: 16,
-      paddingHorizontal: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
-    },
-    repeatOptionText: {
-      fontSize: 16,
-      color: theme.textColor,
-    },
-    repeatOptionTextSelected: {
-      color: theme.accentColor,
-      fontWeight: '600',
-    },
-    customRepeatContainer: {
-      padding: 20,
-    },
-    customRepeatInput: {
-      fontSize: 24,
-      color: theme.textColor,
-      textAlign: 'center',
-      marginBottom: 20,
-      padding: 10,
-      backgroundColor: theme.secondaryBackground,
-      borderRadius: 10,
-    },
-    unitSelector: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: 10,
-    },
-    unitButton: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 20,
-      backgroundColor: theme.secondaryBackground,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-    },
-    selectedUnitButton: {
-      backgroundColor: theme.accentColor,
-      borderColor: theme.accentColor,
-    },
-    unitButtonText: {
-      fontSize: 14,
-      color: theme.textColor,
-    },
-    selectedUnitButtonText: {
-      color: '#FFFFFF',
-      fontWeight: '600',
-    },
-    repeatOptionsContainer: {
-      padding: 20,
-    },
-    repeatOptionsTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: theme.textColor,
-      marginBottom: 12,
-    },
-    repeatOptionStyle: {
-      padding: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
-    },
-    selectedRepeatOption: {
-      backgroundColor: theme.accentColor,
-    },
-    selectedRepeatOptionText: {
-      color: '#FFFFFF',
-      fontWeight: '600',
-    },
-    frequencyContainer: {
-      flexDirection: 'row',
+      borderRadius: 12,
       alignItems: 'center',
-      marginBottom: 20,
+      marginHorizontal: 0,
+      backgroundColor: theme.accentColor,
+      elevation: 4,
     },
-    frequencyLabel: {
+    saveButtonText: {
       fontSize: 16,
       fontWeight: '600',
-      color: theme.textColor,
-      marginRight: 12,
-    },
-    frequencyInputContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    frequencyButton: {
-      padding: 10,
-      borderRadius: 10,
-      backgroundColor: theme.secondaryBackground,
-      borderWidth: 1,
-      borderColor: theme.borderColor,
-    },
-    frequencyButtonText: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: theme.textColor,
-    },
-    frequencyValue: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: theme.textColor,
-      marginHorizontal: 12,
-    },
-    unitContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: 10,
-    },
-    modalButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 20,
+      color: '#fff',
     },
     cancelButton: {
       backgroundColor: theme.secondaryBackground,
+      marginRight: 8,
     },
     cancelButtonText: {
       fontSize: 16,
       fontWeight: '600',
       color: theme.textColor,
-    },
-    modalButton: {
-      flex: 1,
-      padding: 16,
-      borderRadius: 10,
-      marginHorizontal: 8,
-      alignItems: 'center',
-    },
-    saveButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#FFFFFF',
     },
   });
 
@@ -769,7 +595,6 @@ export default function QuickTaskScreen({ route }: { route: any }) {
         />
       )}
       <RepeatModal />
-      <CustomRepeatModal />
     </KeyboardAvoidingView>
   );
 } 

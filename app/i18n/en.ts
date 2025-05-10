@@ -372,6 +372,8 @@ export const en: Translations = {
   weeks: 'Weeks',
   months: 'Months',
   years: 'Years',
+  every: 'Every',
+  set: 'Set',
 
 };
 

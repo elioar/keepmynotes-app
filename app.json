@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.elio.dev.keepmynotes",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -20,7 +21,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.elio.dev.keepmynotes"
+      "package": "com.elio.dev.keepmynotes",
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro",
@@ -42,7 +44,14 @@
           }
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

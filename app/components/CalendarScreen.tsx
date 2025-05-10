@@ -23,6 +23,7 @@ import { TAG_COLORS, TagColor } from '../constants/tags';
 
 
 
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Responsive sizing utilities
@@ -163,6 +164,82 @@ export default function CalendarScreen() {
       default: return '';
     }
   };
+
+
+  const emptyStateStyles = {
+    noTasksContainer: {
+      alignItems: 'center' as 'center',
+      paddingVertical: hp(6),
+      marginTop: hp(4),
+    },
+    emptyIcon: {
+      width: 70,
+      height: 70,
+      borderRadius: 35,
+      backgroundColor: `${theme.accentColor}12`,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as 'center',
+      marginBottom: 20,
+      shadowColor: theme.accentColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    noTasksText: {
+      fontSize: normalize(16),
+      color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.5)',
+      textAlign: 'center' as const,
+      maxWidth: wp(70),
+      lineHeight: normalize(24),
+      letterSpacing: 0.2,
+      fontWeight: '500' as const,
+    },
+    addTaskButton: {
+      flexDirection: 'row' as 'row',
+      alignItems: 'center' as 'center',
+      backgroundColor: theme.accentColor,
+      paddingVertical: hp(1),
+      paddingHorizontal: wp(4),
+      borderRadius: wp(6),
+      marginTop: hp(3),
+      shadowColor: theme.accentColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    addTaskButtonText: {
+      color: '#FFFFFF',
+      fontSize: normalize(14),
+      fontWeight: '600' as '600',
+      marginLeft: wp(2),
+    }
+  };
+  
+  // Enhanced empty state component
+  const EmptyState = () => (
+    <View style={emptyStateStyles.noTasksContainer}>
+      <View style={emptyStateStyles.emptyIcon}>
+        <Ionicons 
+          name="calendar-outline" 
+          size={32} 
+          color={theme.accentColor} 
+        />
+      </View>
+      <Text style={emptyStateStyles.noTasksText}>
+        {t('noTasksForDate')}
+      </Text>
+      <TouchableOpacity 
+        style={emptyStateStyles.addTaskButton}
+        onPress={() => navigation.navigate('Task', { note: undefined })}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
+        <Text style={emptyStateStyles.addTaskButtonText}>Add Task</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const styles = StyleSheet.create({
     container: {
@@ -361,13 +438,18 @@ export default function CalendarScreen() {
       lineHeight: 24,
     },
     emptyIcon: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: `${theme.accentColor}15`,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 16,
+      width: 70,
+      height: 70,
+      borderRadius: 35,
+      backgroundColor: `${theme.accentColor}12`,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as 'center',
+      marginBottom: 20,
+      shadowColor: theme.accentColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 4,
     },
     modalContainer: {
       flex: 1,
@@ -428,117 +510,154 @@ export default function CalendarScreen() {
       elevation: 3,
       overflow: 'hidden',
     },
-    modernTaskCard: {
-      backgroundColor: theme.isDarkMode
-    ? 'rgba(20, 20, 20, 0.8)'  // dark gray/black glass effect
-    : 'rgba(240, 240, 240, 0.85)', // light grey glass effect
-      borderRadius: wp(6),
-      padding: wp(4),
-      marginBottom: hp(1.8),
-      minHeight: hp(10),
-      flexDirection: 'column',
-      shadowColor: theme.isDarkMode ? '#000' : 'rgba(0, 0, 0, 0.15)',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: theme.isDarkMode ? 0.3 : 0.1,
-      shadowRadius: 12,
-      elevation: 6,
-      overflow: 'hidden',
-      borderWidth: 0,
-      borderLeftWidth: 4,
-      borderLeftColor: theme.accentColor,
-    },
-    taskTypeIndicator: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: hp(0.25),
-      backgroundColor: 'transparent',
-      borderRadius: wp(4),
-      alignSelf: 'flex-start',
-      marginBottom: hp(0.5),
-      borderWidth: 0,
-    },
-    taskTypeText: {
-      fontSize: normalize(12),
-      fontWeight: '500',
-      color: theme.accentColor,
-      marginLeft: wp(1),
-    },
-    taskInfoContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: hp(1),
-    },
-    taskTitle: {
-      fontSize: normalize(17),
-      fontWeight: '800',
-      color: theme.isDarkMode ? '#ffffff' : '#222222',
-      flex: 1,
-      marginBottom: hp(0.5),
-      letterSpacing: -0.3,
-    },
-    taskDescription: {
-      fontSize: normalize(13.5),
-      color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(40, 40, 50, 0.65)',
-      marginVertical: hp(0.4),
-      lineHeight: normalize(18),
-      paddingVertical: 0,
-    },
-    taskPriority: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: wp(2),
-      paddingVertical: hp(0.25),
-      borderRadius: wp(4),
-      gap: wp(0.8),
-      borderWidth: 0,
-    },
-    taskPriorityText: {
-      fontSize: normalize(11),
-      fontWeight: '600',
-      letterSpacing: -0.2,
-    },
-    taskMetadata: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: wp(1.5),
-      marginTop: hp(1),
-    },
+// Enhanced task card styles - place these in your StyleSheet
+modernTaskCard: {
+  backgroundColor: theme.isDarkMode
+    ? 'rgba(30, 32, 40, 0.92)'  // Slightly darker for better contrast
+    : 'rgba(255, 255, 255, 0.98)', // Slightly more solid white for better readability
+  borderRadius: wp(6),  // Slightly less rounded for a more professional look
+  padding: wp(4.5),
+  marginVertical: hp(1.2),
+  flexDirection: 'column',
+  shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: theme.isDarkMode ? 0.3 : 0.15,
+  shadowRadius: 8,
+  elevation: 5,
+  borderLeftWidth: 4, // Slightly thicker border for emphasis
+  // Add subtle top and bottom border for definition
+  borderTopWidth: 0.5,
+  borderBottomWidth: 0.5,
+  borderTopColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.03)',
+  borderBottomColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.03)',
+},
 
-    taskMetadataItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: hp(0.5),
-      paddingHorizontal: wp(3),
-      backgroundColor: theme.isDarkMode
-        ? 'rgba(40, 40, 40, 0.6)' // Dark background in dark mode
-        : 'rgba(255, 255, 255, 0.85)', // Clean white background in light mode
-      borderRadius: wp(3.5),
-      marginRight: wp(2),
-      borderWidth: 1,
-      borderColor: theme.isDarkMode
-        ? 'rgba(255, 255, 255, 0.08)'
-        : 'rgba(0, 0, 0, 0.05)',
-      minHeight: hp(3.5), // Make sure all task metadata items have a consistent height
-      justifyContent: 'center', // Center align the content vertically
-    },
-    
-    taskText: {
-      fontSize: wp(4), // Standardize text size for all task metadata items
-      color: theme.isDarkMode ? '#fff' : '#000', // Ensure text color is correct for both modes
-      flexWrap: 'wrap', // Ensure text wraps inside the container
-      maxWidth: wp(50), // Control maximum width of text to prevent overflow
-    },
-    
-    
-    
-    
-    taskMetadataText: {
-      color: theme.isDarkMode ? '#fff' : '#000',
-      fontSize: wp(3.2),
-      fontWeight: '500',
-      letterSpacing: 0.3,
-    },
+// Refined task type indicator with gradient-like effect
+taskTypeIndicator: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: hp(0.4),
+  paddingHorizontal: wp(2),
+  backgroundColor: theme.isDarkMode 
+    ? 'rgba(255, 255, 255, 0.09)' 
+    : 'rgba(0, 0, 0, 0.04)',
+  borderRadius: wp(4),
+  alignSelf: 'flex-start',
+  marginBottom: hp(1.2),
+  borderWidth: 0.5,
+  borderColor: theme.isDarkMode 
+    ? 'rgba(255, 255, 255, 0.12)' 
+    : 'rgba(0, 0, 0, 0.05)',
+},
+
+taskTypeText: {
+  fontSize: normalize(11),
+  fontWeight: '600',
+  color: theme.accentColor,
+  marginLeft: wp(1.2),
+  letterSpacing: 0.3,
+},
+
+// Improved task title with better spacing
+taskTitle: {
+  fontSize: normalize(16),
+  fontWeight: '700',
+  color: theme.isDarkMode ? '#ffffff' : '#222222',
+  flex: 1,
+  marginBottom: hp(0.8),
+  letterSpacing: -0.2,
+  lineHeight: normalize(21),
+  maxWidth: wp(55), // Limit width to prevent overflow
+},
+
+// More readable task description
+taskDescription: {
+  fontSize: normalize(13),
+  color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(40, 40, 50, 0.8)',
+  marginVertical: hp(0.8),
+  lineHeight: normalize(18),
+  fontWeight: '400',
+  maxHeight: hp(4), // Limit height to ensure consistent card size
+  overflow: 'hidden',
+},
+
+// Enhanced metadata section with more distinct items
+taskMetadata: {
+  flexDirection: 'row',
+  justifyContent: 'center',     // 👈 center the whole row
+  alignItems: 'center',
+  gap: wp(2),                   // space between items
+  marginTop: hp(2),
+},
+
+// More refined metadata items
+taskMetadataItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: hp(0.5),
+  paddingHorizontal: wp(3),
+  backgroundColor: theme.isDarkMode
+    ? 'rgba(255, 255, 255, 0.07)'
+    : 'rgba(0, 0, 0, 0.035)',
+  borderRadius: wp(3),
+  borderWidth: 0.5,
+  borderColor: theme.isDarkMode 
+    ? 'rgba(255, 255, 255, 0.1)' 
+    : 'rgba(0, 0, 0, 0.03)',
+  width: wp(25),  // 🔒 fixed width so all are equal
+  height: hp(3.2),
+},
+
+
+
+taskMetadataText: {
+  color: theme.isDarkMode ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.75)',
+  fontSize: normalize(11),
+  fontWeight: '500',
+  marginLeft: wp(1),
+},
+
+
+
+// Enhanced completion status with subtle animation setup
+taskCompletionStatus: {
+  position: 'absolute',
+  top: wp(4),
+  right: wp(4),
+  width: wp(7),
+  height: wp(7),
+  borderRadius: wp(3.5),
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
+
+// Task info container with improved spacing
+taskInfoContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  marginBottom: hp(0.5),
+},
+
+// Enhanced priority indicator
+taskPriority: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: wp(2.2),
+  paddingVertical: hp(0.5),
+  borderRadius: wp(3.5),
+  gap: wp(1),
+  marginLeft: wp(2),
+  borderWidth: 0.5,
+},
+
+taskPriorityText: {
+  fontSize: normalize(12),
+  fontWeight: '500',
+  color: theme.isDarkMode ? '#ffffff' : '#222222',
+},
     
   });
 
@@ -643,116 +762,148 @@ export default function CalendarScreen() {
           </View>
           
           <View style={styles.tasksList}>
-            {tasksForSelectedDate.length > 0 ? (
-              tasksForSelectedDate.map(note => (
-                <TouchableOpacity
-                  key={note.id}
-                  style={[
-                    styles.noteItem,
-                    styles.modernTaskCard,
-                    {
-                      borderLeftColor: note.tasks?.[0]?.priority === 'high' ? '#FF4E4E' :
-                                      note.tasks?.[0]?.priority === 'medium' ? '#FFA726' : 
-                                      note.tasks?.[0]?.priority === 'low' ? '#66BB6A' : theme.accentColor
-                    }
-                  ]}
-                  onPress={() => navigation.navigate('QuickTask', { note })}
-                >
-                  <View style={styles.noteContent}>
-                    <View style={styles.taskTypeIndicator}>
-                      <Ionicons name="list-circle-outline" size={16} color={theme.accentColor} />
-                      <Text style={styles.taskTypeText}>Task</Text>
-                    </View>
-                    
-                    <View style={styles.taskInfoContainer}>
-                      <Text style={styles.taskTitle} numberOfLines={1}>
-                        {note.title}
-                      </Text>
-                      
-                      {note.tasks?.[0]?.priority && (
-                        <View style={[
-                          styles.taskPriority,
-                          { 
-                            backgroundColor: note.tasks[0].priority === 'high' ? '#FF4E4E15' :
-                                          note.tasks[0].priority === 'medium' ? '#FFA72615' : '#66BB6A15',
-                          }
-                        ]}>
-                          <Ionicons 
-                            name="flag" 
-                            size={13} 
-                            color={note.tasks[0].priority === 'high' ? '#FF4E4E' :
-                                  note.tasks[0].priority === 'medium' ? '#FFA726' : '#66BB6A'} 
-                          />
-                          <Text style={[
-                            styles.taskPriorityText,
-                            { 
-                              color: note.tasks[0].priority === 'high' ? '#FF4E4E' :
-                                    note.tasks[0].priority === 'medium' ? '#FFA726' : '#66BB6A'
-                            }
-                          ]}>
-                            {t(note.tasks[0].priority)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    
-                    {note.description && (
-                      <Text style={styles.taskDescription} numberOfLines={2}>
-                        {note.description}
-                      </Text>
-                    )}
-                    
-                    <View style={styles.taskMetadata}>
-                      {note.tasks?.[0]?.dueDate && (
-                        <View style={styles.taskMetadataItem}>
-                          <Ionicons name="calendar-outline" size={12} color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)'} />
-                          <Text style={styles.taskMetadataText}>
-                            {new Date(note.tasks[0].dueDate).toLocaleDateString(undefined, { 
-                              day: 'numeric', 
-                              month: 'short' 
-                            })}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {note.tasks?.[0]?.dueTime && (
-                        <View style={styles.taskMetadataItem}>
-                          <Ionicons name="time-outline" size={12} color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)'} />
-                          <Text style={styles.taskMetadataText}>
-                            {new Date(note.tasks[0].dueTime).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {note.tasks?.[0]?.location && (
-                        <View style={styles.taskMetadataItem}>
-                          <Ionicons name="location-outline" size={12} color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)'} />
-                          <Text style={styles.taskMetadataText} numberOfLines={1}>
-                            {note.tasks[0].location}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.noTasksContainer}>
-                <View style={styles.emptyIcon}>
-                  <Ionicons 
-                    name="checkmark-circle-outline" 
-                    size={30} 
-                    color={theme.accentColor} 
-                  />
-                </View>
-                <Text style={styles.noTasksText}>
-                  {t('noTasksForDate')}
-                </Text>
-              </View>
-            )}
+{/* Replace the task card rendering code with this improved version */}
+{tasksForSelectedDate.length > 0 ? (
+  tasksForSelectedDate.map(note => (
+    <TouchableOpacity
+      key={note.id}
+      style={[
+        styles.noteItem,
+        styles.modernTaskCard,
+        {
+          borderLeftColor: note.tasks?.[0]?.priority === 'high' ? '#FF4E4E' :
+                         note.tasks?.[0]?.priority === 'medium' ? '#FFA726' : 
+                         note.tasks?.[0]?.priority === 'low' ? '#66BB6A' : theme.accentColor
+        }
+      ]}
+      onPress={() => navigation.navigate('QuickTask', { note })}
+      activeOpacity={0.75}
+    >
+      {/* Task card content container */}
+      <View style={styles.noteContent}>
+        {/* Task type badge */}
+        <View style={styles.taskTypeIndicator}>
+          <Ionicons 
+            name="checkmark-circle-outline" 
+            size={14} 
+            color={note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor} 
+          />
+          <Text style={[styles.taskTypeText, { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor }]}>
+            {getCategoryName(note.color) || 'Task'}
+          </Text>
+        </View>
+        
+        {/* Task header with title and priority */}
+        <View style={styles.taskInfoContainer}>
+          <Text style={styles.taskTitle} numberOfLines={2}>
+            {note.title}
+          </Text>
+          
+          {note.tasks?.[0]?.priority && (
+            <View style={[
+              styles.taskPriority,
+              { 
+                backgroundColor: note.tasks[0].priority === 'high' ? 'rgba(255, 78, 78, 0.15)' :
+                              note.tasks[0].priority === 'medium' ? 'rgba(255, 167, 38, 0.15)' : 
+                              'rgba(102, 187, 106, 0.15)',
+                borderColor: note.tasks[0].priority === 'high' ? 'rgba(255, 78, 78, 0.25)' :
+                           note.tasks[0].priority === 'medium' ? 'rgba(255, 167, 38, 0.25)' : 
+                           'rgba(102, 187, 106, 0.25)',
+              }
+            ]}>
+              <Ionicons 
+                name="flag" 
+                size={12} 
+                color={note.tasks[0].priority === 'high' ? '#FF4E4E' :
+                      note.tasks[0].priority === 'medium' ? '#FFA726' : '#66BB6A'} 
+              />
+              <Text style={[
+                styles.taskPriorityText,
+                { 
+                  color: note.tasks[0].priority === 'high' ? '#FF4E4E' :
+                        note.tasks[0].priority === 'medium' ? '#FFA726' : '#66BB6A'
+                }
+              ]}>
+                {t(note.tasks[0].priority)}
+              </Text>
+            </View>
+          )}
+        </View>
+        
+        {note.description && (
+  <Text style={styles.taskDescription} numberOfLines={2}>
+    {note.description}
+  </Text>
+)}
+
+        
+        {/* Task Metadata */}
+        <View style={styles.taskMetadata}>
+          {/* Due Date */}
+          {note.tasks?.[0]?.dueDate && (
+            <View style={styles.taskMetadataItem}>
+              <Ionicons 
+                name="calendar-outline" 
+                size={13} 
+                color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
+              />
+              <Text style={styles.taskMetadataText}>
+                {new Date(note.tasks[0].dueDate).toLocaleDateString(undefined, { 
+                  day: 'numeric', 
+                  month: 'short' 
+                })}
+              </Text>
+            </View>
+          )}
+          
+          {/* Due Time */}
+          {note.tasks?.[0]?.dueTime && (
+            <View style={styles.taskMetadataItem}>
+              <Ionicons 
+                name="time-outline" 
+                size={13} 
+                color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
+              />
+              <Text style={styles.taskMetadataText}>
+                {new Date(note.tasks[0].dueTime).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </Text>
+            </View>
+          )}
+          
+          {/* Location */}
+          {note.tasks?.[0]?.location && (
+            <View style={styles.taskMetadataItem}>
+              <Ionicons 
+                name="location-outline" 
+                size={13} 
+                color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
+              />
+              <Text style={styles.taskMetadataText} numberOfLines={1}>
+                {note.tasks[0].location}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      
+      {/* Task completion status indicator */}
+      <View style={styles.taskCompletionStatus}>
+        <Ionicons 
+          name={note.tasks?.[0]?.completed ? "checkmark-circle" : "ellipse-outline"} 
+          size={22} 
+          color={note.tasks?.[0]?.completed ? 
+            (theme.isDarkMode ? '#66BB6A' : '#4CAF50') : 
+            (theme.isDarkMode ? 'rgba(255, 255, 255, 0.35)' : 'rgba(0, 0, 0, 0.25)')} 
+        />
+      </View>
+    </TouchableOpacity>
+  ))
+) : (
+  <EmptyState />
+)}
           </View>
         </View>
       </ScrollView>

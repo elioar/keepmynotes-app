@@ -201,7 +201,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const finalUpdatedNote = {
         ...updatedNote,
         content: updatedNote.content || '',
-        description: stripHtmlTags(updatedNote.content || '').substring(0, 100),
+        description: updatedNote.description || '',
         updatedAt: new Date().toISOString()
       };
       
@@ -210,8 +210,8 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       );
       
       await saveNotes(updatedNotes);
+      console.log('Updating note:', finalUpdatedNote);
     } catch (error) {
-      console.error('❌ Error updating note:', error);
       throw error;
     }
   }, [notes, saveNotes, stripHtmlTags]);
@@ -219,11 +219,9 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   // Optimized delete note function
   const deleteNote = useCallback(async (id: string) => {
     try {
-      // Βρίσκουμε τη σημείωση
       const noteToTrash = notes.find(note => note.id === id);
       if (!noteToTrash) return;
       
-      // Τη σημαδεύουμε ως διαγραμμένη
       const trashedNote = {
         ...noteToTrash,
         isDeleted: true,
@@ -231,14 +229,12 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString()
       };
       
-      // Ενημερώνουμε τις σημειώσεις με την τροποποιημένη σημείωση
       const updatedNotes = notes.map(note => 
         note.id === id ? trashedNote : note
       );
       
       await saveNotes(updatedNotes);
     } catch (error) {
-      console.error('❌ Error deleting note:', error);
       throw error;
     }
   }, [notes, saveNotes]);
@@ -262,7 +258,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       
       await saveNotes(updatedNotes);
     } catch (error) {
-      console.error('❌ Error restoring note from trash:', error);
       throw error;
     }
   }, [notes, saveNotes]);

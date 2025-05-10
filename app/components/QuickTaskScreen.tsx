@@ -61,6 +61,7 @@ export default function QuickTaskScreen({ route }: { route: any }) {
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSave = async () => {
+    console.log('Saving task with description:', taskDetails.description);
     if (!taskDetails.title.trim()) return;
 
     try {
@@ -79,7 +80,6 @@ export default function QuickTaskScreen({ route }: { route: any }) {
           dueTime: taskDetails.dueTime?.toISOString(),
           location: taskDetails.location,
           isAllDay: taskDetails.isAllDay,
-          reminder: taskDetails.reminder
         }]
       };
 

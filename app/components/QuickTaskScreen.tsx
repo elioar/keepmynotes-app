@@ -11,11 +11,12 @@ import {
   Modal,
   Switch,
   Alert,
+  Linking,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useNotes } from '../NotesContext';
-import type { Note } from '../NotesContext';
+import { useTasks } from '../context/TaskContext';
+import type { Task } from '../context/TaskContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,6 +25,7 @@ import { scheduleTaskNotification, cancelTaskNotification, requestNotificationPe
 import { useTranslation } from 'react-i18next';
 import { Translations } from '../i18n/types';
 import { formatDate } from '../utils/dateUtils';
+import { formatNotificationTime } from '../utils/notifications';
 import { Priority, RepeatOption, RepeatUnit } from '../types';
 
 type RootStackParamList = {
@@ -41,7 +43,9 @@ interface TaskDetails {
   priority: Priority;
   isAllDay: boolean;
   reminder: boolean;
-  repeat: RepeatOption;
+  reminderTime: 'none' | '30min' | '1hour' | '1day' | '1week' | 'custom';
+  customReminderMinutes?: number;
+  repeat: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
   customRepeat?: {
     frequency: number;
     unit: 'days' | 'weeks' | 'months' | 'years';
@@ -51,25 +55,29 @@ interface TaskDetails {
 export default function QuickTaskScreen({ route }: { route: any }) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { addNote, updateNote } = useNotes();
+  const { addTask, updateTask } = useTasks();
   const navigation = useNavigation<NavigationProp>();
-  const existingNote = route.params?.note;
+  const existingTask = route.params?.task;
   
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showRepeatModal, setShowRepeatModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showCustomTimeModal, setShowCustomTimeModal] = useState(false);
+  const [customTimeInput, setCustomTimeInput] = useState('');
 
   const [taskDetails, setTaskDetails] = useState<TaskDetails>({
-    title: existingNote?.title || '',
-    description: existingNote?.description || '',
-    dueDate: existingNote?.tasks?.[0]?.dueDate ? new Date(existingNote.tasks[0].dueDate) : new Date(),
-    dueTime: existingNote?.tasks?.[0]?.dueTime ? new Date(existingNote.tasks[0].dueTime) : null,
-    location: existingNote?.tasks?.[0]?.location || '',
-    priority: existingNote?.tasks?.[0]?.priority || 'medium',
-    isAllDay: existingNote?.tasks?.[0]?.isAllDay ?? true,
-    reminder: existingNote?.tasks?.[0]?.reminder ?? false,
-    repeat: existingNote?.tasks?.[0]?.repeat || 'none',
-    customRepeat: existingNote?.tasks?.[0]?.customRepeat,
+    title: existingTask?.title || '',
+    description: existingTask?.description || '',
+    dueDate: existingTask?.dueDate ? new Date(existingTask.dueDate) : new Date(),
+    dueTime: existingTask?.dueTime ? new Date(existingTask.dueTime) : null,
+    location: existingTask?.location || '',
+    priority: existingTask?.priority || 'medium',
+    isAllDay: existingTask?.isAllDay ?? true,
+    reminder: existingTask?.reminder ?? false,
+    reminderTime: existingTask?.reminderTime || '1hour',
+    repeat: existingTask?.repeat || 'none',
+    customRepeat: existingTask?.customRepeat,
   });
 
   useEffect(() => {
@@ -79,58 +87,144 @@ export default function QuickTaskScreen({ route }: { route: any }) {
   async function scheduleNotification(taskDetails: TaskDetails) {
     if (!taskDetails.reminder) return;
 
-    const hasPermission = await requestNotificationPermissions();
-    if (!hasPermission) return;
+    try {
+      const hasPermission = await requestNotificationPermissions();
+      if (!hasPermission) {
+        Alert.alert(
+          t('notificationPermissionRequired'),
+          t('notificationPermissionMessage'),
+          [
+            { text: t('cancel'), style: 'cancel' },
+            { 
+              text: t('settings'), 
+              onPress: () => Linking.openSettings() 
+            }
+          ]
+        );
+        return;
+      }
 
-    // Cancel any existing notifications for this task
-    if (existingNote?.id) {
-      await cancelTaskNotification(existingNote.id);
+      if (existingTask?.id) {
+        await cancelTaskNotification(existingTask.id);
+      }
+
+      let taskDate = new Date(taskDetails.dueDate);
+      let taskTime = taskDetails.dueTime ? new Date(taskDetails.dueTime) : null;
+
+      if (taskDetails.isAllDay) {
+        taskTime = new Date(taskDate);
+        taskTime.setHours(9, 0, 0, 0);
+      }
+
+      let triggerDate = new Date(taskTime || taskDate);
+      
+      console.log('Έναρξη προγραμματισμού ειδοποίησης...');
+      console.log('Τίτλος:', taskDetails.title);
+      console.log('Αρχική ημερομηνία:', taskTime?.toLocaleString() || taskDate.toLocaleString());
+
+      switch (taskDetails.reminderTime) {
+        case '30min':
+          triggerDate.setMinutes(triggerDate.getMinutes() - 30);
+          break;
+        case '1hour':
+          triggerDate.setHours(triggerDate.getHours() - 1);
+          break;
+        case '1day':
+          triggerDate.setDate(triggerDate.getDate() - 1);
+          break;
+        case '1week':
+          triggerDate.setDate(triggerDate.getDate() - 7);
+          break;
+      }
+
+      console.log('Χρόνος ειδοποίησης:', taskDetails.reminderTime);
+      console.log('Ημερομηνία ειδοποίησης:', triggerDate.toLocaleString());
+
+      const now = new Date();
+      console.log('Τρέχουσα ημερομηνία:', now.toLocaleString());
+      
+      const timeDiff = triggerDate.getTime() - now.getTime();
+      console.log('Διαφορά χρόνου (ms):', timeDiff);
+      console.log('Διαφορά χρόνου (ώρες):', timeDiff / (1000 * 60 * 60));
+      
+      if (timeDiff <= 0) {
+        console.log('Η ειδοποίηση έχει ήδη περάσει. Διαφορά χρόνου:', timeDiff, 'ms');
+        Alert.alert(
+          t('notificationTimePassed'),
+          t('notificationTimePassedMessage')
+        );
+        return;
+      }
+
+      console.log('Διαφορά χρόνου μέχρι την ειδοποίηση:', Math.floor(timeDiff / 1000), 'δευτερόλεπτα');
+
+      const success = await scheduleTaskNotification(
+        taskDetails.title,
+        taskDetails.description || t('taskReminder'),
+        triggerDate,
+        existingTask?.id || Date.now().toString(),
+        taskDetails.location,
+        taskDetails.isAllDay,
+        taskTime || undefined
+      );
+
+      if (success) {
+        Alert.alert(
+          t('notificationScheduled'),
+          t('notificationScheduledMessage').replace('{{time}}', formatNotificationTime(triggerDate))
+        );
+      } else {
+        throw new Error('Failed to schedule notification');
+      }
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      Alert.alert(
+        t('notificationError'),
+        t('notificationErrorMessage')
+      );
     }
-
-    const triggerDate = taskDetails.isAllDay 
-      ? new Date(taskDetails.dueDate.setHours(9, 0, 0)) // 9 AM on due date
-      : taskDetails.dueTime || taskDetails.dueDate;
-
-    await scheduleTaskNotification(
-      taskDetails.title,
-      taskDetails.description || 'Task reminder',
-      triggerDate,
-      existingNote?.id?.toString() || Date.now().toString()
-    );
   }
 
   const handleSave = async () => {
     if (!taskDetails.title.trim()) return;
 
     try {
-      const taskData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'> = {
+      // Create task data object, filtering out undefined values
+      const baseTaskData = {
         title: taskDetails.title,
-        type: 'checklist',
-        content: '',
-        description: taskDetails.description,
-        isFavorite: existingNote?.isFavorite || false,
-        isHidden: existingNote?.isHidden || false,
-        tasks: [{
-          text: taskDetails.title,
-          isCompleted: existingNote?.tasks?.[0]?.isCompleted || false,
-          priority: taskDetails.priority,
-          dueDate: taskDetails.dueDate.toISOString(),
-          dueTime: taskDetails.dueTime?.toISOString(),
-          location: taskDetails.location,
-          isAllDay: taskDetails.isAllDay,
-          reminder: taskDetails.reminder,
-          repeat: taskDetails.repeat,
-          customRepeat: taskDetails.customRepeat,
-        }]
+        description: taskDetails.description || '',
+        isCompleted: existingTask?.isCompleted || false,
+        priority: taskDetails.priority,
+        dueDate: taskDetails.dueDate.toISOString(),
+        location: taskDetails.location || '',
+        isAllDay: taskDetails.isAllDay,
+        reminder: taskDetails.reminder,
+        repeat: taskDetails.repeat,
+        tags: existingTask?.tags || [],
+        isSynced: false
       };
 
-      if (existingNote) {
-        await updateNote({ ...existingNote, ...taskData });
-      } else {
-        await addNote(taskData);
+      // Only add optional fields if they have values
+      const taskData: any = { ...baseTaskData };
+      
+      if (taskDetails.dueTime) {
+        taskData.dueTime = taskDetails.dueTime.toISOString();
+      }
+      
+      if (taskDetails.customRepeat) {
+        taskData.customRepeat = taskDetails.customRepeat;
+      }
+      
+      if (existingTask?.color) {
+        taskData.color = existingTask.color;
       }
 
-      // Schedule notification if reminder is enabled
+      if (existingTask) {
+        await updateTask({ ...existingTask, ...taskData });
+      } else {
+        await addTask(taskData);
+      }
+
       await scheduleNotification(taskDetails);
       
       navigation.goBack();
@@ -195,6 +289,131 @@ export default function QuickTaskScreen({ route }: { route: any }) {
                   {t(option as keyof Translations)}
                 </Text>
                 {taskDetails.repeat === option && (
+                  <Ionicons name="checkmark-circle" size={22} color={theme.accentColor} style={{ marginLeft: 8 }} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const CustomTimeModal = () => (
+    <Modal
+      visible={showCustomTimeModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowCustomTimeModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.repeatModalContent, { width: '80%' }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('enterTime')}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowCustomTimeModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.textColor} />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={[styles.optionText, { marginBottom: 16 }]}>
+            {t('enterTimeDescription')}
+          </Text>
+
+          <TextInput
+            style={[styles.titleInput, { marginBottom: 20 }]}
+            placeholder="1:30"
+            placeholderTextColor={theme.placeholderColor}
+            value={customTimeInput}
+            onChangeText={setCustomTimeInput}
+            keyboardType="numeric"
+          />
+
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowCustomTimeModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                if (!customTimeInput) return;
+                
+                const [hours, minutes] = customTimeInput.split(':').map(Number);
+                
+                if (isNaN(hours) || isNaN(minutes) || hours < 0 || minutes < 0 || minutes > 59) {
+                  Alert.alert(t('invalidTime'), t('invalidTimeMessage'));
+                  return;
+                }
+
+                const totalMinutes = (hours * 60) + minutes;
+                
+                setTaskDetails(prev => ({
+                  ...prev,
+                  reminderTime: 'custom',
+                  customReminderMinutes: totalMinutes
+                }));
+                
+                setShowCustomTimeModal(false);
+                setShowReminderModal(false);
+              }}
+            >
+              <Text style={styles.saveButtonText}>{t('ok')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const ReminderModal = () => (
+    <Modal
+      visible={showReminderModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowReminderModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.repeatModalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t('reminderTime')}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowReminderModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.textColor} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.repeatOptionsList}>
+            {[
+              { value: '30min', label: t('reminder30min') },
+              { value: '1hour', label: t('reminder1hour') },
+              { value: '1day', label: t('reminder1day') },
+              { value: '1week', label: t('reminder1week') }
+            ].map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.repeatOptionRow,
+                  taskDetails.reminderTime === option.value && styles.repeatOptionRowSelected
+                ]}
+                onPress={() => {
+                  setTaskDetails(prev => ({ ...prev, reminderTime: option.value as TaskDetails['reminderTime'] }));
+                  setShowReminderModal(false);
+                }}
+              >
+                <Text style={[
+                  styles.repeatOptionText,
+                  taskDetails.reminderTime === option.value && styles.repeatOptionTextSelected
+                ]}>
+                  {option.label}
+                </Text>
+                {taskDetails.reminderTime === option.value && (
                   <Ionicons name="checkmark-circle" size={22} color={theme.accentColor} style={{ marginLeft: 8 }} />
                 )}
               </TouchableOpacity>
@@ -419,7 +638,7 @@ export default function QuickTaskScreen({ route }: { route: any }) {
         >
           <Ionicons name="close" size={24} color={theme.textColor} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('newTask')}</Text>
+        <Text style={styles.headerTitle}>{existingTask ? t('edit') : t('newTask')}</Text>
         <TouchableOpacity 
           style={styles.saveButton}
           onPress={handleSave}
@@ -550,6 +769,25 @@ export default function QuickTaskScreen({ route }: { route: any }) {
               thumbColor={theme.backgroundColor}
             />
           </View>
+
+          {taskDetails.reminder && (
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() => setShowReminderModal(true)}
+            >
+              <View style={styles.optionIcon}>
+                <Ionicons name="time-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.optionText}>{t('reminderTime')}</Text>
+              <Text style={styles.optionValue}>
+                {taskDetails.reminderTime === '30min' ? t('reminder30min') :
+                 taskDetails.reminderTime === '1hour' ? t('reminder1hour') :
+                 taskDetails.reminderTime === '1day' ? t('reminder1day') :
+                 taskDetails.reminderTime === '1week' ? t('reminder1week') :
+                 t('reminder1hour')}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -595,6 +833,8 @@ export default function QuickTaskScreen({ route }: { route: any }) {
         />
       )}
       <RepeatModal />
+      <ReminderModal />
+      <CustomTimeModal />
     </KeyboardAvoidingView>
   );
 } 

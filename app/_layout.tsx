@@ -8,6 +8,7 @@ import { NotesProvider } from './NotesContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { TaskProvider } from './context/TaskContext';
+import { AuthProvider } from './contexts/AuthContext';
 import HiddenNotesScreen from './components/HiddenNotesScreen';
 import SecurityCheck from './components/SecurityCheck';
 import PinScreen from './components/PinScreen';
@@ -20,6 +21,13 @@ import CalendarScreen from './components/CalendarScreen';
 import QuickTaskScreen from './components/QuickTaskScreen';
 import BackupRestoreScreen from './components/BackupRestoreScreen';
 import TrashScreen from './components/TrashScreen';
+import AnalyticsScreen from './screens/AnalyticsScreen';
+import TasksAnalyticsScreen from './screens/TasksAnalyticsScreen';
+import AnalyticsMenuScreen from './screens/AnalyticsMenuScreen';
+import TimeAnalyticsScreen from './screens/TimeAnalyticsScreen';
+import LoginScreen from './components/LoginScreen';
+import ProfileScreen from './components/ProfileScreen';
+import ChangePasswordScreen from './components/ChangePasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -106,12 +114,65 @@ function Navigation() {
         component={BackupRestoreScreen}
       />
       <Stack.Screen 
+        name="Analytics" 
+        component={AnalyticsMenuScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'none'
+        }}
+      />
+      <Stack.Screen 
+        name="NotesAnalytics" 
+        component={AnalyticsScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'none'
+        }}
+      />
+      <Stack.Screen 
+        name="TasksAnalytics" 
+        component={TasksAnalyticsScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'none'
+        }}
+      />
+      <Stack.Screen 
+        name="TimeAnalytics" 
+        component={TimeAnalyticsScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'none'
+        }}
+      />
+      <Stack.Screen 
         name="Trash" 
         component={TrashScreen}
       />
       <Stack.Screen 
         name="HiddenNotes" 
         component={HiddenNotesScreen}
+      />
+      <Stack.Screen 
+        name="Login" 
+        component={LoginScreen}
+        options={{
+          headerShown: false
+        }}
+      />
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{
+          headerShown: false
+        }}
+      />
+      <Stack.Screen 
+        name="ChangePassword" 
+        component={ChangePasswordScreen}
+        options={{
+          headerShown: false
+        }}
       />
     </Stack.Navigator>
   );
@@ -121,17 +182,19 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <OnboardingProvider>
-        <NotesProvider>
-          <TaskProvider>
-            <ThemeProvider>
-              <LanguageProvider>
-                <View style={{ flex: 1 }}>
-                  <Navigation />
-                </View>
-              </LanguageProvider>
-            </ThemeProvider>
-          </TaskProvider>
-        </NotesProvider>
+        <AuthProvider>
+          <NotesProvider>
+            <TaskProvider>
+              <ThemeProvider>
+                <LanguageProvider>
+                  <View style={{ flex: 1 }}>
+                    <Navigation />
+                  </View>
+                </LanguageProvider>
+              </ThemeProvider>
+            </TaskProvider>
+          </NotesProvider>
+        </AuthProvider>
       </OnboardingProvider>
     </GestureHandlerRootView>
   );

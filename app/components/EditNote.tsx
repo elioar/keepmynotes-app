@@ -1361,7 +1361,7 @@ export default function EditNote({ route }: { route: any }) {
           title: title.trim(),
           content: noteContent,
           description: stripHtmlTags(noteContent).substring(0, 100),
-          type: routeNote?.type || 'text', // Χρησιμοποιούμε τον τύπο από το routeNote
+          type: routeNote?.type || 'text',
           isFavorite: false,
           isHidden: false,
           tags
@@ -1375,8 +1375,10 @@ export default function EditNote({ route }: { route: any }) {
       setHasChanges(false);
       await loadNotes();
       
-      // Πλοήγηση στην αρχική οθόνη χωρίς καθυστέρηση
-      navigation.navigate('Home');
+      // Περιμένουμε να ολοκληρωθεί η αποθήκευση πριν την πλοήγηση
+      setTimeout(() => {
+        navigation.navigate('Home');
+      }, 100);
     
       return savedNote;
     } catch (error) {
@@ -1386,7 +1388,8 @@ export default function EditNote({ route }: { route: any }) {
         t('errorSavingNote'), 
         [{ text: t('done'), style: 'default' }]
       );
-      throw error; // Επαναφέρουμε το σφάλμα για να το χειριστούν οι calling functions
+      // Δεν επαναφέρουμε το σφάλμα για να μην διακόψουμε τη ροή
+      return null;
     }
   };
 

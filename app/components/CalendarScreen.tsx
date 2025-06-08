@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useNotes, TaskItem, Note } from '../NotesContext';
+import { useTasks, Task } from '../context/TaskContext';
 import NavigationMenu from './NavigationMenu';
 import { Calendar, DateData } from 'react-native-calendars';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +22,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TAG_COLORS, TagColor } from '../constants/tags';
 import type { MarkedDates } from 'react-native-calendars/src/types';
 import AddNoteModal from './AddNoteModal';
+import * as Notifications from 'expo-notifications';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -44,15 +45,14 @@ type RootStackParamList = {
   Home: undefined;
   Task: { note?: any };
   Calendar: undefined;
-  QuickTask: { note?: any };
+  QuickTask: { note?: any; task?: any };
   AddEditNote: { note?: any };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-function getRepeatingDates(note: any, startDate: Date, endDate: Date): string[] {
+function getRepeatingDates(task: Task, startDate: Date, endDate: Date): string[] {
   const dates: string[] = [];
-  const task = note.tasks[0];
   
   if (!task.repeat || task.repeat === 'none') {
     return dates;
@@ -105,63 +105,91 @@ function getRepeatingDates(note: any, startDate: Date, endDate: Date): string[] 
   return dates;
 }
 
-function getMarkedDates(notes: Note[]): MarkedDates {
-  const { theme } = useTheme();
-  const marked: MarkedDates = {};
+function getMarkedDatesForCalendar(tasks: Task[], selectedDate: string, theme: any): MarkedDates {
+  const markedDates: MarkedDates = {};
   
-  notes.forEach(note => {
-    if (note.type === 'task' && note.tasks && note.tasks.length > 0) {
-      const task = note.tasks[0];
-      if (task.dueDate) {
-        // Add the original date
-        marked[task.dueDate] = {
-          ...marked[task.dueDate],
-          dots: [
-            ...(marked[task.dueDate]?.dots || []),
-            {
-              color: note.color || theme.accentColor,
-              key: note.id,
-            },
-          ],
-        };
+  tasks.forEach(task => {
+    if (task.dueDate) {
+      const dueDate = new Date(task.dueDate).toISOString().split('T')[0];
+      
+      // Add the original date
+      markedDates[dueDate] = {
+        ...markedDates[dueDate],
+        dots: [
+          ...(markedDates[dueDate]?.dots || []),
+          {
+            color: task.color || theme.accentColor,
+            key: task.id,
+          },
+        ],
+      };
 
-        // Add repeating dates
-        if (task.repeat && task.repeat !== 'none') {
-          const startDate = new Date();
-          const endDate = new Date();
-          endDate.setMonth(endDate.getMonth() + 3); // Show next 3 months of repeating tasks
-          
-          const repeatingDates = getRepeatingDates(note, startDate, endDate);
-          
-          repeatingDates.forEach(date => {
-            if (date !== task.dueDate) { // Don't duplicate the original date
-              marked[date] = {
-                ...marked[date],
-                dots: [
-                  ...(marked[date]?.dots || []),
-                  {
-                    color: note.color || theme.accentColor,
-                    key: note.id,
-                  },
-                ],
-              };
-            }
-          });
-        }
+      // Add repeating dates
+      if (task.repeat && task.repeat !== 'none') {
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 3); // Show next 3 months of repeating tasks
+        
+        const repeatingDates = getRepeatingDates(task, startDate, endDate);
+        
+        repeatingDates.forEach(date => {
+          if (date !== dueDate) { // Don't duplicate the original date
+            markedDates[date] = {
+              ...markedDates[date],
+              dots: [
+                ...(markedDates[date]?.dots || []),
+                {
+                  color: task.color || theme.accentColor,
+                  key: task.id,
+                },
+              ],
+            };
+          }
+        });
       }
     }
   });
   
-  return marked;
+  if (selectedDate) {
+    markedDates[selectedDate] = {
+      ...markedDates[selectedDate],
+      selected: true,
+      selectedColor: theme.accentColor,
+      dots: markedDates[selectedDate]?.dots || []
+    };
+  }
+  
+  return markedDates;
+}
+
+export async function scheduleTaskNotification(
+  title: string,
+  body: string,
+  date: Date,
+  id: string
+) {
+  console.log('Scheduling notification for:', date);
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      sound: true,
+    },
+    trigger: {
+      type: 'date',
+      date: date,
+    } as Notifications.DateTriggerInput,
+    identifier: id,
+  });
 }
 
 export default function CalendarScreen() {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { notes, updateNote } = useNotes();
+  const { tasks, updateTask } = useTasks();
   const navigation = useNavigation<NavigationProp>();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [tasksForSelectedDate, setTasksForSelectedDate] = useState<any[]>([]);
+  const [tasksForSelectedDate, setTasksForSelectedDate] = useState<Task[]>([]);
   const [showMonthView, setShowMonthView] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [currentWeek, setCurrentWeek] = useState<string[]>([]);
@@ -188,79 +216,27 @@ export default function CalendarScreen() {
     setCurrentWeek(getCurrentWeekDates(new Date(selectedDate)));
   }, [selectedDate]);
 
-  // Get marked dates for calendar
-  const getMarkedDates = () => {
-    const markedDates: any = {};
-    const startDate = new Date(currentWeek[0]);
-    const endDate = new Date(currentWeek[6]);
-    endDate.setHours(23, 59, 59, 999);
-
-    notes.forEach(note => {
-      if (note.type === 'checklist' && note.tasks?.[0]?.dueDate && !note.isDeleted) {
-        const repeatingDates = getRepeatingDates(note, startDate, endDate);
-        
-        // Add the original date if it's not already included
-        const originalDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
-        if (!repeatingDates.includes(originalDate)) {
-          repeatingDates.push(originalDate);
-        }
-
-        repeatingDates.forEach(date => {
-          if (!markedDates[date]) {
-            markedDates[date] = {
-              dots: [{
-                key: note.color || 'default',
-                color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor,
-                selectedDotColor: '#FFFFFF'
-              }]
-            };
-          } else {
-            markedDates[date].dots.push({
-              key: note.color || 'default',
-              color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor,
-              selectedDotColor: '#FFFFFF'
-            });
-          }
-        });
-      }
-    });
-    
-    if (selectedDate) {
-      markedDates[selectedDate] = {
-        ...markedDates[selectedDate],
-        selected: true,
-        selectedColor: theme.accentColor,
-        dots: markedDates[selectedDate]?.dots || []
-      };
-    }
-    
-    return markedDates;
-  };
-
   // Update tasks for selected date
   useEffect(() => {
     if (selectedDate) {
-      const filteredTasks = notes.filter(note => {
-        if (note.type === 'checklist' && note.tasks?.[0]?.dueDate && !note.isDeleted) {
-          const taskDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
-          
-          // Check if the task is repeating and if the selected date matches the pattern
-          if (note.tasks[0].repeat && note.tasks[0].repeat !== 'none') {
-            const repeatingDates = getRepeatingDates(
-              note,
-              new Date(selectedDate),
-              new Date(selectedDate)
-            );
-            return repeatingDates.includes(selectedDate);
-          }
-          
-          return taskDate === selectedDate;
+      const filteredTasks = tasks.filter(task => {
+        const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
+        
+        // Check if the task is repeating and if the selected date matches the pattern
+        if (task.repeat && task.repeat !== 'none') {
+          const repeatingDates = getRepeatingDates(
+            task,
+            new Date(selectedDate),
+            new Date(selectedDate)
+          );
+          return repeatingDates.includes(selectedDate);
         }
-        return false;
+        
+        return taskDate === selectedDate;
       });
       setTasksForSelectedDate(filteredTasks);
     }
-  }, [selectedDate, notes]);
+  }, [selectedDate, tasks]);
 
   const handlePrevWeek = () => {
     const firstDay = new Date(currentWeek[0]);
@@ -358,7 +334,7 @@ export default function CalendarScreen() {
       </Text>
       <TouchableOpacity 
         style={emptyStateStyles.addTaskButton}
-        onPress={() => navigation.navigate('QuickTask', { note: undefined })}
+        onPress={() => navigation.navigate('QuickTask', { task: undefined })}
         activeOpacity={0.8}
       >
         <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
@@ -794,7 +770,7 @@ export default function CalendarScreen() {
         navigation.navigate('AddEditNote', { note: { type: 'text', isNew: true } });
         break;
       case 'task':
-        navigation.navigate('QuickTask', { note: undefined });
+        navigation.navigate('QuickTask', { task: undefined });
         break;
     }
   };
@@ -840,15 +816,9 @@ export default function CalendarScreen() {
           <View style={styles.weekDays}>
             {currentWeek.map((date) => {
               const isSelected = date === selectedDate;
-              const hasTasks = notes.some(note => {
-                if (note.isDeleted) return false; // Skip deleted notes
-                if (note.type === 'checklist' && note.tasks?.[0]?.dueDate) {
-                  const taskDate = new Date(note.tasks[0].dueDate).toISOString().split('T')[0];
-                  return taskDate === date;
-                } else {
-                  const noteDate = new Date(note.createdAt).toISOString().split('T')[0];
-                  return noteDate === date;
-                }
+              const hasTasks = tasks.some(task => {
+                const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
+                return taskDate === date;
               });
 
               return (
@@ -893,20 +863,20 @@ export default function CalendarScreen() {
           <View style={styles.tasksList}>
 {/* Replace the task card rendering code with this improved version */}
 {tasksForSelectedDate.length > 0 ? (
-  tasksForSelectedDate.map(note => (
+  tasksForSelectedDate.map(task => (
     <TouchableOpacity
-      key={note.id}
+      key={task.id}
       style={[
         styles.noteItem,
         styles.modernTaskCard,
         {
-          borderLeftColor: note.tasks?.[0]?.priority === 'high' ? '#FF4E4E' :
-                         note.tasks?.[0]?.priority === 'medium' ? '#FFA726' : 
-                         note.tasks?.[0]?.priority === 'low' ? '#66BB6A' : theme.accentColor,
-          opacity: note.tasks?.[0]?.completed || note.tasks?.[0]?.isCompleted ? 0.6 : 1,
+          borderLeftColor: task.priority === 'high' ? '#FF4E4E' :
+                         task.priority === 'medium' ? '#FFA726' : 
+                         task.priority === 'low' ? '#66BB6A' : theme.accentColor,
+          opacity: task.isCompleted ? 0.6 : 1,
         }
       ]}
-      onPress={() => navigation.navigate('QuickTask', { note })}
+      onPress={() => navigation.navigate('QuickTask', { task: task })}
       activeOpacity={0.75}
     >
       {/* Task card content container */}
@@ -916,53 +886,53 @@ export default function CalendarScreen() {
           <Ionicons 
             name="checkmark-circle-outline" 
             size={14} 
-            color={note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor} 
+            color={task.color ? TAG_COLORS[task.color as TagColor] : theme.accentColor} 
           />
-          <Text style={[styles.taskTypeText, { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.accentColor }]}>
-            {getCategoryName(note.color) || 'Task'}
+          <Text style={[styles.taskTypeText, { color: task.color ? TAG_COLORS[task.color as TagColor] : theme.accentColor }]}>
+            {getCategoryName(task.color as TagColor) || 'Task'}
           </Text>
         </View>
         
         {/* Task header with title and priority */}
         <View style={styles.taskInfoContainer}>
-          <Text style={[styles.taskTitle, note.tasks?.[0]?.completed || note.tasks?.[0]?.isCompleted ? { textDecorationLine: 'line-through', color: theme.placeholderColor } : null]} numberOfLines={2}>
-            {note.title}
+          <Text style={[styles.taskTitle, task.isCompleted ? { textDecorationLine: 'line-through', color: theme.placeholderColor } : null]} numberOfLines={2}>
+            {task.title}
           </Text>
           
-          {note.tasks?.[0]?.priority && (
+          {task.priority && (
             <View style={[
               styles.taskPriority,
               { 
-                backgroundColor: note.tasks[0].priority === 'high' ? 'rgba(255, 78, 78, 0.15)' :
-                              note.tasks[0].priority === 'medium' ? 'rgba(255, 167, 38, 0.15)' : 
+                backgroundColor: task.priority === 'high' ? 'rgba(255, 78, 78, 0.15)' :
+                              task.priority === 'medium' ? 'rgba(255, 167, 38, 0.15)' : 
                               'rgba(102, 187, 106, 0.15)',
-                borderColor: note.tasks[0].priority === 'high' ? 'rgba(255, 78, 78, 0.25)' :
-                           note.tasks[0].priority === 'medium' ? 'rgba(255, 167, 38, 0.25)' : 
+                borderColor: task.priority === 'high' ? 'rgba(255, 78, 78, 0.25)' :
+                           task.priority === 'medium' ? 'rgba(255, 167, 38, 0.25)' : 
                            'rgba(102, 187, 106, 0.25)',
               }
             ]}>
               <Ionicons 
                 name="flag" 
                 size={12} 
-                color={note.tasks[0].priority === 'high' ? '#FF4E4E' :
-                      note.tasks[0].priority === 'medium' ? '#FFA726' : '#66BB6A'} 
+                color={task.priority === 'high' ? '#FF4E4E' :
+                      task.priority === 'medium' ? '#FFA726' : '#66BB6A'} 
               />
               <Text style={[
                 styles.taskPriorityText,
                 { 
-                  color: note.tasks[0].priority === 'high' ? '#FF4E4E' :
-                        note.tasks[0].priority === 'medium' ? '#FFA726' : '#66BB6A'
+                  color: task.priority === 'high' ? '#FF4E4E' :
+                        task.priority === 'medium' ? '#FFA726' : '#66BB6A'
                 }
               ]}>
-                {t(note.tasks[0].priority)}
+                {t(task.priority)}
               </Text>
             </View>
           )}
         </View>
         
-        {note.description && (
+        {task.description && (
   <Text style={styles.taskDescription} numberOfLines={2}>
-    {note.description}
+    {task.description}
   </Text>
 )}
 
@@ -970,7 +940,7 @@ export default function CalendarScreen() {
         {/* Task Metadata */}
         <View style={styles.taskMetadata}>
           {/* Due Date */}
-          {note.tasks?.[0]?.dueDate && (
+          {task.dueDate && (
             <View style={styles.taskMetadataItem}>
               <Ionicons 
                 name="calendar-outline" 
@@ -978,44 +948,42 @@ export default function CalendarScreen() {
                 color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
               />
               <Text style={styles.taskMetadataText}>
-                {new Date(note.tasks[0].dueDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                {new Date(task.dueDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
               </Text>
             </View>
           )}
           {/* Due Time */}
-          {note.tasks?.[0]?.dueTime && (
-            <View style={styles.taskMetadataItem}>
-              <Ionicons 
-                name="time-outline" 
-                size={13} 
-                color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
-              />
-              <Text style={styles.taskMetadataText}>
-                {new Date(note.tasks[0].dueTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-          )}
+          <View style={styles.taskMetadataItem}>
+            <Ionicons 
+              name="time-outline" 
+              size={13} 
+              color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
+            />
+            <Text style={styles.taskMetadataText}>
+              {task.dueTime 
+                ? new Date(task.dueTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : t('allDay')}
+            </Text>
+          </View>
           
           {/* Location */}
-          {note.tasks?.[0]?.location && (
-            <View style={styles.taskMetadataItem}>
-              <Ionicons 
-                name="location-outline" 
-                size={13} 
-                color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
-              />
-              <Text style={styles.taskMetadataText} numberOfLines={1}>
-                {note.tasks[0].location}
-              </Text>
-            </View>
-          )}
+          <View style={styles.taskMetadataItem}>
+            <Ionicons 
+              name="location-outline" 
+              size={13} 
+              color={theme.isDarkMode ? 'rgba(255, 255, 255, 0.75)' : 'rgba(0, 0, 0, 0.65)'} 
+            />
+            <Text style={styles.taskMetadataText} numberOfLines={1}>
+              {task.location || t('noLocation')}
+            </Text>
+          </View>
         </View>
       </View>
       
       {/* Task status & info icons row */}
       <View style={{ flexDirection: 'row', alignItems: 'center', position: 'absolute', top: wp(4), right: wp(4), zIndex: 10, gap: 4 }}>
         {/* Repeat icon */}
-        {note.tasks?.[0]?.repeat && note.tasks[0].repeat !== 'none' && (
+        {task.repeat && task.repeat !== 'none' && (
           <Ionicons
             name="repeat-outline"
             size={16}
@@ -1024,7 +992,7 @@ export default function CalendarScreen() {
           />
         )}
         {/* Reminder icon */}
-        {note.tasks?.[0]?.reminder && (
+        {task.reminder && (
           <Ionicons
             name="notifications"
             size={16}
@@ -1035,23 +1003,16 @@ export default function CalendarScreen() {
         {/* Task completion status indicator */}
         <TouchableOpacity
           onPress={async () => {
-            if (!note.tasks?.[0]) return;
-            const updatedNote = {
-              ...note,
-              tasks: [
-                {
-                  ...note.tasks[0],
-                  completed: !(note.tasks[0].completed || note.tasks[0].isCompleted),
-                  isCompleted: !(note.tasks[0].completed || note.tasks[0].isCompleted),
-                },
-                ...note.tasks.slice(1)
-              ]
+            if (!task) return;
+            const updatedTask = {
+              ...task,
+              isCompleted: !task.isCompleted,
             };
-            await updateNote(updatedNote);
+            await updateTask(updatedTask);
           }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          {note.tasks?.[0]?.completed || note.tasks?.[0]?.isCompleted ? (
+          {task.isCompleted ? (
             <Ionicons
               name="checkmark-circle"
               size={22}
@@ -1119,7 +1080,7 @@ export default function CalendarScreen() {
                 textDayHeaderFontSize: 13,
               }}
               markingType={'multi-dot'}
-              markedDates={getMarkedDates()}
+              markedDates={getMarkedDatesForCalendar(tasks, selectedDate, theme)}
               onDayPress={(day: DateData) => {
                 setSelectedDate(day.dateString);
                 setCurrentWeek(getCurrentWeekDates(new Date(day.dateString)));

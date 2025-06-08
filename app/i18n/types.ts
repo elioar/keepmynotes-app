@@ -239,6 +239,36 @@ export interface Translations {
   // Authentication
   authenticateToView: string;
   usePasscode: string;
+  signOut: string;
+  signOutSuccess: string;
+  signOutError: string;
+  signIn: string;
+  signInSuccess: string;
+  signUp: string;
+  createAccount: string;
+  createAccountDescription: string;
+  welcomeBack: string;
+  signInDescription: string;
+  alreadyHaveAccount: string;
+  dontHaveAccount: string;
+  continueWithGoogle: string;
+  authError: string;
+  invalidCredentials: string;
+  emailInUse: string;
+  weakPassword: string;
+  googleSignInError: string;
+  emailAlreadyInUse: string;
+  signInCancelled: string;
+  pleaseFillAllFields: string;
+  invalidEmail: string;
+  passwordRequirements: string;
+  forgotPassword: string;
+  enterEmailForReset: string;
+  resetEmailSent: string;
+  resetError: string;
+  emailNotRegistered: string;
+  password: string;
+  or: string;
 
   // Note Details
   noteDetails: string;
@@ -310,6 +340,7 @@ export interface Translations {
   taskDueDate: string;
   taskDueTime: string;
   taskAllDay: string;
+  noLocation: string;
 
   // Reset Data
   resetData: string;
@@ -375,6 +406,131 @@ export interface Translations {
   // Custom repeat modal
   every: string;
   set: string;
+
+  // Reminder Time
+  reminderTime: string;
+  '1hourBefore': string;
+  '1dayBefore': string;
+  '2daysBefore': string;
+  '1weekBefore': string;
+
+  // Notifications
+  notificationPermissionRequired: string;
+  notificationPermissionMessage: string;
+  notificationTimePassed: string;
+  notificationTimePassedMessage: string;
+  notificationScheduled: string;
+  notificationScheduledMessage: string;
+  notificationError: string;
+  notificationErrorMessage: string;
+
+  // New translations
+  '30minBefore': string;
+  'customReminder': string;
+  'enterMinutes': string;
+  'enterMinutesDescription': string;
+  'enterTime': string;
+  'enterTimeDescription': string;
+  'invalidTime': string;
+  'invalidTimeMessage': string;
+  'before': string;
+  'ok': string;
+  'reminder30min': string;
+  'reminder1hour': string;
+  'reminder1day': string;
+  'reminder1week': string;
+
+  // Analytics
+  analytics: string;
+  analyticsAndStats: string;
+  analyticsDescription: string;
+  notesOverview: string;
+  totalNotes: string;
+  tasksOverview: string;
+  totalTasks: string;
+  completedTasks: string;
+  pendingTasks: string;
+  completionRate: string;
+  categoriesOverview: string;
+  totalCategories: string;
+  usageStats: string;
+  lastActive: string;
+  totalTimeSpent: string;
+  hours: string;
+  minutes: string;
+
+  // New additions
+  sessions: string;
+  averages: string;
+  dailyAverage: string;
+  weeklyAverage: string;
+  activityPatterns: string;
+  mostActiveDay: string;
+  mostActiveHour: string;
+  usageStatsDescription: string;
+
+  // Profile
+  usernameRequired: string;
+  profileUpdated: string;
+  profileUpdateError: string;
+  completeProfile: string;
+  completeProfileDescription: string;
+  profileDescription: string;
+  editProfile: string;
+  complete: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  userLocation: string;
+  birthday: string;
+  enterFirstName: string;
+  enterLastName: string;
+  enterPhone: string;
+  enterLocation: string;
+  selectBirthday: string;
+  changePhoto: string;
+  email: string;
+  saving: string;
+  errorPickingImage: string;
+  verificationEmailSent: string;
+  verificationEmailError: string;
+  deleteAccount: string;
+  deleteAccountConfirmation: string;
+  accountDeleted: string;
+  deleteAccountError: string;
+  personalInfo: string;
+  contactInfo: string;
+  accountSettings: string;
+  changePassword: string;
+  emailVerification: string;
+  verified: string;
+  verify: string;
+
+  // Guest
+  guest: string;
+
+  // Password Validation
+
+  mediumPassword: string;
+  strongPassword: string;
+  tooManyAttempts: string;
+  networkError: string;
+  accountCreated: string;
+
+  // Change Password
+  passwordsDontMatch: string;
+  passwordChanged: string;
+  passwordChangeError: string;
+  currentPasswordIncorrect: string;
+  recentLoginRequired: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+  passwordTooShort: string;
+  passwordNoUpperCase: string;
+  passwordNoLowerCase: string;
+  passwordNoNumber: string;
+  passwordNoSpecialChar: string;
 }
 
 export { en } from './en';

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Keep My Notes",
     "slug": "keepmynotes",
-    "version": "1.0.5",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -39,7 +39,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "image": "./assets/splash-icon.png",
+            "image": "./assets/images/splash-icon.png",
             "backgroundColor": "#000000"
           }
         }
@@ -48,9 +48,9 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/images/icon.png",
           "color": "#ffffff",
-          "sounds": ["./assets/notification-sound.wav"]
+          "sounds": ["./assets/sounds/reminder.mp3"]
         }
       ]
     ],
@@ -65,9 +65,7 @@
         "projectId": "51f5019c-ebd8-4ff6-b203-95d622bc22c7"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+
     "updates": {
       "url": "https://u.expo.dev/51f5019c-ebd8-4ff6-b203-95d622bc22c7"
     }

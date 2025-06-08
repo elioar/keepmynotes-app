@@ -44,6 +44,7 @@ type RootStackParamList = {
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
   BackupRestore: undefined;
+  Analytics: undefined;
 };
 
 const colorTranslationMap = {
@@ -148,7 +149,7 @@ export default function SettingsScreen() {
                   color === 'red' ? t('important') : t('noTag'),
             color: color
           })),
-        version: '1.0.6',
+        version: '1.0.7',
         backupDate: new Date().toISOString()
       };
 
@@ -249,7 +250,7 @@ export default function SettingsScreen() {
             t('backupDetails')
               .replace('{count}', validatedNotes.length.toString())
               .replace('{date}', new Date(importedData.backupDate || Date.now()).toLocaleDateString())
-              .replace('{version}', importedData.version || '1.0.0'),
+              .replace('{version}', importedData.version || '1.0.7'),
             [
               {
                 text: t('cancel'),
@@ -921,8 +922,31 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📊 {t('analytics')}</Text>
+          <TouchableOpacity 
+            style={styles.infoItem}
+            onPress={() => navigation.navigate('Analytics')}
+          >
+            <View style={styles.infoIcon}>
+              <Ionicons 
+                name="analytics-outline" 
+                size={22} 
+                color={theme.accentColor}
+              />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>{t('analyticsAndStats')}</Text>
+              <Text style={styles.infoValue}>{t('analyticsDescription')}</Text>
+            </View>
+            <View style={styles.chevronContainer}>
+              <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.version}>
-          <Text style={styles.versionText}>📱 Version 1.0.6</Text>
+          <Text style={styles.versionText}>📱 Version 1.0.7</Text>
         </View>
       </ScrollView>
 

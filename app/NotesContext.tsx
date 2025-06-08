@@ -1,5 +1,10 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth, db } from './config/firebase';
+import { useAuth } from './contexts/AuthContext';
+import { AppState } from 'react-native';
+import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
+import firestore from '@react-native-firebase/firestore';
 
 export interface TaskItem {
   text: string;
@@ -32,6 +37,7 @@ export interface Note {
   tasks?: TaskItem[];
   color?: string;
   tags?: string[];
+  isSynced?: boolean;
 }
 
 export interface Task {
@@ -61,7 +67,7 @@ interface BackupData {
   backupDate: string;
 }
 
-interface NotesContextType {
+export interface NotesContextType {
   notes: Note[];
   isLoading: boolean;
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Note>;
@@ -79,6 +85,9 @@ interface NotesContextType {
   cleanupExpiredTrash: () => Promise<void>;
   trashRetentionDays: number;
   updateTrashRetentionDays: (days: number) => Promise<void>;
+  syncNote: (noteId: string) => Promise<void>;
+  setNotes: (notes: Note[]) => void;
+  clearLocalNotes: () => Promise<void>;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -88,11 +97,18 @@ const TRASH_RETENTION_KEY = '@trash_retention_days';
 const DEFAULT_TRASH_RETENTION_DAYS = 30;
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache expiry
 
+const generateUniqueId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+};
+
 export function NotesProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [lastFetch, setLastFetch] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [trashRetentionDays, setTrashRetentionDays] = useState<number>(DEFAULT_TRASH_RETENTION_DAYS);
+  const [trashRetentionDays, setTrashRetentionDays] = useState(30); // Default 30 days
+  const [lastFetch, setLastFetch] = useState<number>(Date.now());
+  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const { user } = useAuth();
+  const SYNC_INTERVAL = 30000; // 30 seconds
 
   // Μεμονωμένη συνάρτηση για αποκοπή HTML
   const stripHtmlTags = useCallback((html: string) => {
@@ -135,130 +151,384 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Βελτιστοποιημένη φόρτωση σημειώσεων
-  const loadNotes = useCallback(async (force: boolean = false) => {
+  // Μεταφορά σημειώσεων από το AsyncStorage στο Firebase
+  const migrateNotesToFirebase = useCallback(async () => {
     try {
-      // Check cache validity unless force refresh is requested
-      const now = Date.now();
-      if (!force && lastFetch && (now - lastFetch < CACHE_EXPIRY)) {
-        return; // Use cached data
+      if (!user) return;
+
+      // Έλεγχος αν έχει ήδη γίνει η μεταφορά
+      const migrationKey = `@notes_migrated_${user.uid}`;
+      const hasMigrated = await AsyncStorage.getItem(migrationKey);
+      if (hasMigrated) return;
+
+      // Φόρτωση σημειώσεων από το AsyncStorage
+      const storedNotes = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!storedNotes) return;
+
+      const localNotes = JSON.parse(storedNotes);
+      if (!Array.isArray(localNotes) || localNotes.length === 0) return;
+
+      // Μετατροπή σε μορφή για το Firebase
+      const notesObject = localNotes.reduce((acc, note) => {
+        acc[note.id] = note;
+        return acc;
+      }, {} as Record<string, Note>);
+
+      // Αποθήκευση στο Firebase
+      const notesRef = db.ref(`users/${user.uid}/notes`);
+      await notesRef.set(notesObject);
+
+      // Σημειώνουμε ότι έγινε η μεταφορά
+      await AsyncStorage.setItem(migrationKey, 'true');
+      
+      console.log('✅ Notes migrated to Firebase successfully');
+    } catch (error) {
+      console.error('❌ Error migrating notes to Firebase:', error);
+    }
+  }, [user]);
+
+  // Εκτέλεση της μεταφοράς όταν συνδέεται ο χρήστης
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged((user) => {
+      if (user) {
+        migrateNotesToFirebase();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [migrateNotesToFirebase]);
+
+  // Φόρτωση σημειώσεων από το Firebase
+  const loadNotes = async () => {
+    try {
+      const user = auth().currentUser;
+      if (!user) {
+        // Τοπική φόρτωση
+        const localNotes = await AsyncStorage.getItem(STORAGE_KEY);
+        if (localNotes) {
+          setNotes(JSON.parse(localNotes));
+        } else {
+          setNotes([]);
+        }
+        return;
       }
 
-      setIsLoading(true);
-      let storedNotes = await AsyncStorage.getItem(STORAGE_KEY);
-      
-      if (!storedNotes) {
-        storedNotes = await AsyncStorage.getItem('@notes');
+      // Φόρτωση από Firestore
+      const snapshot = await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .collection('notes')
+        .get();
+
+      const notesArray: Note[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Note[];
+
+      setNotes(notesArray);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notesArray));
+    } catch (error) {
+      console.error('❌ Error loading notes from Firestore:', error);
+      setNotes([]);
+    }
+  };
+
+  // Φόρτωση σημειώσεων όταν αλλάζει ο χρήστης
+  useEffect(() => {
+    let unsubscribe: ((a: FirebaseDatabaseTypes.DataSnapshot | null, b?: string | null) => void) | undefined;
+    
+    const setupNotesListener = async () => {
+      try {
+        console.log('🔄 Setting up notes listener');
+        const user = auth().currentUser;
         
-        if (storedNotes) {
-          await AsyncStorage.setItem(STORAGE_KEY, storedNotes);
+        if (!user) {
+          console.log('👤 No user logged in, loading from local storage');
+          const localNotes = await AsyncStorage.getItem(STORAGE_KEY);
+          if (localNotes) {
+            const parsedNotes = JSON.parse(localNotes);
+            console.log('📝 Found notes in local storage:', parsedNotes.length);
+            setNotes(parsedNotes);
+          }
+          return;
+        }
+
+        console.log('👤 User is logged in, setting up Firebase listener');
+        const notesRef = db.ref(`users/${user.uid}/notes`);
+        
+        notesRef.on('value', async (snapshot) => {
+          try {
+            const firebaseNotes = snapshot.val();
+            if (firebaseNotes) {
+              console.log('📝 Received update from Firebase:', Object.keys(firebaseNotes).length, 'notes');
+              const notesArray = Object.values(firebaseNotes).map((note: any) => ({
+                ...note,
+                isSynced: true
+              }));
+              setNotes(notesArray);
+              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notesArray));
+              console.log('✅ Notes updated from Firebase and saved locally');
+            } else {
+              console.log('ℹ️ No notes in Firebase, clearing local state');
+              setNotes([]);
+              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+            }
+            setLastSyncTime(Date.now());
+          } catch (error) {
+            console.error('❌ Error processing Firebase update:', error);
+          }
+        });
+
+        console.log('✅ Firebase listener setup completed');
+      } catch (error) {
+        console.error('❌ Error setting up notes listener:', error);
+      }
+    };
+
+    setupNotesListener();
+
+    return () => {
+      if (unsubscribe) {
+        const notesRef = db.ref(`users/${user?.uid}/notes`);
+        notesRef.off('value', unsubscribe);
+      }
+    };
+  }, [user]);
+
+  // Προσθήκη νέας σημείωσης
+  const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const user = auth().currentUser;
+      if (!user) {
+        // Τοπική αποθήκευση αν δεν υπάρχει χρήστης
+        const now = new Date().toISOString();
+        const newNote: Note = {
+          ...noteData,
+          id: generateUniqueId(),
+          createdAt: now,
+          updatedAt: now,
+          isSynced: false
+        };
+        const updatedNotes = [...notes, newNote];
+        setNotes(updatedNotes);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+        return newNote;
+      }
+
+      const now = new Date().toISOString();
+      const noteToSave = {
+        ...noteData,
+        createdAt: now,
+        updatedAt: now,
+        isSynced: true
+      };
+
+      // Αποθήκευση στο Firestore
+      const docRef = await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .collection('notes')
+        .add(noteToSave);
+
+      const newNote: Note = {
+        ...noteToSave,
+        id: docRef.id
+      };
+
+      const updatedNotes = [...notes, newNote];
+      setNotes(updatedNotes);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+      return newNote;
+    } catch (error) {
+      console.error('❌ Error saving note to Firestore:', error);
+      throw error;
+    }
+  };
+
+  // Ενημέρωση σημείωσης
+  const updateNote = async (note: Note) => {
+    try {
+      const user = auth().currentUser;
+      if (!user) return;
+
+      const updatedNote = {
+        ...note,
+        updatedAt: new Date().toISOString()
+      };
+
+      await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .collection('notes')
+        .doc(note.id)
+        .set(updatedNote);
+
+      const updatedNotes = notes.map(n => n.id === note.id ? updatedNote : n);
+      setNotes(updatedNotes);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+    } catch (error) {
+      console.error('❌ Error updating note in Firestore:', error);
+    }
+  };
+
+  // Διαγραφή σημείωσης
+  const deleteNote = async (id: string) => {
+    try {
+      const user = auth().currentUser;
+      if (!user) return;
+
+      await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .collection('notes')
+        .doc(id)
+        .delete();
+
+      const updatedNotes = notes.filter(note => note.id !== id);
+      setNotes(updatedNotes);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+    } catch (error) {
+      console.error('❌ Error deleting note in Firestore:', error);
+    }
+  };
+
+  // Καθαρισμός των σημειώσεων
+  const clearStorage = async () => {
+    try {
+      // Πάντα καθαρίζουμε τα τοπικά δεδομένα
+      setNotes([]);
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      
+      // Αν υπάρχει χρήστης, καθαρίζουμε και το Firebase
+      if (user) {
+        await db.ref(`users/${user.uid}/notes`).remove();
+      }
+      
+      console.log('✅ Local storage cleared successfully');
+    } catch (error) {
+      console.error('❌ Error clearing storage:', error);
+      // Δεν επαναφέρουμε το σφάλμα για να μην διακόπτεται το logout
+    }
+  };
+
+  // Αυτόματος συγχρονισμός κάθε 30 δευτερόλεπτα
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const snapshot = await db.ref(`users/${user.uid}/notes`).once('value');
+
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const notesArray = Object.values(data);
+          setNotes(notesArray as Note[]);
+          setLastSyncTime(Date.now());
+        }
+      } catch (error) {
+        console.error('Error in auto-sync:', error);
+      }
+    }, SYNC_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Συγχρονισμός όταν η εφαρμογή επανέρχεται στο foreground
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active') {
+        try {
+          const snapshot = await db.ref(`users/${user.uid}/notes`).once('value');
+
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            const notesArray = Object.values(data);
+            setNotes(notesArray as Note[]);
+            setLastSyncTime(Date.now());
+          }
+        } catch (error) {
+          console.error('Error in app state sync:', error);
         }
       }
-      
-      if (storedNotes) {
-        const parsedNotes = JSON.parse(storedNotes);
-        setNotes(parsedNotes);
-      } else {
-        setNotes([]);
-      }
+    });
 
-      setLastFetch(now);
-    } catch (error) {
-      console.error('❌ Error loading notes:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [lastFetch]);
-
-  // Initialize notes on mount
-  useEffect(() => {
-    loadNotes();
-  }, []);
+    return () => {
+      subscription.remove();
+    };
+  }, [user]);
 
   // Optimized save notes function with debounce
   const saveNotes = useCallback(async (updatedNotes: Note[]) => {
     try {
-      const notesJson = JSON.stringify(updatedNotes);
-      await AsyncStorage.setItem(STORAGE_KEY, notesJson);
+      if (!user) {
+        // Αν δεν υπάρχει συνδεδεμένος χρήστης, αποθηκεύουμε στο AsyncStorage
+        const notesJson = JSON.stringify(updatedNotes);
+        await AsyncStorage.setItem(STORAGE_KEY, notesJson);
+        setNotes(updatedNotes);
+        setLastFetch(Date.now());
+        return;
+      }
+
+      // Αποθήκευση στο Firebase
+      const notesRef = db.ref(`users/${user.uid}/notes`);
+      const notesObject = updatedNotes.reduce((acc, note) => {
+        acc[note.id] = note;
+        return acc;
+      }, {} as Record<string, Note>);
+      
+      await notesRef.set(notesObject);
       setNotes(updatedNotes);
-      setLastFetch(Date.now()); // Update cache timestamp
+      setLastFetch(Date.now());
     } catch (error) {
       console.error('❌ Error saving notes:', error);
       throw error;
     }
-  }, []);
+  }, [user]);
 
-  // Optimized add note function
-  const addNote = useCallback(async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const newNote: Note = {
-        ...noteData,
-        id: Date.now().toString(),
-        content: noteData.content || '',
-        description: stripHtmlTags(noteData.content || '').substring(0, 100),
-        isFavorite: false,
-        isHidden: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      
-      const updatedNotes = [...notes, newNote];
-      await saveNotes(updatedNotes);
-      return newNote;
-    } catch (error) {
-      console.error('❌ Error adding note:', error);
-      throw error;
-    }
-  }, [notes, saveNotes, stripHtmlTags]);
+  // Αυτόματος συγχρονισμός κάθε 30 δευτερόλεπτα
+  useEffect(() => {
+    if (!user) return;
 
-  // Optimized update note function
-  const updateNote = useCallback(async (updatedNote: Note) => {
-    try {
-      const existingNoteIndex = notes.findIndex(note => note.id === updatedNote.id);
-      if (existingNoteIndex === -1) {
-        throw new Error(`Note with ID ${updatedNote.id} not found`);
+    const syncInterval = setInterval(async () => {
+      try {
+        const unsyncedNotes = notes.filter(note => !note.isSynced);
+        for (const note of unsyncedNotes) {
+          await syncNote(note.id);
+        }
+        setLastSyncTime(Date.now());
+      } catch (error) {
+        console.error('Auto sync error:', error);
       }
-      
-      const finalUpdatedNote = {
-        ...updatedNote,
-        content: updatedNote.content || '',
-        description: updatedNote.description || '',
-        updatedAt: new Date().toISOString()
-      };
-      
-      const updatedNotes = notes.map(note => 
-        note.id === updatedNote.id ? finalUpdatedNote : note
-      );
-      
-      await saveNotes(updatedNotes);
-      console.log('Updating note:', finalUpdatedNote);
-    } catch (error) {
-      throw error;
-    }
-  }, [notes, saveNotes, stripHtmlTags]);
+    }, SYNC_INTERVAL);
 
-  // Optimized delete note function
-  const deleteNote = useCallback(async (id: string) => {
-    try {
-      const noteToTrash = notes.find(note => note.id === id);
-      if (!noteToTrash) return;
-      
-      const trashedNote = {
-        ...noteToTrash,
-        isDeleted: true,
-        deletedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      const updatedNotes = notes.map(note => 
-        note.id === id ? trashedNote : note
-      );
-      
-      await saveNotes(updatedNotes);
-    } catch (error) {
-      throw error;
-    }
-  }, [notes, saveNotes]);
+    return () => clearInterval(syncInterval);
+  }, [user, notes]);
+
+  // Αυτόματος συγχρονισμός όταν η εφαρμογή επανέρχεται στο foreground
+  useEffect(() => {
+    if (!user) return;
+
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        try {
+          const unsyncedNotes = notes.filter(note => !note.isSynced);
+          for (const note of unsyncedNotes) {
+            await syncNote(note.id);
+          }
+          setLastSyncTime(Date.now());
+        } catch (error) {
+          console.error('Background sync error:', error);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [user, notes]);
 
   // Restore note from trash
   const restoreFromTrash = useCallback(async (id: string) => {
@@ -442,15 +712,43 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const clearStorage = async () => {
+  const syncNote = async (noteId: string): Promise<void> => {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
-      await AsyncStorage.removeItem('@notes');
-      setNotes([]);
+      console.log('🔄 Starting sync for note:', noteId);
+      const user = auth().currentUser;
+      if (!user) {
+        console.log('❌ No user logged in, cannot sync');
+        throw new Error('No user logged in');
+      }
+
+      const note = notes.find(n => n.id === noteId);
+      if (!note) {
+        console.log('❌ Note not found:', noteId);
+        throw new Error('Note not found');
+      }
+
+      console.log('📝 Syncing note:', note);
+      const notesRef = db.ref(`users/${user.uid}/notes/${noteId}`);
+      await notesRef.set(note);
+      console.log('✅ Note synced to Firebase successfully');
+
+      // Ενημερώνουμε το isSynced status
+      const updatedNotes = notes.map(n => 
+        n.id === noteId ? { ...n, isSynced: true } : n
+      );
+      setNotes(updatedNotes);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+      setLastSyncTime(Date.now());
+      console.log('✅ Note marked as synced');
     } catch (error) {
-      console.error('❌ Error clearing storage:', error);
+      console.error('❌ Error syncing note:', error);
       throw error;
     }
+  };
+
+  const clearLocalNotes = async () => {
+    setNotes([]);
+    await AsyncStorage.removeItem(STORAGE_KEY);
   };
 
   // Memoize context value
@@ -471,10 +769,22 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     getTrashNotes,
     cleanupExpiredTrash,
     trashRetentionDays,
-    updateTrashRetentionDays
+    updateTrashRetentionDays,
+    syncNote,
+    setNotes,
+    clearLocalNotes
   }), [notes, isLoading, addNote, updateNote, deleteNote, hideNote, unhideNote, loadNotes, 
        trashRetentionDays, updateTrashRetentionDays, restoreFromTrash, emptyTrash, 
-       permanentlyDeleteNote, getTrashNotes, cleanupExpiredTrash]);
+       permanentlyDeleteNote, getTrashNotes, cleanupExpiredTrash, syncNote]);
+
+  useEffect(() => {
+    if (!user) {
+      setNotes([]);
+      AsyncStorage.removeItem(STORAGE_KEY);
+    } else {
+      loadNotes();
+    }
+  }, [user]);
 
   return (
     <NotesContext.Provider value={contextValue}>

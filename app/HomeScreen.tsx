@@ -41,6 +41,7 @@ import NoteActionMenu from './components/NoteActionMenu';
 import * as Haptics from 'expo-haptics';
 import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
 import * as ImagePicker from 'expo-image-picker';
+import { auth } from './config/firebase';
 
 const TAG_LABELS: Record<TagColor, string> = {
   none: 'No Category',
@@ -64,6 +65,9 @@ type RootStackParamList = {
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
   SecurityCheck: undefined;
+  UserPreferences: undefined;
+  Login: undefined;
+  Profile: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -126,7 +130,7 @@ function getBorderColor(color: string | TagColor | null | undefined, defaultColo
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
-  const { notes, deleteNote, updateNote, loadNotes } = useNotes();
+  const { notes, deleteNote, updateNote, loadNotes, setNotes, clearStorage, syncNote } = useNotes();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { theme, toggleColorScheme } = useTheme();
   const { t } = useLanguage();
@@ -139,12 +143,48 @@ export default function HomeScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isGridView, setIsGridView] = useState(false);
   const [isViewPreferenceLoaded, setIsViewPreferenceLoaded] = useState(false);
-  const [localUsername, setLocalUsername] = useState<string | null>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+
+  // Add auth state listener
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged((user) => {
+      setIsUserLoggedIn(!!user);
+      if (user) {
+        setUserData({
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        });
+      } else {
+        setUserData(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await auth().signOut();
+      // Καθαρισμός των σημειώσεων μετά την αποσύνδεση
+      await clearStorage();
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(t('signOutSuccess'), ToastAndroid.SHORT);
+      } else {
+        Alert.alert('', t('signOutSuccess'));
+      }
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert(t('error'), t('signOutError'));
+    }
+  };
 
   const toggleSideMenu = () => {
     const toValue = isSideMenuOpen ? -300 : 0;
@@ -189,19 +229,6 @@ export default function HomeScreen() {
       };
     }, [loadNotes, notes.length])
   );
-
-  // Load username from AsyncStorage
-  useEffect(() => {
-    const loadUsername = async () => {
-      try {
-        const savedUsername = await AsyncStorage.getItem('@username');
-        setLocalUsername(savedUsername);
-      } catch (error) {
-        console.error('Error loading username:', error);
-      }
-    };
-    loadUsername();
-  }, []);
 
   // Load saved view preference
   useEffect(() => {
@@ -618,6 +645,41 @@ export default function HomeScreen() {
     return 'Good night';
   };
 
+  const handleSyncNote = async (noteId: string) => {
+    try {
+      console.log('🔄 Starting sync process for note:', noteId);
+      
+      // Πρώτα κάνουμε sync τη σημείωση
+      await syncNote(noteId);
+      console.log('✅ Note synced successfully');
+      
+      // Ενημερώνουμε το UI
+      const updatedNotes = notes.map(note => 
+        note.id === noteId ? { ...note, isSynced: true } : note
+      );
+      setNotes(updatedNotes);
+      console.log('✅ UI updated');
+      
+      // Εμφανίζουμε μήνυμα επιτυχίας
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(t('save'), ToastAndroid.SHORT);
+      } else {
+        Alert.alert('', t('save'));
+      }
+      console.log('✅ Success message shown');
+      
+      // Επιστρέφουμε στην προηγούμενη οθόνη
+      console.log('🔄 Navigating back');
+      navigation.goBack();
+    } catch (error) {
+      console.error('❌ Error syncing note:', error);
+      Alert.alert(
+        t('error'),
+        t('errorSavingNote')
+      );
+    }
+  };
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -744,7 +806,7 @@ export default function HomeScreen() {
     },
     noteFooter: {
       flexDirection: 'row',
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
       alignItems: 'center',
       paddingTop: 4,
     },
@@ -1097,6 +1159,9 @@ export default function HomeScreen() {
     spacer: {
       flex: 1,
     },
+    syncIcon: {
+      marginLeft: 8,
+    },
   });
 
   return (
@@ -1123,7 +1188,7 @@ export default function HomeScreen() {
             <View>
               <Text style={styles.headerGreeting}>{t('hello')},</Text>
               <Text style={styles.headerName}>
-                {localUsername ? `${localUsername} 👋` : ''}
+                {userData?.displayName || userData?.email?.split('@')[0] || t('guest')} 👋
               </Text>
             </View>
             <View style={styles.headerButtons}>
@@ -1412,12 +1477,19 @@ export default function HomeScreen() {
                           )}
                         </View>
 
-                        <View style={[styles.noteFooter]}>
+                        <View style={styles.noteFooter}>
                           <View style={styles.statusContainer}>
                             <View style={styles.statusDot} />
                             <Text style={[styles.statusText]}>
                               {getTimeAgo(note.createdAt || new Date().toISOString())}
                             </Text>
+                          </View>
+                          <View style={styles.syncIcon}>
+                            <Ionicons 
+                              name={note.isSynced ? "cloud-done-outline" : "cloud-offline-outline"} 
+                              size={normalize(16)} 
+                              color={note.isSynced ? theme.accentColor : theme.placeholderColor} 
+                            />
                           </View>
                         </View>
                       </Pressable>
@@ -1458,7 +1530,13 @@ export default function HomeScreen() {
           onHide={() => handleNoteAction('hide')}
           onColorChange={handleColorChange}
           currentColor={selectedNote?.color || '#4CAF50'}
-          isHidden={false}
+          isHidden={selectedNote?.isHidden || false}
+          onSync={() => {
+            if (selectedNote) {
+              handleSyncNote(selectedNote.id);
+            }
+          }}
+          isSynced={selectedNote?.isSynced}
         />
 
         {/* Side Menu */}
@@ -1485,11 +1563,14 @@ export default function HomeScreen() {
           <View style={styles.profileSection}>
             <TouchableOpacity 
               style={styles.profileImageContainer}
-              onPress={pickImage}
+              onPress={() => {
+                navigation.navigate('Profile');
+                toggleSideMenu();
+              }}
             >
-              {profileImage ? (
+              {userData?.photoURL ? (
                 <Image 
-                  source={{ uri: profileImage }} 
+                  source={{ uri: userData.photoURL }} 
                   style={styles.profileImage}
                 />
               ) : (
@@ -1501,9 +1582,11 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
             <View style={styles.profileInfo}>
-  <Text style={styles.greetingText}>{getTimeBasedGreeting()}</Text>
-  <Text style={styles.profileName}>{localUsername || 'James Hall'}</Text>
-</View>
+              <Text style={styles.greetingText}>{getTimeBasedGreeting()}</Text>
+              <Text style={styles.profileName}>
+                {userData?.displayName || userData?.email?.split('@')[0] || t('guest')}
+              </Text>
+            </View>
           </View>
           
           {/* Menu Items */}
@@ -1572,7 +1655,47 @@ export default function HomeScreen() {
             <Text style={styles.menuItemText}>{t('trash')}</Text>
           </TouchableOpacity>
           
+          {isUserLoggedIn && (
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                navigation.navigate('Profile');
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="person-outline" size={22} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('profile')}</Text>
+            </TouchableOpacity>
+          )}
+          
           <View style={styles.menuDivider} />
+          
+          {isUserLoggedIn ? (
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={handleSignOut}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="log-out-outline" size={22} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('signOut')}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                navigation.navigate('Login');
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="log-in-outline" size={22} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('signIn')}</Text>
+            </TouchableOpacity>
+          )}
           
           <View style={styles.darkModeContainer}>
             <View style={styles.menuItemIcon}>

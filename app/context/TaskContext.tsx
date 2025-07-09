@@ -4,6 +4,7 @@ import { auth, db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { AppState } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export interface Task {
   id: string;
@@ -112,7 +113,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // Εκτέλεση της μεταφοράς όταν συνδέεται ο χρήστης
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         migrateTasksToFirebase();
       }
@@ -125,7 +126,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const loadTasks = useCallback(async () => {
     try {
       setIsLoading(true);
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       
       if (!user) {
         // Τοπική φόρτωση
@@ -201,7 +202,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Προσθήκη νέου task
   const addTask = useCallback(async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         // Τοπική αποθήκευση αν δεν υπάρχει χρήστης
         const now = new Date().toISOString();
@@ -251,7 +252,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Ενημέρωση task
   const updateTask = useCallback(async (task: Task) => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         // Τοπική ενημέρωση
         const updatedTask = {
@@ -289,7 +290,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   // Διαγραφή task
   const deleteTask = useCallback(async (taskId: string) => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         // Τοπική διαγραφή
         const updatedTasks = tasks.filter(task => task.id !== taskId);
@@ -362,7 +363,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const syncTask = useCallback(async (taskId: string): Promise<void> => {
     try {
       console.log('🔄 Starting sync for task:', taskId);
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         console.log('❌ No user logged in, cannot sync');
         throw new Error('No user logged in');

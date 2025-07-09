@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface AuthContextType {
   user: any;
@@ -16,7 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsLoading(false);
     });

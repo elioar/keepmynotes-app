@@ -61,7 +61,7 @@
     "expo-system-ui": "~5.0.7",
     "expo-updates": "^0.28.13",
     "expo-web-browser": "~14.1.6",
-    "firebase": "^11.8.1",
+    "firebase": "^11.10.0",
     "i18n-js": "^4.5.0",
     "i18next": "^25.1.2",
     "lexical": "^0.21.0",

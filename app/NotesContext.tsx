@@ -5,6 +5,7 @@ import { useAuth } from './contexts/AuthContext';
 import { AppState } from 'react-native';
 import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
 import firestore from '@react-native-firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export interface TaskItem {
   text: string;
@@ -189,7 +190,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
   // Εκτέλεση της μεταφοράς όταν συνδέεται ο χρήστης
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         migrateNotesToFirebase();
       }
@@ -201,7 +202,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   // Φόρτωση σημειώσεων από το Firebase
   const loadNotes = async () => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         // Τοπική φόρτωση
         const localNotes = await AsyncStorage.getItem(STORAGE_KEY);
@@ -240,7 +241,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     const setupNotesListener = async () => {
       try {
         console.log('🔄 Setting up notes listener');
-        const user = auth().currentUser;
+        const user = auth.currentUser;
         
         if (!user) {
           console.log('👤 No user logged in, loading from local storage');
@@ -298,7 +299,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   // Προσθήκη νέας σημείωσης
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         // Τοπική αποθήκευση αν δεν υπάρχει χρήστης
         const now = new Date().toISOString();
@@ -348,7 +349,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   // Ενημέρωση σημείωσης
   const updateNote = async (note: Note) => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) return;
 
       const updatedNote = {
@@ -374,7 +375,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   // Διαγραφή σημείωσης
   const deleteNote = async (id: string) => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) return;
 
       await firestore()
@@ -715,7 +716,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   const syncNote = async (noteId: string): Promise<void> => {
     try {
       console.log('🔄 Starting sync for note:', noteId);
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (!user) {
         console.log('❌ No user logged in, cannot sync');
         throw new Error('No user logged in');

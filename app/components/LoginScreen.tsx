@@ -17,10 +17,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { auth, GoogleSignin } from '../config/firebase';
+import { GoogleSignin } from '../config/firebase';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import Toast from './Toast';
+import { auth } from '../config/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -158,7 +160,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
           await userCredential.user.updateProfile({
             displayName: username
@@ -170,7 +172,7 @@ export default function LoginScreen() {
         setUsername('');
         setPasswordStrength(0);
       } else {
-        await auth().signInWithEmailAndPassword(email, password);
+        await signInWithEmailAndPassword(auth, email, password);
         showToast(t('signInSuccess'), 'success');
         navigation.navigate('Home' as never);
       }
@@ -206,8 +208,8 @@ export default function LoginScreen() {
         throw new Error('No access token present!');
       }
 
-      const googleCredential = auth.GoogleAuthProvider.credential(accessToken);
-      const userCredential = await auth().signInWithCredential(googleCredential);
+      const googleCredential = GoogleAuthProvider.credential(accessToken);
+      const userCredential = await signInWithCredential(auth, googleCredential);
       
       if (userCredential.user) {
         showToast(t('signInSuccess'), 'success');
@@ -244,7 +246,7 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      await auth().sendPasswordResetEmail(email);
+      await sendPasswordResetEmail(auth, email);
       showToast(t('resetEmailSent'), 'success');
     } catch (error: any) {
       let errorMessage = t('resetError');

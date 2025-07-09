@@ -24,6 +24,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 
 export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -86,15 +87,12 @@ export default function ChangePasswordScreen() {
 
     setIsLoading(true);
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (user && user.email) {
         // Reauthenticate user before changing password
-        const credential = auth.EmailAuthProvider.credential(
-          user.email,
-          currentPassword
-        );
-        await user.reauthenticateWithCredential(credential);
-        await user.updatePassword(newPassword);
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, newPassword);
         showToast(t('passwordChanged'), 'success');
         navigation.goBack();
       }

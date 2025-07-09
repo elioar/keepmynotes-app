@@ -42,6 +42,8 @@ import * as Haptics from 'expo-haptics';
 import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from './config/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 
 const TAG_LABELS: Record<TagColor, string> = {
   none: 'No Category',
@@ -153,7 +155,7 @@ export default function HomeScreen() {
 
   // Add auth state listener
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsUserLoggedIn(!!user);
       if (user) {
         setUserData({
@@ -171,7 +173,7 @@ export default function HomeScreen() {
 
   const handleSignOut = async () => {
     try {
-      await auth().signOut();
+      await signOut(auth);
       // Καθαρισμός των σημειώσεων μετά την αποσύνδεση
       await clearStorage();
       if (Platform.OS === 'android') {

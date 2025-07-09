@@ -22,6 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import Toast from './Toast';
+import { updateProfile, sendEmailVerification, deleteUser } from 'firebase/auth';
 
 export default function ProfileScreen() {
   const [username, setUsername] = useState('');
@@ -38,7 +39,7 @@ export default function ProfileScreen() {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
-    const user = auth().currentUser;
+    const user = auth.currentUser;
     if (user) {
       setUsername(user.displayName || '');
       setEmail(user.email || '');
@@ -65,8 +66,11 @@ export default function ProfileScreen() {
       if (!result.canceled) {
         const imageUri = result.assets[0].uri;
         setProfileImage(imageUri);
-        await auth().currentUser?.updateProfile({ photoURL: imageUri });
-        showToast(t('profileUpdated'), 'success');
+        const user = auth.currentUser;
+        if (user) {
+          await updateProfile(user, { photoURL: imageUri });
+          showToast(t('profileUpdated'), 'success');
+        }
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -82,9 +86,9 @@ export default function ProfileScreen() {
 
     setIsLoading(true);
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (user) {
-        await user.updateProfile({ displayName: username });
+        await updateProfile(user, { displayName: username });
         showToast(t('profileUpdated'), 'success');
       }
     } catch (error) {
@@ -101,9 +105,9 @@ export default function ProfileScreen() {
 
   const handleVerifyEmail = async () => {
     try {
-      const user = auth().currentUser;
+      const user = auth.currentUser;
       if (user && !user.emailVerified) {
-        await user.sendEmailVerification();
+        await sendEmailVerification(user);
         showToast(t('verificationEmailSent'), 'success');
       }
     } catch (error) {
@@ -112,7 +116,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     Alert.alert(
       t('deleteAccount'),
       t('deleteAccountConfirmation'),
@@ -126,9 +130,9 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const user = auth().currentUser;
+              const user = auth.currentUser;
               if (user) {
-                await user.delete();
+                await deleteUser(user);
                 showToast(t('accountDeleted'), 'success');
                 navigation.navigate('Login' as never);
               }

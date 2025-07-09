@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
-import database from '@react-native-firebase/database';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getDatabase } from 'firebase/database';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 // Your web app's Firebase configuration
@@ -15,15 +15,14 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase if it hasn't been initialized yet
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getDatabase(app);
 
 // Configure Google Sign-In
 GoogleSignin.configure({
   webClientId: '4692147912-f0km7bn1nevl5svr4s5d8gkc01qs12hc.apps.googleusercontent.com', // Get this from your Google Cloud Console
 });
-
-// Initialize Database
-const db = database(app);
 
 export { auth, db, GoogleSignin };
 export default app; 

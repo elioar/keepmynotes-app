@@ -1,1 +1,0 @@
-sdk.dir=C:\\Users\\elioa\\AppData\\Local\\Android\\Sdk

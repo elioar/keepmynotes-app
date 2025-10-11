@@ -149,6 +149,7 @@ export default function HomeScreen() {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
+  const deleteAnim = useRef(new Animated.Value(1)).current;
   const skeletonPulse = useRef(new Animated.Value(0.3)).current;
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -359,15 +360,17 @@ export default function HomeScreen() {
         }
       });
 
-      // Fade out animation
-      Animated.timing(scrollY, {
-        toValue: 1,
-        duration: 500,
+      // Fade-out then smooth reflow
+      Animated.timing(deleteAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }).start(async () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         await deleteNote(noteId);
         setFadingNoteId(null);
-        scrollY.setValue(0);
+        deleteAnim.setValue(1);
         
         // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
         if (Platform.OS === 'android') {
@@ -538,15 +541,17 @@ export default function HomeScreen() {
             }
           });
 
-          // Slower fade out animation
-          Animated.timing(scrollY, {
-            toValue: 1,
-            duration: 500,
+          // Smooth fade-out then reflow
+          Animated.timing(deleteAnim, {
+            toValue: 0,
+            duration: 220,
+            easing: Easing.out(Easing.quad),
             useNativeDriver: true,
           }).start(async () => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             await deleteNote(selectedNote.id);
             setFadingNoteId(null);
-            scrollY.setValue(0);
+            deleteAnim.setValue(1);
             
             // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
             if (Platform.OS === 'android') {
@@ -800,6 +805,7 @@ export default function HomeScreen() {
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 3,
+      overflow: 'hidden',
     },
     tagLabel: {
       fontSize: normalize(12),
@@ -1009,6 +1015,14 @@ export default function HomeScreen() {
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 3,
+      overflow: 'hidden',
+    },
+    syncCornerIcon: {
+      position: 'absolute',
+      right: 8,
+      bottom: 8,
+      zIndex: 10,
+      opacity: 0.9,
     },
     gridCardHeader: {
       flexDirection: 'row',
@@ -1490,6 +1504,12 @@ export default function HomeScreen() {
                     onLongPress={() => handleLongPress(note)}
                     delayLongPress={300}
                   >
+                    <Ionicons 
+                      style={styles.syncCornerIcon}
+                      name={note.isSynced ? 'cloud-done-outline' : 'cloud-offline-outline'}
+                      size={normalize(16)} 
+                      color={note.isSynced ? theme.accentColor : '#FF9800'}
+                    />
                     <View style={styles.gridCardHeader}>
                       <View>
                         <View style={styles.categoryContainer}>
@@ -1547,7 +1567,10 @@ export default function HomeScreen() {
                   <Animated.View
                     key={note.id}
                     style={[
-                      fadingNoteId === note.id && styles.hidingNote,
+                      fadingNoteId === note.id && {
+                        transform: [{ scale: deleteAnim }],
+                        opacity: deleteAnim,
+                      },
                     ]}
                   >
                     <Swipeable
@@ -1577,6 +1600,12 @@ export default function HomeScreen() {
                         onLongPress={() => handleLongPress(note)}
                         delayLongPress={300}
                       >
+                        <Ionicons 
+                          style={styles.syncCornerIcon}
+                          name={note.isSynced ? 'cloud-done-outline' : 'cloud-offline-outline'}
+                          size={normalize(16)} 
+                          color={note.isSynced ? theme.accentColor : '#FF9800'}
+                        />
                         <View style={[styles.noteHeader]}>
                           <View>
                             <View style={styles.categoryContainer}>
@@ -1669,13 +1698,6 @@ export default function HomeScreen() {
                             <Text style={[styles.statusText]}>
                               {getTimeAgo(note.createdAt || new Date().toISOString())}
                             </Text>
-                          </View>
-                          <View style={styles.syncIcon}>
-                            <Ionicons 
-                              name={note.isSynced ? "cloud-done-outline" : "cloud-offline-outline"} 
-                              size={normalize(16)} 
-                              color={note.isSynced ? theme.accentColor : theme.placeholderColor} 
-                            />
                           </View>
                         </View>
                       </Pressable>

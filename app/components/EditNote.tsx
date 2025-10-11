@@ -74,6 +74,7 @@ export default function EditNote({ route }: { route: any }) {
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
   const [isFavorite, setIsFavorite] = useState(existingNote?.isFavorite || false);
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
@@ -1344,10 +1345,12 @@ export default function EditNote({ route }: { route: any }) {
 
   const handleSave = async () => {
     try {
+      if (isSaving) return;
       if (!title.trim()) {
         Alert.alert(t('error'), t('titleRequired'));
         return;
       }
+      setIsSaving(true);
 
       let savedNote;
       // Ελέγχουμε αν η σημείωση είναι νέα ή υπάρχουσα
@@ -1376,16 +1379,12 @@ export default function EditNote({ route }: { route: any }) {
       }
 
       if (existingNote?.id) {
-        await saveVersion();
+        // Μην μπλοκάρεις αν offline: αποθήκευσε έκδοση best-effort
+        try { await saveVersion(); } catch {}
       }
 
       setHasChanges(false);
-      await loadNotes();
-      
-      // Περιμένουμε να ολοκληρωθεί η αποθήκευση πριν την πλοήγηση
-      setTimeout(() => {
-        navigation.navigate('Home');
-      }, 100);
+      navigation.navigate('Home');
     
       return savedNote;
     } catch (error) {
@@ -1397,6 +1396,8 @@ export default function EditNote({ route }: { route: any }) {
       );
       // Δεν επαναφέρουμε το σφάλμα για να μην διακόψουμε τη ροή
       return null;
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1436,6 +1437,7 @@ export default function EditNote({ route }: { route: any }) {
 
   const handleBack = async () => {
     try {
+      if (isSaving) return;
       if (hasChanges) {
         await handleSave();
       } else {
@@ -1453,6 +1455,7 @@ export default function EditNote({ route }: { route: any }) {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
+        if (isSaving) return true;
         if (hasChanges) {
           handleSave().catch(err => {
             console.error('Error saving on back press:', err);
@@ -1468,7 +1471,7 @@ export default function EditNote({ route }: { route: any }) {
 
       const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => backHandler.remove();
-    }, [hasChanges, navigation, handleSave])
+    }, [hasChanges, navigation, handleSave, isSaving])
   );
 
   // Add menu handlers
@@ -2352,8 +2355,10 @@ export default function EditNote({ route }: { route: any }) {
       <View style={styles.content}>
         <View style={styles.header}>
           <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleBack}
+            style={[styles.backButton, isSaving && { opacity: 0.5 }]}
+            onPress={handleSave}
+            disabled={isSaving}
+            accessibilityState={{ disabled: isSaving }}
           >
             <Ionicons name="checkmark" size={24} color={theme.textColor} />
           </TouchableOpacity>

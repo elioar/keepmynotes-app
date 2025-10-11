@@ -258,14 +258,30 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
           tasks: d.tasks ?? [],
           color: d.color ?? '',
           tags: d.tags ?? [],
-          isSynced: true
+          isSynced: !doc.metadata.hasPendingWrites
         };
       });
-      setNotes(notesArray);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notesArray));
+      // Συγχώνευση με τυχόν μη συγχρονισμένες τοπικές
+      const localJson = await AsyncStorage.getItem(STORAGE_KEY);
+      const localNotes: Note[] = localJson ? JSON.parse(localJson) : [];
+      const unsyncedLocal = localNotes.filter(n => !n.isSynced);
+      const remoteIds = new Set(notesArray.map(n => n.id));
+      const merged = [...notesArray, ...unsyncedLocal.filter(n => !remoteIds.has(n.id))];
+      setNotes(merged);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     } catch (error) {
       console.error('❌ Error loading notes from Firestore:', error);
-      setNotes([]);
+      // Fallback σε τοπικά αποθηκευμένα
+      try {
+        const localNotes = await AsyncStorage.getItem(STORAGE_KEY);
+        if (localNotes) {
+          setNotes(JSON.parse(localNotes));
+        } else {
+          setNotes([]);
+        }
+      } catch {
+        setNotes([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -298,17 +314,23 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         
         unsubscribe = onSnapshot(notesCollectionRef, async (snapshot) => {
           try {
-            if (!snapshot.empty) {
-              const notesArray = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id,
-                isSynced: true
-              })) as Note[];
-              setNotes(notesArray);
-              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notesArray));
-              setLastSyncTime(Date.now());
-              console.log('✅ Notes updated from Firestore and saved locally');
-            }
+            const notesArray = snapshot.docs.map(doc => ({
+              ...doc.data(),
+              id: doc.id,
+              isSynced: !doc.metadata.hasPendingWrites
+            })) as Note[];
+
+            // Συγχώνευση τοπικών μη συγχρονισμένων σημειώσεων
+            const localJson = await AsyncStorage.getItem(STORAGE_KEY);
+            const localNotes: Note[] = localJson ? JSON.parse(localJson) : [];
+            const unsyncedLocal = localNotes.filter(n => !n.isSynced);
+            const remoteIds = new Set(notesArray.map(n => n.id));
+            const merged = [...notesArray, ...unsyncedLocal.filter(n => !remoteIds.has(n.id))];
+
+            setNotes(merged);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            setLastSyncTime(Date.now());
+            console.log('✅ Notes updated (remote + unsynced local) and saved');
           } catch (error) {
             console.error('❌ Error processing Firestore update:', error);
           } finally {
@@ -335,46 +357,35 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const user = auth.currentUser;
-      if (!user) {
-        // Τοπική αποθήκευση αν δεν υπάρχει χρήστης
-        const now = new Date().toISOString();
-        const newNote: Note = {
-          ...noteData,
-          id: generateUniqueId(),
-          createdAt: now,
-          updatedAt: now,
-          isSynced: false
-        };
-        const updatedNotes = [...notes, newNote];
-        setNotes(updatedNotes);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
-        return newNote;
+      const now = new Date().toISOString();
+      const id = generateUniqueId();
+      const newNoteLocal: Note = { ...noteData, id, createdAt: now, updatedAt: now, isSynced: false };
+
+      // Optimistic local update
+      const updatedLocal = [...notes, newNoteLocal];
+      setNotes(updatedLocal);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLocal));
+
+      // Try background sync if user exists
+      if (user) {
+        (async () => {
+          try {
+            const noteToSave = sanitizeForFirestore({ ...newNoteLocal, isSynced: true });
+            await setDoc(doc(db, 'users', user.uid, 'notes', id), noteToSave);
+            // mark as synced
+            const afterSync = (prev: Note[]) => prev.map(n => n.id === id ? { ...n, isSynced: true } : n);
+            setNotes(afterSync);
+            const latest = afterSync(updatedLocal);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(latest));
+          } catch (e) {
+            // keep as unsynced
+          }
+        })();
       }
 
-      const now = new Date().toISOString();
-      const noteToSave = sanitizeForFirestore({
-        ...noteData,
-        createdAt: now,
-        updatedAt: now,
-        isSynced: true
-      });
-
-      // Αποθήκευση στο Firestore
-      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
-      const batch = writeBatch(db);
-      const docRef = await addDoc(notesCollectionRef, noteToSave);
-
-      const newNote: Note = {
-        ...noteToSave,
-        id: docRef.id
-      };
-
-      const updatedNotes = [...notes, newNote];
-      setNotes(updatedNotes);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
-      return newNote;
+      return newNoteLocal;
     } catch (error) {
-      console.error('❌ Error saving note to Firestore:', error);
+      console.error('❌ Error in addNote:', error);
       throw error;
     }
   };
@@ -383,36 +394,64 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   const updateNote = async (note: Note) => {
     try {
       const user = auth.currentUser;
-      if (!user) return;
+      const updatedAt = new Date().toISOString();
+      const updatedSanitized = sanitizeForFirestore({ ...note, updatedAt });
 
-      const updatedNote = sanitizeForFirestore({
-        ...note,
-        updatedAt: new Date().toISOString()
-      });
+      // Optimistic local update
+      const locallyUpdated = notes.map(n => n.id === note.id ? { ...updatedSanitized, isSynced: false } : n);
+      setNotes(locallyUpdated);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(locallyUpdated));
 
-      await setDoc(doc(db, 'users', user.uid, 'notes', note.id), updatedNote);
-
-      const updatedNotes = notes.map(n => n.id === note.id ? updatedNote : n);
-      setNotes(updatedNotes);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+      if (user) {
+        (async () => {
+          try {
+            await setDoc(doc(db, 'users', user.uid, 'notes', note.id), updatedSanitized);
+            const markSynced = (prev: Note[]) => prev.map(n => n.id === note.id ? { ...updatedSanitized, isSynced: true } : n);
+            setNotes(markSynced);
+            const latest = markSynced(locallyUpdated);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(latest));
+          } catch (e) {
+            // keep as unsynced
+          }
+        })();
+      }
     } catch (error) {
-      console.error('❌ Error updating note in Firestore:', error);
+      console.error('❌ Error updating note:', error);
     }
   };
 
-  // Διαγραφή σημείωσης
+  // Διαγραφή σημείωσης (soft delete -> μετακίνηση στον κάδο)
   const deleteNote = async (id: string) => {
     try {
       const user = auth.currentUser;
-      if (!user) return;
+      const now = new Date().toISOString();
+      const noteToDelete = notes.find(n => n.id === id);
+      if (!noteToDelete) return;
 
-      await deleteDoc(doc(db, 'users', user.uid, 'notes', id));
+      // Optimistic local update: σημειώνουμε ως διαγραμμένη
+      const locallyUpdated = notes.map(n => 
+        n.id === id ? { ...n, isDeleted: true, deletedAt: now, updatedAt: now, isSynced: false } : n
+      );
+      setNotes(locallyUpdated);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(locallyUpdated));
 
-      const updatedNotes = notes.filter(note => note.id !== id);
-      setNotes(updatedNotes);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+      // Background sync όταν υπάρχει χρήστης
+      if (user) {
+        (async () => {
+          try {
+            const noteRef = doc(db, 'users', user.uid, 'notes', id);
+            await setDoc(noteRef, sanitizeForFirestore({ ...noteToDelete, isDeleted: true, deletedAt: now, updatedAt: now, isSynced: true }), { merge: true });
+            const markSynced = (prev: Note[]) => prev.map(n => n.id === id ? { ...n, isSynced: true } : n);
+            setNotes(markSynced);
+            const latest = markSynced(locallyUpdated);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(latest));
+          } catch (e) {
+            // παραμένει unsynced μέχρι επόμενο sync
+          }
+        })();
+      }
     } catch (error) {
-      console.error('❌ Error deleting note in Firestore:', error);
+      console.error('❌ Error moving note to trash:', error);
     }
   };
 

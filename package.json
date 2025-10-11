@@ -60,6 +60,7 @@
     "i18n-js": "^4.5.0",
     "i18next": "^25.1.2",
     "lexical": "^0.21.0",
+    "moti": "^0.30.0",
     "prosemirror-model": "^1.24.1",
     "prosemirror-state": "^1.4.3",
     "prosemirror-view": "^1.37.1",

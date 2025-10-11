@@ -8,8 +8,6 @@ import {
   Switch,
   StatusBar,
   Alert,
-  TextInput,
-  Modal,
   ToastAndroid,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,13 +62,10 @@ export default function SettingsScreen() {
   const [hasBiometrics, setHasBiometrics] = useState(false);
   const [biometricType, setBiometricType] = useState<'fingerprint' | null>(null);
   const { notes, importNotes, clearStorage } = useNotes();
-  const [username, setUsername] = useState<string | null>(null);
-  const [showUsernameInput, setShowUsernameInput] = useState(false);
 
   useEffect(() => {
     checkBiometrics();
     loadBiometricsPreference();
-    loadUsername();
   }, []);
 
   const checkBiometrics = async () => {
@@ -102,27 +97,7 @@ export default function SettingsScreen() {
     setBiometricsEnabled(newValue);
   };
 
-  const loadUsername = async () => {
-    try {
-      const savedUsername = await AsyncStorage.getItem('@username');
-      setUsername(savedUsername);
-    } catch (error) {
-      console.error('Error loading username:', error);
-    }
-  };
-
-  const handleUpdateUsername = async (newUsername: string) => {
-    try {
-      const trimmedUsername = newUsername.trim();
-      if (trimmedUsername) {
-        await AsyncStorage.setItem('@username', trimmedUsername);
-        setUsername(trimmedUsername);
-      }
-      setShowUsernameInput(false);
-    } catch (error) {
-      console.error('Error updating username:', error);
-    }
-  };
+  // Username handling removed (moved to Profile)
 
   const handleExportNotes = async () => {
     try {
@@ -738,8 +713,8 @@ export default function SettingsScreen() {
               <Ionicons name="person-outline" size={22} color={theme.accentColor} />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>{t('username')}</Text>
-              <Text style={styles.infoValue}>{username || t('enterUsername')}</Text>
+              <Text style={styles.infoLabel}>{t('profile')}</Text>
+              <Text style={styles.infoValue}>{t('editProfile')}</Text>
             </View>
             <View style={styles.chevronContainer}>
               <Ionicons name="chevron-forward" size={16} color={theme.placeholderColor} />
@@ -950,51 +925,7 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {showUsernameInput && (
-        <Modal
-          visible={showUsernameInput}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowUsernameInput(false)}
-        >
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-            <View style={[styles.usernameModal, { backgroundColor: theme.backgroundColor }]}>
-              <Text style={[styles.usernameModalTitle, { color: theme.textColor }]}>
-                {t('enterUsername')}
-              </Text>
-              <TextInput
-                style={[styles.usernameInput, { 
-                  backgroundColor: theme.secondaryBackground,
-                  color: theme.textColor,
-                  borderColor: theme.borderColor
-                }]}
-                value={username || ''}
-                onChangeText={setUsername}
-                placeholder={t('enterUsername')}
-                placeholderTextColor={theme.placeholderColor}
-              />
-              <View style={styles.usernameModalButtons}>
-                <TouchableOpacity 
-                  style={[styles.usernameModalButton, { backgroundColor: theme.secondaryBackground }]}
-                  onPress={() => setShowUsernameInput(false)}
-                >
-                  <Text style={[styles.usernameModalButtonText, { color: theme.textColor }]}>
-                    {t('cancel')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.usernameModalButton, { backgroundColor: theme.accentColor }]}
-                  onPress={() => handleUpdateUsername(username || '')}
-                >
-                  <Text style={styles.usernameModalButtonText}>
-                    {t('save')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* Username modal removed; username is now edited in Profile screen */}
     </SafeAreaView>
   );
 }

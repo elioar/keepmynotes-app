@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { auth } from '../config/firebase';
+import { signOut } from 'firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -26,6 +27,7 @@ import { updateProfile, sendEmailVerification, deleteUser } from 'firebase/auth'
 
 export default function ProfileScreen() {
   const [username, setUsername] = useState('');
+  const [originalUsername, setOriginalUsername] = useState('');
   const [email, setEmail] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +43,9 @@ export default function ProfileScreen() {
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
-      setUsername(user.displayName || '');
+      const name = user.displayName || '';
+      setUsername(name);
+      setOriginalUsername(name);
       setEmail(user.email || '');
       setProfileImage(user.photoURL);
       setIsEmailVerified(user.emailVerified);
@@ -96,6 +100,17 @@ export default function ProfileScreen() {
       showToast(t('profileUpdateError'), 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      showToast(t('signOutSuccess'), 'success');
+      (navigation as any).navigate('Login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      showToast(t('signOutError'), 'error');
     }
   };
 
@@ -214,6 +229,51 @@ export default function ProfileScreen() {
       shadowOpacity: 0.2,
       shadowRadius: 4,
       elevation: 4,
+    },
+    rowCard: {
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+    },
+    rowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    rowLabel: {
+      color: theme.textColor,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    rowSubLabel: {
+      color: theme.placeholderColor,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    versionText: {
+      color: theme.placeholderColor,
+      fontSize: 13,
+    },
+    signOutButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: theme.borderColor,
+      borderRadius: 12,
+      padding: 14,
+      alignItems: 'center',
+      marginTop: 10,
+    },
+    signOutText: {
+      color: theme.textColor,
+      fontSize: 14,
+      fontWeight: '600',
     },
     profileImageContainer: {
       width: 120,
@@ -341,8 +401,6 @@ export default function ProfileScreen() {
       alignItems: 'center',
       marginTop: 10,
       width: '100%',
-      maxWidth: 200,
-      alignSelf: 'center',
     },
     deleteButtonText: {
       color: '#FF4E4E',
@@ -443,6 +501,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* Quick actions */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
               style={styles.actionButton}
@@ -451,12 +510,25 @@ export default function ProfileScreen() {
               <Ionicons name="key-outline" size={20} color={theme.accentColor} />
               <Text style={styles.actionButtonText}>{t('changePassword')}</Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleVerifyEmail}
+              disabled={isEmailVerified}
+            >
+              <Ionicons name="mail-outline" size={20} color={isEmailVerified ? theme.placeholderColor : theme.accentColor} />
+              <Text style={[styles.actionButtonText, { color: isEmailVerified ? theme.placeholderColor : theme.textColor }]}>
+                {isEmailVerified ? t('verified') : t('verify')}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDeleteAccount}
-          >
+          {/* Removed theme toggle and app version section as requested */}
+
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Text style={styles.signOutText}>{t('signOut')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
             <Text style={styles.deleteButtonText}>{t('deleteAccount')}</Text>
           </TouchableOpacity>
         </ScrollView>

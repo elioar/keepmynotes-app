@@ -34,7 +34,7 @@ const Stack = createNativeStackNavigator();
 function Navigation() {
   const { theme } = useTheme();
   const { isFirstLaunch } = useOnboarding();
-  const { user, isLoading, isGuestMode } = useAuth();
+  const { user, isLoading } = useAuth();
   
   // Αν φορτώνει, εμφανίζουμε loading screen
   if (isLoading) {
@@ -45,10 +45,10 @@ function Navigation() {
     );
   }
 
-  // Αν δεν είναι πρώτη εκκίνηση και δεν υπάρχει χρήστης και δεν είναι guest mode, πηγαίνουμε στο Login
+  // If not first launch and no user, go to Login
   const getInitialRoute = () => {
     if (isFirstLaunch) return "Welcome";
-    if (!user && !isGuestMode) return "Login";
+    if (!user) return "Login";
     return "Home";
   };
   
@@ -103,7 +103,7 @@ function Navigation() {
       />
       <Stack.Screen 
         name="Task" 
-        component={EditNote}
+        getComponent={() => require('./components/EditNote').default}
       />
       <Stack.Screen 
         name="Settings" 
@@ -119,7 +119,7 @@ function Navigation() {
       />
       <Stack.Screen 
         name="AddEditNote" 
-        component={EditNote}
+        getComponent={() => require('./components/EditNote').default}
         options={{
           presentation: 'card',
           animation: 'none',

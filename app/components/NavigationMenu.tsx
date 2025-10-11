@@ -7,7 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
   Home: undefined;
-  AddEditNote: { note?: any };
+  AddEditNote: { noteId?: string };
   Favorites: undefined;
   Tasks: undefined;
   PinScreen: { isChangingPin?: boolean };
@@ -49,7 +49,7 @@ export default function NavigationMenu({ onAddPress }: Props) {
     if (onAddPress) {
       onAddPress();
     } else {
-      navigation.navigate('AddEditNote', { note: undefined });
+      navigation.navigate('AddEditNote');
     }
   };
 

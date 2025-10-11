@@ -41,7 +41,7 @@ export default function LoginScreen() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation();
-  const { setGuestMode } = useAuth();
+  // Guest mode removed
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -202,15 +202,30 @@ export default function LoginScreen() {
       setIsLoading(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      const { accessToken } = await GoogleSignin.getTokens();
-      
-      if (!accessToken) {
-        throw new Error('No access token present!');
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+      // Ensure any previous session is cleared to avoid stale/no idToken
+      try {
+        const isSignedIn = await GoogleSignin.isSignedIn();
+        if (isSignedIn) await GoogleSignin.signOut();
+      } catch (_e) {}
+
+      const signInResult = await GoogleSignin.signIn();
+      let idToken = signInResult?.idToken;
+
+      // Fallback: retrieve tokens explicitly if SDK didn't populate idToken on signIn
+      if (!idToken) {
+        try {
+          const tokens = await GoogleSignin.getTokens();
+          idToken = tokens?.idToken ?? null;
+        } catch (_e) {}
       }
 
-      const googleCredential = GoogleAuthProvider.credential(accessToken);
+      if (!idToken) {
+        throw new Error('No idToken returned from Google Sign-In');
+      }
+
+      const googleCredential = GoogleAuthProvider.credential(idToken);
       const userCredential = await signInWithCredential(auth, googleCredential);
       
       if (userCredential.user) {
@@ -227,6 +242,8 @@ export default function LoginScreen() {
         errorMessage = t('signInCancelled');
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = t('networkError');
+      } else if (typeof error?.message === 'string' && error.message.includes('No idToken')) {
+        errorMessage = t('googleSignInError');
       }
       
       showToast(errorMessage, 'error');
@@ -265,15 +282,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGuestMode = async () => {
-    try {
-      await setGuestMode(true);
-      navigation.navigate('Home' as never);
-    } catch (error) {
-      console.error('Error setting guest mode:', error);
-      showToast(t('error'), 'error');
-    }
-  };
+  // Guest mode removed
 
   const styles = StyleSheet.create({
     container: {
@@ -288,26 +297,6 @@ export default function LoginScreen() {
       alignItems: 'center',
       marginTop: 40,
       marginBottom: 40,
-    },
-    backButton: {
-      position: 'absolute',
-      top: Platform.OS === 'ios' ? 50 : 20,
-      left: 20,
-      zIndex: 1,
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: theme.secondaryBackground,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
     },
     title: {
       fontSize: 28,
@@ -430,15 +419,6 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          navigation.goBack();
-        }}
-      >
-        <Ionicons name="arrow-back" size={24} color={theme.textColor} />
-      </TouchableOpacity>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -587,15 +567,7 @@ export default function LoginScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.secondaryBackground, borderWidth: 1, borderColor: theme.borderColor, marginTop: 20 }]}
-              onPress={handleGuestMode}
-              disabled={isLoading}
-            >
-              <Text style={[styles.buttonText, { color: theme.textColor }]}>
-                {t('continueAsGuest')}
-              </Text>
-            </TouchableOpacity>
+            {/* Guest mode removed */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

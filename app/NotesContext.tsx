@@ -102,6 +102,22 @@ const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
+// Remove undefined values recursively to satisfy Firestore constraints
+function sanitizeForFirestore<T>(value: T): T {
+  if (Array.isArray(value)) {
+    // @ts-expect-error preserve array typing at runtime
+    return value.map((item) => sanitizeForFirestore(item));
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => [k, sanitizeForFirestore(v)] as const);
+    // @ts-expect-error reconstruct sanitized object
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
 export function NotesProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -182,7 +198,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(db);
       Object.values(notesObject).forEach((note: any) => {
         const noteRef = doc(db, 'users', user.uid, 'notes', note.id);
-        batch.set(noteRef, note);
+        batch.set(noteRef, sanitizeForFirestore(note));
       });
       await batch.commit();
 
@@ -207,10 +223,11 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   }, [migrateNotesToFirebase]);
 
   // Φόρτωση σημειώσεων από το Firebase
-  const loadNotes = async () => {
+  const loadNotes = useCallback(async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) {
+      setIsLoading(true);
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
         // Τοπική φόρτωση
         const localNotes = await AsyncStorage.getItem(STORAGE_KEY);
         if (localNotes) {
@@ -222,7 +239,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Φόρτωση από Firestore
-      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
+      const notesCollectionRef = collection(db, 'users', currentUser.uid, 'notes');
       const snapshot = await getDocs(notesCollectionRef);
       const notesArray: Note[] = snapshot.docs.map(doc => {
         const d = doc.data();
@@ -249,8 +266,10 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('❌ Error loading notes from Firestore:', error);
       setNotes([]);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [user]);
 
   // Φόρτωση σημειώσεων όταν αλλάζει ο χρήστης
   useEffect(() => {
@@ -258,6 +277,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     
     const setupNotesListener = async () => {
       try {
+        setIsLoading(true);
         console.log('🔄 Setting up notes listener');
         const user = auth.currentUser;
         
@@ -269,6 +289,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
             console.log('📝 Found notes in local storage:', parsedNotes.length);
             setNotes(parsedNotes);
           }
+          setIsLoading(false);
           return;
         }
 
@@ -290,12 +311,16 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (error) {
             console.error('❌ Error processing Firestore update:', error);
+          } finally {
+            setIsLoading(false);
           }
         });
 
         console.log('✅ Firebase listener setup completed');
       } catch (error) {
         console.error('❌ Error setting up notes listener:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -327,12 +352,12 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       }
 
       const now = new Date().toISOString();
-      const noteToSave = {
+      const noteToSave = sanitizeForFirestore({
         ...noteData,
         createdAt: now,
         updatedAt: now,
         isSynced: true
-      };
+      });
 
       // Αποθήκευση στο Firestore
       const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
@@ -360,10 +385,10 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const user = auth.currentUser;
       if (!user) return;
 
-      const updatedNote = {
+      const updatedNote = sanitizeForFirestore({
         ...note,
         updatedAt: new Date().toISOString()
-      };
+      });
 
       await setDoc(doc(db, 'users', user.uid, 'notes', note.id), updatedNote);
 
@@ -458,7 +483,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const batch = writeBatch(db);
       Object.values(notesObject).forEach(note => {
         const noteRef = doc(db, 'users', user.uid, 'notes', note.id);
-        batch.set(noteRef, note);
+        batch.set(noteRef, sanitizeForFirestore(note));
       });
       await batch.commit();
       setNotes(updatedNotes);
@@ -518,12 +543,12 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const noteToRestore = notes.find(note => note.id === id && note.isDeleted);
       if (!noteToRestore) return;
       
-      const restoredNote = {
+      const restoredNote = sanitizeForFirestore({
         ...noteToRestore,
         isDeleted: false,
         deletedAt: undefined,
         updatedAt: new Date().toISOString()
-      };
+      });
       
       const updatedNotes = notes.map(note => 
         note.id === id ? restoredNote : note
@@ -711,7 +736,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
       console.log('📝 Syncing note:', note);
       const noteRef = doc(db, 'users', user.uid, 'notes', noteId);
-      await setDoc(noteRef, note);
+      await setDoc(noteRef, sanitizeForFirestore(note));
       console.log('✅ Note synced to Firebase successfully');
 
       // Ενημερώνουμε το isSynced status
@@ -766,7 +791,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     } else {
       loadNotes();
     }
-  }, [user]);
+  }, [user, loadNotes]);
 
   return (
     <NotesContext.Provider value={contextValue}>

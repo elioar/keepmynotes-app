@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal, ActivityIndicator, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -17,8 +17,8 @@ import * as Sharing from 'expo-sharing';
 
 type RootStackParamList = {
   Home: undefined;
-  EditNote: { note?: any };
-  AddEditNote: { note?: any };
+  EditNote: { noteId?: string };
+  AddEditNote: { noteId?: string };
 };
 
 interface Note {
@@ -45,14 +45,12 @@ export default function EditNote({ route }: { route: any }) {
   const webViewRef = useRef<WebView>(null);
   const { theme } = useTheme();
   const { t, currentLanguage } = useLanguage();
-  const { addNote, updateNote, deleteNote, loadNotes } = useNotes();
+  const { notes, addNote, updateNote, deleteNote, loadNotes } = useNotes();
   const navigation = useNavigation<NavigationProp>();
   
-  const routeNote = route.params?.note;
-  // Αν η σημείωση έχει isNew=true ή δεν έχει id, τότε είναι νέα σημείωση
-  const isNewNote = routeNote?.isNew === true || !routeNote?.id;
-  // Για νέες σημειώσεις, μόνο κρατάμε τον τύπο από το routeNote
-  const existingNote = isNewNote ? null : routeNote;
+  const routeNoteId = route.params?.noteId as string | undefined;
+  const isNewNote = !routeNoteId;
+  const existingNote = isNewNote ? null : (notes.find((n: any) => n.id === routeNoteId) || null);
   
   const [noteContent, setNoteContent] = useState(existingNote?.content || '');
   const [title, setTitle] = useState(existingNote?.title || '');
@@ -83,6 +81,15 @@ export default function EditNote({ route }: { route: any }) {
   const [currentResultIndex, setCurrentResultIndex] = useState(-1);
   const [searchResultsCount, setSearchResultsCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [showEditor, setShowEditor] = useState(Platform.OS !== 'android');
+
+  useFocusEffect(
+    useCallback(() => {
+      if (showEditor) return;
+      const task = InteractionManager.runAfterInteractions(() => setShowEditor(true));
+      return () => task.cancel();
+    }, [showEditor])
+  );
 
   useEffect(() => {
     if (existingNote) {
@@ -95,12 +102,12 @@ export default function EditNote({ route }: { route: any }) {
     }
   }, [noteContent, title]);
 
-  // Load versions when the component mounts
+  // Load versions only when history modal opens
   useEffect(() => {
-    if (existingNote?.id) {
+    if (isHistoryModalVisible && existingNote?.id) {
       loadVersions(existingNote.id);
     }
-  }, [existingNote?.id]);
+  }, [isHistoryModalVisible, existingNote?.id]);
 
   const loadVersions = async (noteId: string) => {
     try {
@@ -175,7 +182,7 @@ export default function EditNote({ route }: { route: any }) {
     }
   };
 
-  const editorHTML = `
+  const editorHTML = React.useMemo(() => `
     <!DOCTYPE html>
     <html>
       <head>
@@ -1319,7 +1326,7 @@ export default function EditNote({ route }: { route: any }) {
         </script>
       </body>
     </html>
-  `;
+  `, [theme, isViewMode, t]);
 
   const handleAddTag = () => {
     if (newTag.trim()) {
@@ -1361,7 +1368,7 @@ export default function EditNote({ route }: { route: any }) {
           title: title.trim(),
           content: noteContent,
           description: stripHtmlTags(noteContent).substring(0, 100),
-          type: routeNote?.type || 'text',
+          type: (existingNote?.type as any) || 'text',
           isFavorite: false,
           isHidden: false,
           tags
@@ -2575,11 +2582,20 @@ export default function EditNote({ route }: { route: any }) {
         <View style={styles.divider} />
         
         <View style={styles.editor}>
+          {!Platform.OS || (Platform.OS && Platform.OS !== 'android') ? null : null}
+          {Platform.OS === 'android' && !showEditor ? (
+            <ActivityIndicator color={theme.accentColor} style={{ marginTop: 16 }} />
+          ) : (
           <WebView
             ref={editorRef}
             source={{ html: editorHTML }}
             style={styles.webView}
             originWhitelist={['*']}
+            startInLoadingState
+            renderLoading={() => (
+              <ActivityIndicator color={theme.accentColor} style={{ marginTop: 16 }} />
+            )}
+            cacheEnabled
             onMessage={(event) => {
               const data = JSON.parse(event.nativeEvent.data);
               if (data.type === 'content') {
@@ -2607,6 +2623,7 @@ export default function EditNote({ route }: { route: any }) {
             overScrollMode="never"
             bounces={false}
           />
+          )}
         </View>
       </View>
 

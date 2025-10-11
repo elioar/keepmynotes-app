@@ -41,7 +41,7 @@ import NoteActionMenu from './components/NoteActionMenu';
 import * as Haptics from 'expo-haptics';
 import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
 import * as ImagePicker from 'expo-image-picker';
-import { auth } from './config/firebase';
+import { auth, GoogleSignin } from './config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { signOut } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
@@ -57,7 +57,7 @@ const TAG_LABELS: Record<TagColor, string> = {
 
 type RootStackParamList = {
   Home: undefined;
-  AddEditNote: { note?: any };
+  AddEditNote: { noteId?: string };
   Favorites: undefined;
   Tasks: undefined;
   Settings: undefined;
@@ -133,7 +133,7 @@ function getBorderColor(color: string | TagColor | null | undefined, defaultColo
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
-  const { notes, deleteNote, updateNote, loadNotes, setNotes, clearStorage, syncNote } = useNotes();
+  const { notes, deleteNote, updateNote, loadNotes, setNotes, clearStorage, syncNote, isLoading } = useNotes();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const { theme, toggleColorScheme } = useTheme();
   const { t } = useLanguage();
@@ -149,11 +149,12 @@ export default function HomeScreen() {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
+  const skeletonPulse = useRef(new Animated.Value(0.3)).current;
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  const { isGuestMode } = useAuth();
+  // Guest mode removed
 
   // Add auth state listener
   useEffect(() => {
@@ -173,8 +174,26 @@ export default function HomeScreen() {
     return () => unsubscribe();
   }, []);
 
+  // Skeleton shimmer animation
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonPulse, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(skeletonPulse, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
   const handleSignOut = async () => {
     try {
+      // Revoke Google access so the account chooser shows next time
+      try {
+        await GoogleSignin.revokeAccess();
+        await GoogleSignin.signOut();
+      } catch (_e) {}
+
       await signOut(auth);
       // Καθαρισμός των σημειώσεων μετά την αποσύνδεση
       await clearStorage();
@@ -183,7 +202,7 @@ export default function HomeScreen() {
       } else {
         Alert.alert('', t('signOutSuccess'));
       }
-      navigation.navigate('Login');
+      navigation.navigate({ name: 'Login', params: undefined });
     } catch (error) {
       console.error('Error signing out:', error);
       Alert.alert(t('error'), t('signOutError'));
@@ -285,11 +304,11 @@ export default function HomeScreen() {
   });
 
   const handleNotePress = (note: any) => {
-    navigation.navigate('AddEditNote', { note });
+    navigation.navigate({ name: 'AddEditNote', params: { noteId: note.id } });
   };
   
   const handleAddNote = () => {
-    navigation.navigate('AddEditNote', { note: undefined });
+    navigation.navigate({ name: 'AddEditNote', params: {} });
   };
 
   const toggleChecklistItem = async (noteId: string, itemIndex: number) => {
@@ -434,10 +453,10 @@ export default function HomeScreen() {
     
     switch (type) {
       case 'note':
-        navigation.navigate('AddEditNote', { note: { type: 'text', isNew: true } });
+        navigation.navigate({ name: 'AddEditNote', params: {} });
         break;
       case 'task':
-        navigation.navigate('QuickTask');
+        navigation.navigate({ name: 'QuickTask', params: undefined });
         break;
     }
   };
@@ -476,7 +495,7 @@ export default function HomeScreen() {
   };
 
   const handleNavigateToFavorites = () => {
-    navigation.navigate('Favorites');
+    navigation.navigate({ name: 'Favorites', params: undefined });
   };
 
   const truncateText = (text: string, maxLength: number) => {
@@ -495,7 +514,7 @@ export default function HomeScreen() {
     try {
       switch (action) {
         case 'edit':
-          navigation.navigate('AddEditNote', { note: selectedNote });
+          navigation.navigate({ name: 'AddEditNote', params: { noteId: selectedNote.id } });
           break;
 
         case 'delete':
@@ -706,6 +725,11 @@ export default function HomeScreen() {
       paddingHorizontal: wp(5),
       paddingBottom: hp(1),
     },
+    headerLeft: {
+      flex: 1,
+      minWidth: 0,
+      paddingRight: wp(2),
+    },
     headerGreeting: {
       fontSize: normalize(20),
       fontWeight: '600',
@@ -716,6 +740,7 @@ export default function HomeScreen() {
       fontWeight: '600',
       color: theme.textColor,
       marginTop: hp(0.5),
+      flexShrink: 1,
     },
     menuButton: {
       width: wp(10),
@@ -923,6 +948,28 @@ export default function HomeScreen() {
       padding: wp(5),
       borderRadius: wp(8),
       marginBottom: hp(2),
+    },
+    emptyCtaPrimary: {
+      marginTop: 12,
+      backgroundColor: theme.accentColor,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+    },
+    emptyCtaPrimaryText: {
+      color: '#FFFFFF',
+      fontWeight: '600',
+    },
+    emptyCtaSecondary: {
+      marginTop: 12,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+    },
+    emptyCtaSecondaryText: {
+      color: theme.textColor,
+      fontWeight: '600',
     },
     settingsButton: {
       padding: 4,
@@ -1182,6 +1229,61 @@ export default function HomeScreen() {
       marginLeft: 5,
       fontWeight: '500',
     },
+    // Skeleton styles
+    skeletonCardList: {
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: wp(4),
+      padding: wp(4),
+      marginBottom: hp(2),
+      minHeight: hp(20),
+    },
+    skeletonCardGrid: {
+      width: '48%',
+      minHeight: hp(18),
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: wp(4),
+      padding: wp(3),
+      marginBottom: hp(2),
+    },
+    skeletonHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: hp(1),
+    },
+    skeletonTag: {
+      width: 80,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
+    skeletonFavDot: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
+    skeletonTitle: {
+      width: '70%',
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+      marginBottom: 8,
+    },
+    skeletonLine: {
+      width: '100%',
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      marginTop: 6,
+    },
+    skeletonLineShort: {
+      width: '60%',
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      marginTop: 6,
+    },
   });
 
   return (
@@ -1205,9 +1307,9 @@ export default function HomeScreen() {
           ]}
         >
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerLeft}>
               <Text style={styles.headerGreeting}>{t('hello')},</Text>
-              <Text style={styles.headerName}>
+              <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                 {userData?.displayName || userData?.email?.split('@')[0] || t('guest')} 👋
               </Text>
             </View>
@@ -1292,7 +1394,44 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {getFilteredNotes().length === 0 ? (
+          {isLoading ? (
+            <View style={isGridView ? styles.notesGrid : null}>
+              {Array.from({ length: isGridView ? 6 : 5 }).map((_, idx) => (
+                isGridView ? (
+                  <Animated.View
+                    key={`skeleton-grid-${idx}`}
+                    style={[styles.skeletonCardGrid, { opacity: skeletonPulse }]}
+                  >
+                    <View style={styles.skeletonHeaderRow}>
+                      <View style={styles.skeletonTag} />
+                      <View style={styles.skeletonFavDot} />
+                    </View>
+                    <View>
+                      <View style={styles.skeletonTitle} />
+                      <View style={styles.skeletonLine} />
+                      <View style={styles.skeletonLineShort} />
+                    </View>
+                  </Animated.View>
+                ) : (
+                  <Animated.View
+                    key={`skeleton-list-${idx}`}
+                    style={[styles.skeletonCardList, { opacity: skeletonPulse }]}
+                  >
+                    <View style={styles.skeletonHeaderRow}>
+                      <View style={styles.skeletonTag} />
+                      <View style={styles.skeletonFavDot} />
+                    </View>
+                    <View>
+                      <View style={styles.skeletonTitle} />
+                      <View style={styles.skeletonLine} />
+                      <View style={styles.skeletonLine} />
+                      <View style={styles.skeletonLineShort} />
+                    </View>
+                  </Animated.View>
+                )
+              ))}
+            </View>
+          ) : getFilteredNotes().length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyStateIcon}>
                 <Ionicons 
@@ -1301,9 +1440,36 @@ export default function HomeScreen() {
                   color={theme.accentColor} 
                 />
               </View>
-              <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
-                {t('noNotes')}
-              </Text>
+              {searchQuery.length > 0 || activeFilters.length > 0 ? (
+                <>
+                  <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
+                    {t('noResults')}
+                  </Text>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    style={styles.emptyCtaSecondary}
+                    onPress={() => {
+                      setSearchQuery('');
+                      setActiveFilters([]);
+                    }}
+                  >
+                    <Text style={styles.emptyCtaSecondaryText}>{t('clearFilters')}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
+                    {t('noNotes')}
+                  </Text>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    style={styles.emptyCtaPrimary}
+                    onPress={() => setIsModalVisible(true)}
+                  >
+                    <Text style={styles.emptyCtaPrimaryText}>{t('addNote')}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           ) : isViewPreferenceLoaded ? (
             <View style={isGridView ? styles.notesGrid : null}>
@@ -1578,7 +1744,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               style={styles.profileImageContainer}
               onPress={() => {
-                navigation.navigate('Profile');
+              navigation.navigate({ name: 'Profile', params: undefined });
                 toggleSideMenu();
               }}
             >
@@ -1607,7 +1773,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              navigation.navigate('Tasks');
+              navigation.navigate({ name: 'Tasks', params: undefined });
               toggleSideMenu();
             }}
           >
@@ -1620,7 +1786,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              navigation.navigate('Favorites');
+              navigation.navigate({ name: 'Favorites', params: undefined });
               toggleSideMenu();
             }}
           >
@@ -1633,7 +1799,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              navigation.navigate('Settings');
+              navigation.navigate({ name: 'Settings', params: undefined });
               toggleSideMenu();
             }}
           >
@@ -1646,7 +1812,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              navigation.navigate('SecurityCheck');
+              navigation.navigate({ name: 'SecurityCheck', params: undefined });
               toggleSideMenu();
             }}
           >
@@ -1659,7 +1825,7 @@ export default function HomeScreen() {
           <TouchableOpacity 
             style={styles.menuItem}
             onPress={() => {
-              navigation.navigate('Trash');
+              navigation.navigate({ name: 'Trash', params: undefined });
               toggleSideMenu();
             }}
           >
@@ -1673,7 +1839,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={() => {
-                navigation.navigate('Profile');
+                navigation.navigate({ name: 'Profile', params: undefined });
                 toggleSideMenu();
               }}
             >
@@ -1700,7 +1866,7 @@ export default function HomeScreen() {
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={() => {
-                navigation.navigate('Login');
+                navigation.navigate({ name: 'Login', params: undefined });
                 toggleSideMenu();
               }}
             >
@@ -1711,12 +1877,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
-          {isGuestMode && (
-            <View style={styles.guestModeIndicator}>
-              <Ionicons name="person-outline" size={16} color={theme.placeholderColor} />
-              <Text style={styles.guestModeText}>{t('guestMode')}</Text>
-            </View>
-          )}
+          {/* Guest mode removed */}
           
           <View style={styles.darkModeContainer}>
             <View style={styles.menuItemIcon}>

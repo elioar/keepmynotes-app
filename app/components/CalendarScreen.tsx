@@ -46,7 +46,7 @@ type RootStackParamList = {
   Task: { note?: any };
   Calendar: undefined;
   QuickTask: { note?: any; task?: any };
-  AddEditNote: { note?: any };
+  AddEditNote: { noteId?: string };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -767,7 +767,7 @@ export default function CalendarScreen() {
     
     switch (type) {
       case 'note':
-        navigation.navigate('AddEditNote', { note: { type: 'text', isNew: true } });
+        navigation.navigate('AddEditNote');
         break;
       case 'task':
         navigation.navigate('QuickTask', { task: undefined });

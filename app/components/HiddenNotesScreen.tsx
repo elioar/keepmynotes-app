@@ -25,7 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Home: undefined;
-  Task: { note?: any };
+  Task: { noteId?: string };
   Favorites: undefined;
   HiddenNotes: undefined;
   PinScreen: { isChangingPin?: boolean };
@@ -62,11 +62,7 @@ export default function HiddenNotesScreen() {
 
   const hiddenNotes = notes.filter(note => note.isHidden === true && !note.isDeleted);
   const handleNotePress = (note: any) => {
-    if (note.type === 'task') {
-      navigation.navigate('Task', { note });
-    } else {
-      navigation.navigate('Task', { note });
-    }
+    navigation.navigate('Task', { noteId: note.id });
   };
 
   const handleDelete = async (noteId: string | undefined) => {

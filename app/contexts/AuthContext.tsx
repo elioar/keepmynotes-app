@@ -27,32 +27,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       setIsLoading(false);
       
-      // Αν υπάρχει χρήστης, απενεργοποιούμε το guest mode
-      if (user) {
-        setIsGuestMode(false);
-        AsyncStorage.setItem('@is_guest_mode', 'false');
-      }
+      // Disable guest mode entirely
+      setIsGuestMode(false);
+      AsyncStorage.setItem('@is_guest_mode', 'false');
     });
 
-    // Φόρτωση guest mode από το AsyncStorage
-    const loadGuestMode = async () => {
-      try {
-        const guestMode = await AsyncStorage.getItem('@is_guest_mode');
-        if (guestMode === 'true' && !user) {
-          setIsGuestMode(true);
-        }
-      } catch (error) {
-        console.error('Error loading guest mode:', error);
-      }
-    };
-
-    loadGuestMode();
+    // Force disable guest mode startup
+    AsyncStorage.setItem('@is_guest_mode', 'false');
     return unsubscribe;
   }, [user]);
 
-  const setGuestMode = async (isGuest: boolean) => {
-    setIsGuestMode(isGuest);
-    await AsyncStorage.setItem('@is_guest_mode', isGuest.toString());
+  const setGuestMode = async (_isGuest: boolean) => {
+    setIsGuestMode(false);
+    await AsyncStorage.setItem('@is_guest_mode', 'false');
   };
 
   return (

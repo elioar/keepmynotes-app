@@ -22,7 +22,8 @@ import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import Toast from './Toast';
 import { auth } from '../config/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithCredential, GoogleAuthProvider, updateProfile } from 'firebase/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -40,6 +41,7 @@ export default function LoginScreen() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation();
+  const { setGuestMode } = useAuth();
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -162,7 +164,7 @@ export default function LoginScreen() {
       if (isSignUp) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
-          await userCredential.user.updateProfile({
+          await updateProfile(userCredential.user, {
             displayName: username
           });
         }
@@ -260,6 +262,16 @@ export default function LoginScreen() {
       showToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGuestMode = async () => {
+    try {
+      await setGuestMode(true);
+      navigation.navigate('Home' as never);
+    } catch (error) {
+      console.error('Error setting guest mode:', error);
+      showToast(t('error'), 'error');
     }
   };
 
@@ -572,6 +584,16 @@ export default function LoginScreen() {
             }}>
               <Text style={styles.toggleText}>
                 {isSignUp ? t('alreadyHaveAccount') : t('dontHaveAccount')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: theme.secondaryBackground, borderWidth: 1, borderColor: theme.borderColor, marginTop: 20 }]}
+              onPress={handleGuestMode}
+              disabled={isLoading}
+            >
+              <Text style={[styles.buttonText, { color: theme.textColor }]}>
+                {t('continueAsGuest')}
               </Text>
             </TouchableOpacity>
           </View>

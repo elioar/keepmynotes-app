@@ -3,9 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from './config/firebase';
 import { useAuth } from './contexts/AuthContext';
 import { AppState } from 'react-native';
-import { FirebaseDatabaseTypes } from '@react-native-firebase/database';
-import firestore from '@react-native-firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, setDoc, getDocs, writeBatch, addDoc, deleteDoc, onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 
 export interface TaskItem {
   text: string;
@@ -157,17 +157,20 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!user) return;
 
-      // Έλεγχος αν έχει ήδη γίνει η μεταφορά
-      const migrationKey = `@notes_migrated_${user.uid}`;
-      const hasMigrated = await AsyncStorage.getItem(migrationKey);
-      if (hasMigrated) return;
-
       // Φόρτωση σημειώσεων από το AsyncStorage
       const storedNotes = await AsyncStorage.getItem(STORAGE_KEY);
       if (!storedNotes) return;
 
       const localNotes = JSON.parse(storedNotes);
       if (!Array.isArray(localNotes) || localNotes.length === 0) return;
+
+      // Έλεγχος αν υπάρχουν ήδη σημειώσεις στο Firestore
+      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
+      const snapshot = await getDocs(notesCollectionRef);
+      if (!snapshot.empty) {
+        // Υπάρχουν ήδη σημειώσεις στο Firestore, δεν κάνουμε migration
+        return;
+      }
 
       // Μετατροπή σε μορφή για το Firebase
       const notesObject = localNotes.reduce((acc, note) => {
@@ -176,11 +179,15 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       }, {} as Record<string, Note>);
 
       // Αποθήκευση στο Firebase
-      const notesRef = db.ref(`users/${user.uid}/notes`);
-      await notesRef.set(notesObject);
+      const batch = writeBatch(db);
+      Object.values(notesObject).forEach((note: any) => {
+        const noteRef = doc(db, 'users', user.uid, 'notes', note.id);
+        batch.set(noteRef, note);
+      });
+      await batch.commit();
 
-      // Σημειώνουμε ότι έγινε η μεταφορά
-      await AsyncStorage.setItem(migrationKey, 'true');
+      // Σημειώνουμε ότι έγινε η μεταφορά (προαιρετικά)
+      await AsyncStorage.setItem(`@notes_migrated_${user.uid}`, 'true');
       
       console.log('✅ Notes migrated to Firebase successfully');
     } catch (error) {
@@ -215,17 +222,28 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Φόρτωση από Firestore
-      const snapshot = await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('notes')
-        .get();
-
-      const notesArray: Note[] = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Note[];
-
+      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
+      const snapshot = await getDocs(notesCollectionRef);
+      const notesArray: Note[] = snapshot.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          title: d.title ?? '',
+          description: d.description ?? '',
+          content: d.content ?? '',
+          createdAt: d.createdAt ?? new Date().toISOString(),
+          updatedAt: d.updatedAt ?? new Date().toISOString(),
+          type: d.type ?? 'text',
+          isFavorite: d.isFavorite ?? false,
+          isHidden: d.isHidden ?? false,
+          isDeleted: d.isDeleted ?? false,
+          deletedAt: d.deletedAt,
+          tasks: d.tasks ?? [],
+          color: d.color ?? '',
+          tags: d.tags ?? [],
+          isSynced: true
+        };
+      });
       setNotes(notesArray);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notesArray));
     } catch (error) {
@@ -236,7 +254,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
   // Φόρτωση σημειώσεων όταν αλλάζει ο χρήστης
   useEffect(() => {
-    let unsubscribe: ((a: FirebaseDatabaseTypes.DataSnapshot | null, b?: string | null) => void) | undefined;
+    let unsubscribe: (() => void) = () => {};
     
     const setupNotesListener = async () => {
       try {
@@ -255,28 +273,23 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         }
 
         console.log('👤 User is logged in, setting up Firebase listener');
-        const notesRef = db.ref(`users/${user.uid}/notes`);
+        const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
         
-        notesRef.on('value', async (snapshot) => {
+        unsubscribe = onSnapshot(notesCollectionRef, async (snapshot) => {
           try {
-            const firebaseNotes = snapshot.val();
-            if (firebaseNotes) {
-              console.log('📝 Received update from Firebase:', Object.keys(firebaseNotes).length, 'notes');
-              const notesArray = Object.values(firebaseNotes).map((note: any) => ({
-                ...note,
+            if (!snapshot.empty) {
+              const notesArray = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id,
                 isSynced: true
-              }));
+              })) as Note[];
               setNotes(notesArray);
               await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(notesArray));
-              console.log('✅ Notes updated from Firebase and saved locally');
-            } else {
-              console.log('ℹ️ No notes in Firebase, clearing local state');
-              setNotes([]);
-              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+              setLastSyncTime(Date.now());
+              console.log('✅ Notes updated from Firestore and saved locally');
             }
-            setLastSyncTime(Date.now());
           } catch (error) {
-            console.error('❌ Error processing Firebase update:', error);
+            console.error('❌ Error processing Firestore update:', error);
           }
         });
 
@@ -289,10 +302,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     setupNotesListener();
 
     return () => {
-      if (unsubscribe) {
-        const notesRef = db.ref(`users/${user?.uid}/notes`);
-        notesRef.off('value', unsubscribe);
-      }
+      unsubscribe();
     };
   }, [user]);
 
@@ -325,11 +335,9 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       };
 
       // Αποθήκευση στο Firestore
-      const docRef = await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('notes')
-        .add(noteToSave);
+      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
+      const batch = writeBatch(db);
+      const docRef = await addDoc(notesCollectionRef, noteToSave);
 
       const newNote: Note = {
         ...noteToSave,
@@ -357,12 +365,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString()
       };
 
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('notes')
-        .doc(note.id)
-        .set(updatedNote);
+      await setDoc(doc(db, 'users', user.uid, 'notes', note.id), updatedNote);
 
       const updatedNotes = notes.map(n => n.id === note.id ? updatedNote : n);
       setNotes(updatedNotes);
@@ -378,12 +381,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const user = auth.currentUser;
       if (!user) return;
 
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('notes')
-        .doc(id)
-        .delete();
+      await deleteDoc(doc(db, 'users', user.uid, 'notes', id));
 
       const updatedNotes = notes.filter(note => note.id !== id);
       setNotes(updatedNotes);
@@ -399,12 +397,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       // Πάντα καθαρίζουμε τα τοπικά δεδομένα
       setNotes([]);
       await AsyncStorage.removeItem(STORAGE_KEY);
-      
-      // Αν υπάρχει χρήστης, καθαρίζουμε και το Firebase
-      if (user) {
-        await db.ref(`users/${user.uid}/notes`).remove();
-      }
-      
+      // Δεν διαγράφουμε πλέον τα notes από το Firestore κατά το sign out!
       console.log('✅ Local storage cleared successfully');
     } catch (error) {
       console.error('❌ Error clearing storage:', error);
@@ -412,28 +405,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Αυτόματος συγχρονισμός κάθε 30 δευτερόλεπτα
-  useEffect(() => {
-    if (!user) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const snapshot = await db.ref(`users/${user.uid}/notes`).once('value');
-
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          const notesArray = Object.values(data);
-          setNotes(notesArray as Note[]);
-          setLastSyncTime(Date.now());
-        }
-      } catch (error) {
-        console.error('Error in auto-sync:', error);
-      }
-    }, SYNC_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [user]);
-
+  
   // Συγχρονισμός όταν η εφαρμογή επανέρχεται στο foreground
   useEffect(() => {
     if (!user) return;
@@ -441,12 +413,16 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     const subscription = AppState.addEventListener('change', async (nextAppState) => {
       if (nextAppState === 'active') {
         try {
-          const snapshot = await db.ref(`users/${user.uid}/notes`).once('value');
+          const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
+          const snapshot = await getDocs(notesCollectionRef);
 
-          if (snapshot.exists()) {
-            const data = snapshot.val();
-            const notesArray = Object.values(data);
-            setNotes(notesArray as Note[]);
+          if (!snapshot.empty) {
+            const data = snapshot.docs.map(doc => ({
+              ...doc.data(),
+              id: doc.id,
+              isSynced: true
+            })) as Note[];
+            setNotes(data);
             setLastSyncTime(Date.now());
           }
         } catch (error) {
@@ -473,13 +449,18 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Αποθήκευση στο Firebase
-      const notesRef = db.ref(`users/${user.uid}/notes`);
+      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
       const notesObject = updatedNotes.reduce((acc, note) => {
         acc[note.id] = note;
         return acc;
       }, {} as Record<string, Note>);
       
-      await notesRef.set(notesObject);
+      const batch = writeBatch(db);
+      Object.values(notesObject).forEach(note => {
+        const noteRef = doc(db, 'users', user.uid, 'notes', note.id);
+        batch.set(noteRef, note);
+      });
+      await batch.commit();
       setNotes(updatedNotes);
       setLastFetch(Date.now());
     } catch (error) {
@@ -729,8 +710,8 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('📝 Syncing note:', note);
-      const notesRef = db.ref(`users/${user.uid}/notes/${noteId}`);
-      await notesRef.set(note);
+      const noteRef = doc(db, 'users', user.uid, 'notes', noteId);
+      await setDoc(noteRef, note);
       console.log('✅ Note synced to Firebase successfully');
 
       // Ενημερώνουμε το isSynced status

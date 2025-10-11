@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import HomeScreen from './HomeScreen';
 import FavoritesScreen from './components/FavoritesScreen';
@@ -8,7 +8,7 @@ import { NotesProvider } from './NotesContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { TaskProvider } from './context/TaskContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import HiddenNotesScreen from './components/HiddenNotesScreen';
 import SecurityCheck from './components/SecurityCheck';
 import PinScreen from './components/PinScreen';
@@ -34,10 +34,27 @@ const Stack = createNativeStackNavigator();
 function Navigation() {
   const { theme } = useTheme();
   const { isFirstLaunch } = useOnboarding();
+  const { user, isLoading, isGuestMode } = useAuth();
+  
+  // Αν φορτώνει, εμφανίζουμε loading screen
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.backgroundColor }}>
+        <ActivityIndicator size="large" color={theme.accentColor} />
+      </View>
+    );
+  }
+
+  // Αν δεν είναι πρώτη εκκίνηση και δεν υπάρχει χρήστης και δεν είναι guest mode, πηγαίνουμε στο Login
+  const getInitialRoute = () => {
+    if (isFirstLaunch) return "Welcome";
+    if (!user && !isGuestMode) return "Login";
+    return "Home";
+  };
   
   return (
     <Stack.Navigator 
-      initialRouteName={isFirstLaunch ? "Welcome" : "Home"}
+      initialRouteName={getInitialRoute()}
       screenOptions={{ 
         headerShown: false,
         contentStyle: {

@@ -531,6 +531,11 @@ export interface Translations {
   passwordNoLowerCase: string;
   passwordNoNumber: string;
   passwordNoSpecialChar: string;
+
+  // Guest Mode
+  continueAsGuest: string;
+  guestMode: string;
+  signInToSync: string;
 }
 
 export { en } from './en';

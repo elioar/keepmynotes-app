@@ -65,7 +65,7 @@ export default function WelcomeScreen() {
 
   const handleGetStarted = async () => {
     await setFirstLaunchComplete();
-    navigation.replace('UserPreferences');
+    navigation.replace('Login');
   };
 
   const handleNext = () => {

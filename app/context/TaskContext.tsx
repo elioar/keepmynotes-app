@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { AppState } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { collection, doc, setDoc, getDocs, writeBatch, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 export interface Task {
   id: string;
@@ -91,15 +91,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
       // Αποθήκευση στο Firestore για κάθε task ξεχωριστά
       for (const task of localTasks) {
-        await firestore()
-          .collection('users')
-          .doc(user.uid)
-          .collection('tasks')
-          .doc(task.id)
-          .set({
-            ...task,
-            isSynced: true
-          });
+        const taskRef = doc(db, 'users', user.uid, 'tasks', task.id);
+        await setDoc(taskRef, {
+          ...task,
+          isSynced: true
+        });
       }
 
       // Σημειώνουμε ότι έγινε η μεταφορά
@@ -140,11 +136,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Φόρτωση από Firestore
-      const snapshot = await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .get();
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+      const snapshot = await getDocs(tasksCollectionRef);
 
       const tasksArray: Task[] = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -163,38 +156,42 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // Φόρτωση tasks όταν αλλάζει ο χρήστης
   useEffect(() => {
-    loadTasks();
+    if (!user) {
+      setTasks([]);
+      AsyncStorage.removeItem(STORAGE_KEY);
+      console.log('✅ Tasks cleared from state and AsyncStorage (sign out)');
+    } else {
+      loadTasks();
+    }
   }, [user, loadTasks]);
 
   // Real-time listener για Firestore updates
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribe = firestore()
-      .collection('users')
-      .doc(user.uid)
-      .collection('tasks')
-      .onSnapshot(
-        async (snapshot) => {
-          try {
-            const tasksArray = snapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-              isSynced: true
-            })) as Task[];
-            
-            setTasks(tasksArray);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasksArray));
-            setLastSyncTime(Date.now());
-            console.log('✅ Tasks updated from Firestore');
-          } catch (error) {
-            console.error('❌ Error processing Firestore update:', error);
-          }
-        },
-        (error) => {
-          console.error('❌ Firestore listener error:', error);
+    const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+    const unsubscribe = onSnapshot(
+      tasksCollectionRef,
+      async (snapshot) => {
+        try {
+          const tasksArray = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            isSynced: true
+          })) as Task[];
+          
+          setTasks(tasksArray);
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasksArray));
+          setLastSyncTime(Date.now());
+          console.log('✅ Tasks updated from Firestore');
+        } catch (error) {
+          console.error('❌ Error processing Firestore update:', error);
         }
-      );
+      },
+      (error) => {
+        console.error('❌ Firestore listener error:', error);
+      }
+    );
 
     return () => unsubscribe();
   }, [user]);
@@ -228,11 +225,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Αποθήκευση στο Firestore
-      const docRef = await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .add(taskToSave);
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+      const docRef = await addDoc(tasksCollectionRef, taskToSave);
 
       const newTask: Task = {
         ...taskToSave,
@@ -271,12 +265,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString()
       });
 
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(task.id)
-        .set(updatedTask);
+      const taskRef = doc(db, 'users', user.uid, 'tasks', task.id);
+      await setDoc(taskRef, updatedTask);
 
       const updatedTasks = tasks.map(t => t.id === task.id ? updatedTask : t);
       setTasks(updatedTasks);
@@ -299,12 +289,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .delete();
+      const taskRef = doc(db, 'users', user.uid, 'tasks', taskId);
+      await deleteDoc(taskRef);
 
       const updatedTasks = tasks.filter(task => task.id !== taskId);
       setTasks(updatedTasks);
@@ -338,15 +324,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       
       // Αν υπάρχει χρήστης, καθαρίζουμε και το Firestore
       if (user) {
-        const batch = firestore().batch();
-        const tasksRef = firestore()
-          .collection('users')
-          .doc(user.uid)
-          .collection('tasks');
+        const batch = writeBatch(db);
+        const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
         
-        const snapshot = await tasksRef.get();
-        snapshot.docs.forEach(doc => {
-          batch.delete(doc.ref);
+        const snapshot = await getDocs(tasksCollectionRef);
+        snapshot.docs.forEach(docSnapshot => {
+          const taskRef = doc(db, 'users', user.uid, 'tasks', docSnapshot.id);
+          batch.delete(taskRef);
         });
         
         await batch.commit();
@@ -378,12 +362,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       console.log('📝 Syncing task:', task);
       const cleanTask = removeUndefined(task);
       
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .collection('tasks')
-        .doc(taskId)
-        .set(cleanTask);
+      const taskRef = doc(db, 'users', user.uid, 'tasks', taskId);
+      await setDoc(taskRef, cleanTask);
       console.log('✅ Task synced to Firestore successfully');
 
       // Ενημερώνουμε το isSynced status

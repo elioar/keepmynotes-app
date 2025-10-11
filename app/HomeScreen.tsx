@@ -44,6 +44,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth } from './config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { signOut } from 'firebase/auth';
+import { useAuth } from './contexts/AuthContext';
 
 const TAG_LABELS: Record<TagColor, string> = {
   none: 'No Category',
@@ -152,6 +153,7 @@ export default function HomeScreen() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const { isGuestMode } = useAuth();
 
   // Add auth state listener
   useEffect(() => {
@@ -1164,6 +1166,22 @@ export default function HomeScreen() {
     syncIcon: {
       marginLeft: 8,
     },
+    guestModeIndicator: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 10,
+      marginLeft: 10,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      borderRadius: 8,
+    },
+    guestModeText: {
+      fontSize: 12,
+      color: theme.placeholderColor,
+      marginLeft: 5,
+      fontWeight: '500',
+    },
   });
 
   return (
@@ -1533,12 +1551,6 @@ export default function HomeScreen() {
           onColorChange={handleColorChange}
           currentColor={selectedNote?.color || '#4CAF50'}
           isHidden={selectedNote?.isHidden || false}
-          onSync={() => {
-            if (selectedNote) {
-              handleSyncNote(selectedNote.id);
-            }
-          }}
-          isSynced={selectedNote?.isSynced}
         />
 
         {/* Side Menu */}
@@ -1697,6 +1709,13 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.menuItemText}>{t('signIn')}</Text>
             </TouchableOpacity>
+          )}
+
+          {isGuestMode && (
+            <View style={styles.guestModeIndicator}>
+              <Ionicons name="person-outline" size={16} color={theme.placeholderColor} />
+              <Text style={styles.guestModeText}>{t('guestMode')}</Text>
+            </View>
           )}
           
           <View style={styles.darkModeContainer}>

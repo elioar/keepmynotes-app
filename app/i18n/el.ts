@@ -499,6 +499,9 @@ set: 'Ορισμός',
   // Sync
   sync: 'Συγχρονισμός',
   synced: 'Συγχρονισμένο',
+  continueAsGuest: 'Συνέχεια ως Επισκέπτης',
+  guestMode: 'Λειτουργία Επισκέπτη',
+  signInToSync: 'Συνδέσου για συγχρονισμό των σημειώσεων',
 } as const;
 
 export default el; 

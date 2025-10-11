@@ -512,6 +512,9 @@ export const en: Translations = {
   // Sync
   sync: 'Sync',
   synced: 'Synced',
+  continueAsGuest: 'Continue as Guest',
+  guestMode: 'Guest Mode',
+  signInToSync: 'Sign in to sync your notes',
 };
 
 export default en; 

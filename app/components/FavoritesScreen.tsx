@@ -10,6 +10,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
+import Reanimated, { Layout } from 'react-native-reanimated';
+import { MotiView, AnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotes } from '../NotesContext';
 import { useTheme } from '../context/ThemeContext';
@@ -52,11 +54,9 @@ export default function FavoritesScreen() {
 
   const handleFavorite = async (note: any) => {
     try {
-      const updatedNote = { 
-        ...note, 
-        isFavorite: !note.isFavorite 
-      };
-      await updateNote(updatedNote);
+      const updatedNote = { ...note, isFavorite: !note.isFavorite };
+      // Fire-and-forget για άμεσο reflow
+      updateNote(updatedNote).catch(() => {});
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
@@ -294,45 +294,55 @@ export default function FavoritesScreen() {
             style={styles.notesContainer}
             showsVerticalScrollIndicator={false}
           >
-            {filteredFavoriteNotes.map((note) => (
-              <TouchableOpacity 
-                key={note.id}
-                onPress={() => handleNotePress(note)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.noteCard}>
-                  <View style={styles.noteContent}>
-                    <Text style={styles.noteTitle} numberOfLines={1}>
-                      <HighlightText 
-                        text={note.title}
-                        highlight={searchQuery}
-                        style={styles.noteTitle}
-                      />
-                    </Text>
-                    {note.description && (
-                      <Text style={styles.noteDescription} numberOfLines={2}>
-                        <HighlightText 
-                          text={note.description}
-                          highlight={searchQuery}
-                          style={styles.noteDescription}
-                        />
-                      </Text>
-                    )}
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.favoriteButton}
-                    onPress={() => handleFavorite(note)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            <AnimatePresence>
+              {filteredFavoriteNotes.map((note) => (
+                <Reanimated.View key={note.id} layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+                  <MotiView
+                    from={{ opacity: 0, translateY: 12 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
+                    transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
                   >
-                    <Ionicons 
-                      name="heart"
-                      size={22} 
-                      color="#FF4E4E"
-                    />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            ))}
+                    <TouchableOpacity 
+                      onPress={() => handleNotePress(note)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.noteCard}>
+                        <View style={styles.noteContent}>
+                          <Text style={styles.noteTitle} numberOfLines={1}>
+                            <HighlightText 
+                              text={note.title}
+                              highlight={searchQuery}
+                              style={styles.noteTitle}
+                            />
+                          </Text>
+                          {note.description && (
+                            <Text style={styles.noteDescription} numberOfLines={2}>
+                              <HighlightText 
+                                text={note.description}
+                                highlight={searchQuery}
+                                style={styles.noteDescription}
+                              />
+                            </Text>
+                          )}
+                        </View>
+                        <TouchableOpacity 
+                          style={styles.favoriteButton}
+                          onPress={() => handleFavorite(note)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                          <Ionicons 
+                            name="heart"
+                            size={22} 
+                            color="#FF4E4E"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  </MotiView>
+                </Reanimated.View>
+              ))}
+            </AnimatePresence>
           </ScrollView>
         ) : (
           <View style={styles.emptyState}>

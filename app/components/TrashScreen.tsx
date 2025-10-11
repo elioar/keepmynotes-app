@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   StatusBar,
-  Animated,
   Platform,
   ToastAndroid,
   Dimensions,
@@ -18,6 +17,8 @@ import {
   TextInput,
   Pressable,
 } from 'react-native';
+import Reanimated, { Layout } from 'react-native-reanimated';
+import { MotiView, AnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -64,7 +65,7 @@ const TrashScreen = () => {
   const { t } = useLanguage();
   const [trashNotes, setTrashNotes] = useState<TrashNote[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  // Replaced imperative Animated with Moti + Reanimated
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [customRetentionDays, setCustomRetentionDays] = useState(trashRetentionDays.toString());
   const [retentionOptions] = useState([7, 15, 30, 60, 90]);
@@ -129,9 +130,8 @@ const TrashScreen = () => {
   // Επαναφορά σημείωσης από τον κάδο
   const handleRestore = async (id: string) => {
     try {
-      await restoreFromTrash(id);
-      
-      // Άμεση ενημέρωση του UI αφαιρώντας τη σημείωση από την τοπική λίστα
+      // Fire-and-forget για άμεσο exit animation
+      restoreFromTrash(id).catch(() => {});
       setTrashNotes(prevNotes => prevNotes.filter(note => note.id !== id));
       
       // Εμφάνιση μηνύματος επιτυχίας
@@ -157,30 +157,15 @@ const TrashScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Εφέ εξαφάνισης
-              Animated.timing(fadeAnim, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-              }).start(async () => {
-                await permanentlyDeleteNote(id);
-                
-                // Άμεση ενημέρωση του UI αφαιρώντας τη σημείωση από την τοπική λίστα
-                setTrashNotes(prevNotes => prevNotes.filter(note => note.id !== id));
-                
-                // Επαναφορά του animation
-                fadeAnim.setValue(1);
-                
-                // Εμφάνιση μηνύματος επιτυχίας
-                if (Platform.OS === 'android') {
-                  ToastAndroid.show(t('noteDeletedForever'), ToastAndroid.SHORT);
-                } else {
-                  Alert.alert('', t('noteDeletedForever'));
-                }
-              });
+              permanentlyDeleteNote(id).catch(() => {});
+              setTrashNotes(prevNotes => prevNotes.filter(note => note.id !== id));
+              if (Platform.OS === 'android') {
+                ToastAndroid.show(t('noteDeletedForever'), ToastAndroid.SHORT);
+              } else {
+                Alert.alert('', t('noteDeletedForever'));
+              }
             } catch (error) {
               console.error('Error permanently deleting note:', error);
-              fadeAnim.setValue(1);
             }
           }
         }
@@ -253,7 +238,13 @@ const TrashScreen = () => {
   }, []);
 
   const renderTrashItem = ({ item }: { item: TrashNote }) => (
-    <Animated.View style={{ opacity: fadeAnim }}>
+    <Reanimated.View layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
+        transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
+      >
       <View style={[styles.noteItem, { backgroundColor: theme.secondaryBackground }]}>
         <View style={styles.noteContent}>
           <Text style={[styles.noteTitle, { color: theme.textColor }]} numberOfLines={1}>
@@ -286,7 +277,8 @@ const TrashScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </Animated.View>
+      </MotiView>
+    </Reanimated.View>
   );
   
   // Ο χειρισμός της επιλογής μιας προκαθορισμένης επιλογής

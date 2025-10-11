@@ -22,6 +22,8 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import Reanimated, { Layout } from 'react-native-reanimated';
+import { MotiView, AnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -149,8 +151,8 @@ export default function HomeScreen() {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
-  const deleteAnim = useRef(new Animated.Value(1)).current;
   const skeletonPulse = useRef(new Animated.Value(0.3)).current;
+  
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
@@ -360,25 +362,15 @@ export default function HomeScreen() {
         }
       });
 
-      // Fade-out then smooth reflow
-      Animated.timing(deleteAnim, {
-        toValue: 0,
-        duration: 220,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }).start(async () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        await deleteNote(noteId);
-        setFadingNoteId(null);
-        deleteAnim.setValue(1);
-        
-        // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
-        if (Platform.OS === 'android') {
-          ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
-        } else {
-          Alert.alert('', t('noteMovedToTrash'));
-        }
-      });
+      // Smooth remove via Moti exit + Reanimated layout (fire-and-forget)
+      deleteNote(noteId).catch(() => {});
+      setFadingNoteId(null);
+      // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
+      if (Platform.OS === 'android') {
+        ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
+      } else {
+        Alert.alert('', t('noteMovedToTrash'));
+      }
     } catch (error) {
       console.error('Error deleting note:', error);
     }
@@ -541,25 +533,15 @@ export default function HomeScreen() {
             }
           });
 
-          // Smooth fade-out then reflow
-          Animated.timing(deleteAnim, {
-            toValue: 0,
-            duration: 220,
-            easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
-          }).start(async () => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            await deleteNote(selectedNote.id);
-            setFadingNoteId(null);
-            deleteAnim.setValue(1);
-            
-            // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
-            if (Platform.OS === 'android') {
-              ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
-            } else {
-              Alert.alert('', t('noteMovedToTrash'));
-            }
-          });
+          // Fire-and-forget to avoid blocking the exit animation
+          deleteNote(selectedNote.id).catch(() => {});
+          setFadingNoteId(null);
+          // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
+          if (Platform.OS === 'android') {
+            ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
+          } else {
+            Alert.alert('', t('noteMovedToTrash'));
+          }
           break;
 
         case 'hide':
@@ -955,6 +937,61 @@ export default function HomeScreen() {
       borderRadius: wp(8),
       marginBottom: hp(2),
     },
+    // Skeleton styles
+    skeletonCardList: {
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: wp(4),
+      padding: wp(4),
+      marginBottom: hp(2),
+      minHeight: hp(20),
+    },
+    skeletonCardGrid: {
+      width: '48%',
+      minHeight: hp(18),
+      backgroundColor: theme.secondaryBackground,
+      borderRadius: wp(4),
+      padding: wp(3),
+      marginBottom: hp(2),
+    },
+    skeletonHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: hp(1),
+    },
+    skeletonTag: {
+      width: 80,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
+    skeletonFavDot: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    },
+    skeletonTitle: {
+      width: '70%',
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+      marginBottom: 8,
+    },
+    skeletonLine: {
+      width: '100%',
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      marginTop: 6,
+    },
+    skeletonLineShort: {
+      width: '60%',
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      marginTop: 6,
+    },
     emptyCtaPrimary: {
       marginTop: 12,
       backgroundColor: theme.accentColor,
@@ -1243,61 +1280,7 @@ export default function HomeScreen() {
       marginLeft: 5,
       fontWeight: '500',
     },
-    // Skeleton styles
-    skeletonCardList: {
-      backgroundColor: theme.secondaryBackground,
-      borderRadius: wp(4),
-      padding: wp(4),
-      marginBottom: hp(2),
-      minHeight: hp(20),
-    },
-    skeletonCardGrid: {
-      width: '48%',
-      minHeight: hp(18),
-      backgroundColor: theme.secondaryBackground,
-      borderRadius: wp(4),
-      padding: wp(3),
-      marginBottom: hp(2),
-    },
-    skeletonHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: hp(1),
-    },
-    skeletonTag: {
-      width: 80,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-    },
-    skeletonFavDot: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-    },
-    skeletonTitle: {
-      width: '70%',
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-      marginBottom: 8,
-    },
-    skeletonLine: {
-      width: '100%',
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-      marginTop: 6,
-    },
-    skeletonLineShort: {
-      width: '60%',
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-      marginTop: 6,
-    },
+    
   });
 
   return (
@@ -1487,8 +1470,16 @@ export default function HomeScreen() {
             </View>
           ) : isViewPreferenceLoaded ? (
             <View style={isGridView ? styles.notesGrid : null}>
+              <AnimatePresence>
               {isGridView ? (
                 getFilteredNotes().map((note) => (
+                  <Reanimated.View key={note.id} layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+                  <MotiView
+                    from={{ opacity: 0, translateY: 12 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
+                    transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
+                  >
                   <Pressable 
                     key={note.id}
                     style={[
@@ -1561,17 +1552,17 @@ export default function HomeScreen() {
                       )}
                     </View>
                   </Pressable>
+                  </MotiView>
+                  </Reanimated.View>
                 ))
               ) : (
                 getFilteredNotes().map((note) => (
-                  <Animated.View
-                    key={note.id}
-                    style={[
-                      fadingNoteId === note.id && {
-                        transform: [{ scale: deleteAnim }],
-                        opacity: deleteAnim,
-                      },
-                    ]}
+                  <Reanimated.View key={note.id} layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+                  <MotiView
+                    from={{ opacity: 0, translateY: 12 }}
+                    animate={{ opacity: 1, translateY: 0 }}
+                    exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
+                    transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
                   >
                     <Swipeable
                       renderRightActions={(progress, dragX) => (
@@ -1702,9 +1693,11 @@ export default function HomeScreen() {
                         </View>
                       </Pressable>
                     </Swipeable>
-                  </Animated.View>
+                  </MotiView>
+                  </Reanimated.View>
                 ))
               )}
+              </AnimatePresence>
             </View>
           ) : null}
         </Animated.ScrollView>

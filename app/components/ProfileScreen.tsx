@@ -93,6 +93,8 @@ export default function ProfileScreen() {
       const user = auth.currentUser;
       if (user) {
         await updateProfile(user, { displayName: username });
+        // Cache το ενημερωμένο username για χρήση στο HomeScreen
+        try { await AsyncStorage.setItem('@username', username); } catch {}
         showToast(t('profileUpdated'), 'success');
       }
     } catch (error) {

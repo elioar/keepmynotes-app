@@ -14,6 +14,8 @@ import { Share } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { MotiView, AnimatePresence } from 'moti';
+import { Skeleton } from 'moti/skeleton';
 
 type RootStackParamList = {
   Home: undefined;
@@ -83,6 +85,7 @@ export default function EditNote({ route }: { route: any }) {
   const [searchResultsCount, setSearchResultsCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [showEditor, setShowEditor] = useState(Platform.OS !== 'android');
+	const [isContentLoading, setIsContentLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -1903,6 +1906,16 @@ export default function EditNote({ route }: { route: any }) {
       borderRadius: 12,
       overflow: 'hidden',
     },
+    skeletonOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      padding: 20,
+      backgroundColor: theme.backgroundColor,
+      zIndex: 2,
+    },
     webView: {
       backgroundColor: 'transparent',
       flex: 1,
@@ -2586,50 +2599,96 @@ export default function EditNote({ route }: { route: any }) {
         
         <View style={styles.divider} />
         
-        <View style={styles.editor}>
-          {!Platform.OS || (Platform.OS && Platform.OS !== 'android') ? null : null}
-          {Platform.OS === 'android' && !showEditor ? (
-            <ActivityIndicator color={theme.accentColor} style={{ marginTop: 16 }} />
-          ) : (
-          <WebView
-            ref={editorRef}
-            source={{ html: editorHTML }}
-            style={styles.webView}
-            originWhitelist={['*']}
-            startInLoadingState
-            renderLoading={() => (
-              <ActivityIndicator color={theme.accentColor} style={{ marginTop: 16 }} />
-            )}
-            cacheEnabled
-            onMessage={(event) => {
-              const data = JSON.parse(event.nativeEvent.data);
-              if (data.type === 'content') {
-                setNoteContent(data.content);
-                setCanUndo(data.canUndo);
-                setCanRedo(data.canRedo);
-              } else if (data.type === 'undoRedoState') {
-                setCanUndo(data.canUndo);
-                setCanRedo(data.canRedo);
-              } else if (data.type === 'searchResults') {
-                setSearchResultsCount(data.count);
-                if (data.count > 0) {
-                  setCurrentMatchIndex(1);
-                } else {
-                  setCurrentMatchIndex(0);
-                }
-              }
-            }}
-            scrollEnabled={true}
-            keyboardDisplayRequiresUserAction={false}
-            hideKeyboardAccessoryView={false}
-            showsVerticalScrollIndicator={true}
-            contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
-            decelerationRate={0.998}
-            overScrollMode="never"
-            bounces={false}
-          />
-          )}
-        </View>
+		<View style={styles.editor}>
+			{Platform.OS === 'android' && !showEditor ? (
+				<>
+					<AnimatePresence>
+						<MotiView
+							from={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							style={styles.skeletonOverlay}
+						>
+							<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'80%'} height={22} radius={8} />
+							<View style={{ height: 16 }} />
+							<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'100%'} height={14} radius={6} />
+							<View style={{ height: 10 }} />
+							<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'95%'} height={14} radius={6} />
+							<View style={{ height: 10 }} />
+							<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'92%'} height={14} radius={6} />
+							<View style={{ height: 14 }} />
+							<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'98%'} height={160} radius={10} />
+						</MotiView>
+					</AnimatePresence>
+				</>
+			) : (
+				<>
+					<AnimatePresence>
+						{isContentLoading ? (
+							<MotiView
+								from={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								style={styles.skeletonOverlay}
+							>
+								<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'80%'} height={22} radius={8} />
+								<View style={{ height: 16 }} />
+								<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'100%'} height={14} radius={6} />
+								<View style={{ height: 10 }} />
+								<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'95%'} height={14} radius={6} />
+								<View style={{ height: 10 }} />
+								<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'92%'} height={14} radius={6} />
+								<View style={{ height: 14 }} />
+								<Skeleton colorMode={theme.isDarkMode ? 'dark' : 'light'} width={'98%'} height={160} radius={10} />
+							</MotiView>
+						) : null}
+					</AnimatePresence>
+					<MotiView
+						from={{ opacity: 0 }}
+						animate={{ opacity: isContentLoading ? 0 : 1 }}
+						transition={{ type: 'timing', duration: 280 }}
+						style={{ flex: 1 }}
+					>
+						<WebView
+							ref={editorRef}
+							source={{ html: editorHTML }}
+							style={styles.webView}
+							originWhitelist={['*']}
+							startInLoadingState
+							renderLoading={() => <View />}
+							cacheEnabled
+							onLoadEnd={() => setIsContentLoading(false)}
+							onMessage={(event) => {
+								const data = JSON.parse(event.nativeEvent.data);
+								if (data.type === 'content') {
+									setNoteContent(data.content);
+									setCanUndo(data.canUndo);
+									setCanRedo(data.canRedo);
+								} else if (data.type === 'undoRedoState') {
+									setCanUndo(data.canUndo);
+									setCanRedo(data.canRedo);
+								} else if (data.type === 'searchResults') {
+									setSearchResultsCount(data.count);
+									if (data.count > 0) {
+										setCurrentMatchIndex(1);
+									} else {
+										setCurrentMatchIndex(0);
+									}
+								}
+							}}
+							scrollEnabled={true}
+							keyboardDisplayRequiresUserAction={false}
+							hideKeyboardAccessoryView={false}
+							showsVerticalScrollIndicator={true}
+							contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
+							decelerationRate={0.998}
+							overScrollMode="never"
+							bounces={false}
+						/>
+					</MotiView>
+				</>
+			)}
+		</View>
       </View>
 
       {/* History Modal */}

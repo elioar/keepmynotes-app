@@ -44,7 +44,6 @@ import * as Haptics from 'expo-haptics';
 import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, GoogleSignin } from './config/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { signOut } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
 
@@ -155,27 +154,45 @@ export default function HomeScreen() {
   
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
+  const { user } = useAuth();
+  const isUserLoggedIn = !!user;
+  const [cachedUsername, setCachedUsername] = useState<string | null>(null);
   // Guest mode removed
 
-  // Add auth state listener
+  // Φόρτωση/συγχρονισμός username (cache + auth user)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsUserLoggedIn(!!user);
-      if (user) {
-        setUserData({
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        });
-      } else {
-        setUserData(null);
-      }
-    });
-
-    return () => unsubscribe();
+    let isActive = true;
+    const loadCached = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('@username');
+        if (isActive && saved) setCachedUsername(saved);
+      } catch {}
+    };
+    loadCached();
+    return () => { isActive = false; };
   }, []);
+
+  // Επαναφόρτωση cache username όταν το Home αποκτά focus (άμεση ανανέωση μετά από Profile)
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+      const refresh = async () => {
+        try {
+          const saved = await AsyncStorage.getItem('@username');
+          if (isActive) setCachedUsername(saved);
+        } catch {}
+      };
+      refresh();
+      return () => { isActive = false; };
+    }, [])
+  );
+
+  useEffect(() => {
+    if (user?.displayName) {
+      setCachedUsername(user.displayName);
+      AsyncStorage.setItem('@username', user.displayName).catch(() => {});
+    }
+  }, [user?.displayName]);
 
   // Skeleton shimmer animation
   useEffect(() => {
@@ -200,6 +217,7 @@ export default function HomeScreen() {
       await signOut(auth);
       // Καθαρισμός των σημειώσεων μετά την αποσύνδεση
       await clearStorage();
+      await AsyncStorage.removeItem('@username');
       if (Platform.OS === 'android') {
         ToastAndroid.show(t('signOutSuccess'), ToastAndroid.SHORT);
       } else {
@@ -946,7 +964,7 @@ export default function HomeScreen() {
       minHeight: hp(20),
     },
     skeletonCardGrid: {
-      width: '48%',
+      width: (SCREEN_WIDTH - (wp(5) * 2) - wp(4)) / 2,
       minHeight: hp(18),
       backgroundColor: theme.secondaryBackground,
       borderRadius: wp(4),
@@ -1034,10 +1052,12 @@ export default function HomeScreen() {
     notesGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
+      gap: wp(4),
+      rowGap: hp(2),
     },
     gridCard: {
-      width: '48%',
+      width: (SCREEN_WIDTH - (wp(5) * 2) - wp(4)) / 2,
       minHeight: hp(18),
       backgroundColor: theme.secondaryBackground,
       borderRadius: wp(4),
@@ -1307,7 +1327,7 @@ export default function HomeScreen() {
             <View style={styles.headerLeft}>
               <Text style={styles.headerGreeting}>{t('hello')},</Text>
               <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                {userData?.displayName || userData?.email?.split('@')[0] || t('guest')} 👋
+                {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
               </Text>
             </View>
             <View style={styles.headerButtons}>
@@ -1763,9 +1783,9 @@ export default function HomeScreen() {
                 toggleSideMenu();
               }}
             >
-              {userData?.photoURL ? (
+              {(profileImage || user?.photoURL) ? (
                 <Image 
-                  source={{ uri: userData.photoURL }} 
+                  source={{ uri: profileImage || (user?.photoURL as string) }} 
                   style={styles.profileImage}
                 />
               ) : (
@@ -1779,7 +1799,7 @@ export default function HomeScreen() {
             <View style={styles.profileInfo}>
               <Text style={styles.greetingText}>{getTimeBasedGreeting()}</Text>
               <Text style={styles.profileName}>
-                {userData?.displayName || userData?.email?.split('@')[0] || t('guest')}
+                {cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest')}
               </Text>
             </View>
           </View>

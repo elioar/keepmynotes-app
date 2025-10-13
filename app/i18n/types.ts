@@ -367,6 +367,19 @@ export interface Translations {
   backupAndRestore: string;
   backupAndRestoreTitle: string;
   backupAndRestoreDescription: string;
+  legacyNotesMigration: string;
+  legacyNotesMigrationDescription: string;
+  migrateOldNotes: string;
+  migrateOldNotesDescription: string;
+  migrating: string;
+  migrationTitle: string;
+  noLegacyNotesFound: string;
+  alreadyMigrated: string;
+  allNotesAlreadyExist: string;
+  migrationSuccessMessage: string;
+  pleaseLoginFirst: string;
+  corruptedLocalData: string;
+  migrationError: string;
 
   // Trash
   trash: string;

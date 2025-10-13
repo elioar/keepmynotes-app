@@ -89,6 +89,7 @@ export interface NotesContextType {
   syncNote: (noteId: string) => Promise<void>;
   setNotes: (notes: Note[]) => void;
   clearLocalNotes: () => Promise<void>;
+  migrateLocalNotesToFirestore: () => Promise<{ success: boolean; migratedCount: number; message: string }>;
 }
 
 const NotesContext = createContext<NotesContextType | undefined>(undefined);
@@ -168,46 +169,78 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Μεταφορά σημειώσεων από το AsyncStorage στο Firebase
+  // Μεταφορά παλιών σημειώσεων από το AsyncStorage στο Firestore (τρέχει μία φορά ανά χρήστη)
   const migrateNotesToFirebase = useCallback(async () => {
     try {
       if (!user) return;
 
-      // Φόρτωση σημειώσεων από το AsyncStorage
-      const storedNotes = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!storedNotes) return;
-
-      const localNotes = JSON.parse(storedNotes);
-      if (!Array.isArray(localNotes) || localNotes.length === 0) return;
-
-      // Έλεγχος αν υπάρχουν ήδη σημειώσεις στο Firestore
-      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
-      const snapshot = await getDocs(notesCollectionRef);
-      if (!snapshot.empty) {
-        // Υπάρχουν ήδη σημειώσεις στο Firestore, δεν κάνουμε migration
+      const migrationFlagKey = `@notes_migrated_${user.uid}`;
+      const hasMigrated = await AsyncStorage.getItem(migrationFlagKey);
+      if (hasMigrated === 'true') {
+        console.log('ℹ️ Migration already completed for user, skipping');
         return;
       }
 
-      // Μετατροπή σε μορφή για το Firebase
-      const notesObject = localNotes.reduce((acc, note) => {
-        acc[note.id] = note;
-        return acc;
-      }, {} as Record<string, Note>);
+      // Φόρτωση ΠΑΛΙΩΝ σημειώσεων από το AsyncStorage
+      const storedNotesJson = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!storedNotesJson) {
+        // Καμία παλιά σημείωση — σημειώνουμε το flag ώστε να μην ξανατρέξει
+        await AsyncStorage.setItem(migrationFlagKey, 'true');
+        console.log('ℹ️ No legacy notes found in AsyncStorage');
+        return;
+      }
 
-      // Αποθήκευση στο Firebase
+      let localNotes: Note[] = [];
+      try {
+        const parsed = JSON.parse(storedNotesJson);
+        if (Array.isArray(parsed)) localNotes = parsed as Note[];
+      } catch (e) {
+        console.error('❌ Failed to parse legacy notes JSON:', e);
+        // Αποτυχημένη ανάλυση — μην συνεχίσεις, κράτα τα δεδομένα ως έχουν
+        return;
+      }
+
+      if (localNotes.length === 0) {
+        await AsyncStorage.setItem(migrationFlagKey, 'true');
+        console.log('ℹ️ Legacy notes array is empty, marking migration as done');
+        return;
+      }
+
+      console.log(`🔄 Starting legacy notes migration: ${localNotes.length} notes`);
+
+      // Ανάκτηση υπαρχόντων remote ids ώστε να αποφύγουμε overwrite
+      const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
+      const snapshot = await getDocs(notesCollectionRef);
+      const remoteIds = new Set(snapshot.docs.map(d => d.id));
+
+      // Κρατάμε μόνο τις τοπικές που δεν υπάρχουν ήδη απομακρυσμένα
+      const notesToUpload = localNotes.filter(n => !remoteIds.has(n.id));
+
+      if (notesToUpload.length === 0) {
+        console.log('ℹ️ All legacy notes already exist remotely');
+        // Καθαρίζουμε το παλιό κλειδί και σημειώνουμε flag
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        await AsyncStorage.setItem(migrationFlagKey, 'true');
+        console.log('✅ Legacy key removed, migration flag set');
+        return;
+      }
+
+      // Μαζικό ανέβασμα σημειώσεων (atomic) — δεν κάνουμε overwrite υπαρχόντων
       const batch = writeBatch(db);
-      Object.values(notesObject).forEach((note: any) => {
+      for (const note of notesToUpload) {
         const noteRef = doc(db, 'users', user.uid, 'notes', note.id);
         batch.set(noteRef, sanitizeForFirestore(note));
-      });
+      }
       await batch.commit();
 
-      // Σημειώνουμε ότι έγινε η μεταφορά (προαιρετικά)
-      await AsyncStorage.setItem(`@notes_migrated_${user.uid}`, 'true');
-      
-      console.log('✅ Notes migrated to Firebase successfully');
+      // Διαγραφή του παλιού τοπικού κλειδιού ΜΟΝΟ μετά από επιτυχή commit
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.setItem(migrationFlagKey, 'true');
+
+      console.log(`✅ Migrated ${notesToUpload.length}/${localNotes.length} legacy notes and removed local key`);
     } catch (error) {
-      console.error('❌ Error migrating notes to Firebase:', error);
+      console.error('❌ Error migrating legacy notes to Firestore:', error);
+      // Σε σφάλμα, δεν πειράζουμε το παλιό κλειδί ούτε το flag για να ξαναπροσπαθήσει στο επόμενο login
     }
   }, [user]);
 
@@ -723,10 +756,21 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         deletedAt: note.deletedAt,
         tasks: Array.isArray(note.tasks) ? note.tasks.map(task => ({
           text: String(task.text || ''),
-          isCompleted: Boolean(task.isCompleted)
+          isCompleted: Boolean(task.isCompleted),
+          dueDate: task.dueDate,
+          dueTime: task.dueTime,
+          priority: task.priority,
+          location: task.location,
+          isAllDay: task.isAllDay,
+          reminder: task.reminder,
+          repeat: task.repeat,
+          customRepeat: task.customRepeat
         })) : [],
+        color: note.color,
+        tags: Array.isArray(note.tags) ? note.tags : [],
         createdAt: note.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        isSynced: false
       }));
 
       const existingNotes = [...notes];
@@ -797,6 +841,80 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.removeItem(STORAGE_KEY);
   };
 
+  // Δημόσια migration function για χειροκίνητη κλήση από UI
+  const migrateLocalNotesToFirestore = useCallback(async (): Promise<{ success: boolean; migratedCount: number; message: string }> => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        return { success: false, migratedCount: 0, message: 'noUserLoggedIn' };
+      }
+
+      const migrationFlagKey = `@notes_migrated_${currentUser.uid}`;
+      
+      // Φόρτωση παλιών σημειώσεων από AsyncStorage
+      const storedNotesJson = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!storedNotesJson) {
+        // Αν έχει ήδη γίνει migration, ενημερώνουμε
+        const hasMigrated = await AsyncStorage.getItem(migrationFlagKey);
+        if (hasMigrated === 'true') {
+          return { success: true, migratedCount: 0, message: 'alreadyMigrated' };
+        }
+        return { success: true, migratedCount: 0, message: 'noLegacyNotes' };
+      }
+
+      let localNotes: Note[] = [];
+      try {
+        const parsed = JSON.parse(storedNotesJson);
+        if (Array.isArray(parsed)) localNotes = parsed as Note[];
+      } catch (e) {
+        console.error('❌ Failed to parse legacy notes JSON:', e);
+        return { success: false, migratedCount: 0, message: 'parseError' };
+      }
+
+      if (localNotes.length === 0) {
+        await AsyncStorage.setItem(migrationFlagKey, 'true');
+        return { success: true, migratedCount: 0, message: 'noLegacyNotes' };
+      }
+
+      console.log(`🔄 Manual migration starting: ${localNotes.length} notes`);
+
+      // Ανάκτηση υπαρχόντων remote notes
+      const notesCollectionRef = collection(db, 'users', currentUser.uid, 'notes');
+      const snapshot = await getDocs(notesCollectionRef);
+      const remoteIds = new Set(snapshot.docs.map(d => d.id));
+
+      const notesToUpload = localNotes.filter(n => !remoteIds.has(n.id));
+
+      if (notesToUpload.length === 0) {
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        await AsyncStorage.setItem(migrationFlagKey, 'true');
+        return { success: true, migratedCount: 0, message: 'allNotesExist' };
+      }
+
+      // Batch upload
+      const batch = writeBatch(db);
+      for (const note of notesToUpload) {
+        const noteRef = doc(db, 'users', currentUser.uid, 'notes', note.id);
+        batch.set(noteRef, sanitizeForFirestore(note));
+      }
+      await batch.commit();
+
+      // Καθαρισμός και flag
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.setItem(migrationFlagKey, 'true');
+
+      console.log(`✅ Manual migration completed: ${notesToUpload.length} notes`);
+      
+      // Ανανέωση notes στο context
+      await loadNotes();
+
+      return { success: true, migratedCount: notesToUpload.length, message: 'migrationSuccess' };
+    } catch (error) {
+      console.error('❌ Error in manual migration:', error);
+      return { success: false, migratedCount: 0, message: 'migrationError' };
+    }
+  }, [loadNotes]);
+
   // Memoize context value
   const contextValue = useMemo(() => ({
     notes,
@@ -818,10 +936,11 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     updateTrashRetentionDays,
     syncNote,
     setNotes,
-    clearLocalNotes
+    clearLocalNotes,
+    migrateLocalNotesToFirestore
   }), [notes, isLoading, addNote, updateNote, deleteNote, hideNote, unhideNote, loadNotes, 
        trashRetentionDays, updateTrashRetentionDays, restoreFromTrash, emptyTrash, 
-       permanentlyDeleteNote, getTrashNotes, cleanupExpiredTrash, syncNote]);
+       permanentlyDeleteNote, getTrashNotes, cleanupExpiredTrash, syncNote, migrateLocalNotesToFirestore]);
 
   useEffect(() => {
     if (!user) {

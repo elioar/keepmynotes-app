@@ -25,6 +25,7 @@ import {
 import Reanimated, { Layout } from 'react-native-reanimated';
 import { MotiView, AnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -716,36 +717,41 @@ export default function HomeScreen() {
     },
     headerContainer: {
       position: 'absolute',
-      top: 20,
+      top: 0,
       left: 0,
       right: 0,
       zIndex: 98,
-      backgroundColor: theme.backgroundColor,
-      paddingTop: Platform.OS === 'ios' ? hp(4) : hp(2),
+    },
+    headerGradient: {
+      paddingHorizontal: 24,
+      paddingTop: 50,
+      paddingBottom: 32,
+      borderBottomLeftRadius: 32,
+      borderBottomRightRadius: 32,
     },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      paddingHorizontal: wp(5),
-      paddingBottom: hp(1),
+      alignItems: 'center',
     },
     headerLeft: {
       flex: 1,
       minWidth: 0,
-      paddingRight: wp(2),
+      paddingRight: 8,
     },
     headerGreeting: {
-      fontSize: normalize(20),
+      fontSize: 18,
       fontWeight: '600',
-      color: theme.textColor,
+      color: '#FFF',
+      opacity: 0.9,
     },
     headerName: {
-      fontSize: normalize(30),
-      fontWeight: '600',
-      color: theme.textColor,
-      marginTop: hp(0.5),
+      fontSize: 28,
+      fontWeight: '800',
+      color: '#FFF',
+      marginTop: 2,
       flexShrink: 1,
+      letterSpacing: 0.5,
     },
     menuButton: {
       width: wp(10),
@@ -760,28 +766,28 @@ export default function HomeScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.secondaryBackground,
-      marginTop: 16,
-      marginBottom: 16,
-      borderRadius: 16,
-      paddingHorizontal: 16,
-      height: 50,
+      marginTop: 24,
+      marginBottom: 20,
+      borderRadius: 20,
+      paddingHorizontal: 18,
+      height: 58,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: 3,
       },
-      shadowOpacity: isSearchFocused ? 0.2 : 0.1,
-      shadowRadius: isSearchFocused ? 6 : 3,
-      elevation: isSearchFocused ? 5 : 3,
+      shadowOpacity: isSearchFocused ? 0.2 : 0.08,
+      shadowRadius: isSearchFocused ? 10 : 5,
+      elevation: isSearchFocused ? 8 : 3,
       borderWidth: 2,
       borderColor: isSearchFocused ? theme.accentColor : 'transparent',
     },
     searchInput: {
       flex: 1,
       color: theme.textColor,
-      fontSize: 16,
+      fontSize: 17,
       marginLeft: 12,
-      fontWeight: '400',
+      fontWeight: '500',
     },
     notesContainer: {
       flex: 1,
@@ -1038,16 +1044,17 @@ export default function HomeScreen() {
     headerButtons: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: wp(3),
-      marginTop: hp(2),
+      gap: 10,
     },
     iconButton: {
-      width: wp(10),
-      height: wp(10),
-      borderRadius: wp(3),
-      backgroundColor: theme.secondaryBackground,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     notesGrid: {
       flexDirection: 'row',
@@ -1313,8 +1320,9 @@ export default function HomeScreen() {
     }}>
       <View style={styles.container}>
         <StatusBar 
-          backgroundColor={theme.backgroundColor} 
-          barStyle={theme.isDarkMode ? "light-content" : "dark-content"} 
+          backgroundColor="transparent"
+          barStyle="light-content"
+          translucent
         />
         
         <Animated.View 
@@ -1323,55 +1331,112 @@ export default function HomeScreen() {
             { transform: [{ translateY: headerTranslateY }] }
           ]}
         >
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.headerGreeting}>{t('hello')},</Text>
-              <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
-              </Text>
+          <LinearGradient
+            colors={
+              theme.isDarkMode
+                ? ['#8B45FF', '#FF4E4E', '#FF6B9D']
+                : ['#9F5FFF', '#FF5E7E', '#FF88A8']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <MotiView
+                  from={{ opacity: 0, translateX: -20 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                >
+                  <Text style={styles.headerGreeting}>{t('hello')},</Text>
+                  <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                    {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
+                  </Text>
+                </MotiView>
+              </View>
+              <View style={styles.headerButtons}>
+                <MotiView
+                  from={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    type: 'spring', 
+                    damping: 20, 
+                    stiffness: 300,
+                    delay: 50,
+                  }}
+                >
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={toggleViewMode}
+                  >
+                    <Ionicons 
+                      name={isGridView ? "grid-outline" : "list-outline"} 
+                      size={20} 
+                      color="#FFF" 
+                    />
+                  </TouchableOpacity>
+                </MotiView>
+                <MotiView
+                  from={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    type: 'spring', 
+                    damping: 20, 
+                    stiffness: 300,
+                    delay: 100,
+                  }}
+                >
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={() => setIsFilterModalVisible(true)}
+                  >
+                    <View>
+                      <Ionicons 
+                        name="funnel-outline" 
+                        size={20} 
+                        color={activeFilters.length > 0 ? '#FFD700' : '#FFF'} 
+                      />
+                      {activeFilters.length > 0 && (
+                        <MotiView
+                          from={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', damping: 15 }}
+                          style={styles.filterDot}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                </MotiView>
+                <MotiView
+                  from={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+                    type: 'spring', 
+                    damping: 20, 
+                    stiffness: 300,
+                    delay: 150,
+                  }}
+                >
+                  <TouchableOpacity 
+                    style={[styles.iconButton, styles.burgerButton]}
+                    onPress={toggleSideMenu}
+                  >
+                    <Ionicons 
+                      name="menu" 
+                      size={22} 
+                      color="#FFF" 
+                    />
+                  </TouchableOpacity>
+                </MotiView>
+              </View>
             </View>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={toggleViewMode}
-              >
-                <Ionicons 
-                  name={isGridView ? "grid-outline" : "list-outline"} 
-                  size={normalize(24)} 
-                  color={theme.textColor} 
-                />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={() => setIsFilterModalVisible(true)}
-              >
-                <View>
-                  <Ionicons 
-                    name="funnel-outline" 
-                    size={normalize(24)} 
-                    color={activeFilters.length > 0 ? theme.accentColor : theme.textColor} 
-                  />
-                  {activeFilters.length > 0 && <View style={styles.filterDot} />}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.iconButton, styles.burgerButton]}
-                onPress={toggleSideMenu}
-              >
-                <Ionicons 
-                  name="menu" 
-                  size={normalize(28)} 
-                  color={theme.accentColor} 
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          </LinearGradient>
         </Animated.View>
 
         <Animated.ScrollView 
           style={styles.notesContainer}
           contentContainerStyle={{ 
-            paddingTop: hp(17),
+            paddingTop: hp(20),
             paddingBottom: hp(12) 
           }}
           onScroll={Animated.event(
@@ -1380,36 +1445,49 @@ export default function HomeScreen() {
           )}
           scrollEventThrottle={16}
         >
-          <View style={styles.searchContainer}>
-            <Ionicons 
-              name="search-outline" 
-              size={22} 
-              color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('searchHere')}
-              placeholderTextColor={theme.placeholderColor}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => setSearchQuery('')}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons 
-                  name="close-circle" 
-                  size={20} 
-                  color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-                />
-              </TouchableOpacity>
-            )}
-          </View>
+          <MotiView
+            from={{ opacity: 0, translateY: -10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 200 }}
+          >
+            <View style={styles.searchContainer}>
+              <Ionicons 
+                name="search-outline" 
+                size={22} 
+                color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={t('searchHere')}
+                placeholderTextColor={theme.placeholderColor}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+              />
+              {searchQuery.length > 0 && (
+                <MotiView
+                  from={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ type: 'spring', damping: 15 }}
+                >
+                  <TouchableOpacity 
+                    onPress={() => setSearchQuery('')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons 
+                      name="close-circle" 
+                      size={22} 
+                      color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                    />
+                  </TouchableOpacity>
+                </MotiView>
+              )}
+            </View>
+          </MotiView>
 
           {isLoading ? (
             <View style={isGridView ? styles.notesGrid : null}>

@@ -256,12 +256,20 @@ export interface Translations {
   invalidCredentials: string;
   emailInUse: string;
   weakPassword: string;
+  mediumPassword: string;
+  strongPassword: string;
   googleSignInError: string;
   emailAlreadyInUse: string;
   signInCancelled: string;
   pleaseFillAllFields: string;
   invalidEmail: string;
   passwordRequirements: string;
+  passwordTooShort: string;
+  passwordTooLong: string;
+  passwordNoUpperCase: string;
+  passwordNoLowerCase: string;
+  passwordNoNumber: string;
+  passwordNoSpecialChar: string;
   forgotPassword: string;
   enterEmailForReset: string;
   resetEmailSent: string;
@@ -549,6 +557,32 @@ export interface Translations {
   continueAsGuest: string;
   guestMode: string;
   signInToSync: string;
+
+  // Email Verification
+  verifyYourEmail: string;
+  verificationEmailSentTo: string;
+  verificationEmailSent: string;
+  enterVerificationCode: string;
+  didntReceiveEmail: string;
+  resendEmail: string;
+  resendIn: string;
+  iVerifiedMyEmail: string;
+  backToLogin: string;
+  emailVerified: string;
+  emailNotVerified: string;
+  emailNotVerifiedYet: string;
+  verificationError: string;
+  checkEmailError: string;
+  verificationEmailResent: string;
+  tooManyRequests: string;
+  resendError: string;
+  noUserFound: string;
+  clickLinkInEmail: string;
+  checkYourInbox: string;
+  cantFindEmail: string;
+  checkSpamFolder: string;
+  waitFewMinutes: string;
+  checkEmailCorrect: string;
 }
 
 export { en } from './en';

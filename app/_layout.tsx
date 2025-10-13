@@ -28,6 +28,7 @@ import TimeAnalyticsScreen from './screens/TimeAnalyticsScreen';
 import LoginScreen from './components/LoginScreen';
 import ProfileScreen from './components/ProfileScreen';
 import ChangePasswordScreen from './components/ChangePasswordScreen';
+import EmailVerificationScreen from './components/EmailVerificationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -187,6 +188,13 @@ function Navigation() {
       <Stack.Screen 
         name="ChangePassword" 
         component={ChangePasswordScreen}
+        options={{
+          headerShown: false
+        }}
+      />
+      <Stack.Screen 
+        name="EmailVerification" 
+        component={EmailVerificationScreen}
         options={{
           headerShown: false
         }}

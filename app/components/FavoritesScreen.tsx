@@ -44,6 +44,30 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = 120;
 const CARD_MARGIN = 16;
 
+// Gradient definitions για κάθε theme
+const themeGradients = {
+  purple: {
+    dark: ['#8B45FF', '#FF4E4E', '#FF6B9D'] as const,
+    light: ['#9F5FFF', '#FF5E7E', '#FF88A8'] as const
+  },
+  blue: {
+    dark: ['#2196F3', '#00BCD4', '#4DD0E1'] as const,
+    light: ['#42A5F5', '#26C6DA', '#4DD0E1'] as const
+  },
+  green: {
+    dark: ['#4CAF50', '#8BC34A', '#CDDC39'] as const,
+    light: ['#66BB6A', '#9CCC65', '#D4E157'] as const
+  },
+  orange: {
+    dark: ['#FF9800', '#FF5722', '#FF6F00'] as const,
+    light: ['#FFA726', '#FF7043', '#FFA000'] as const
+  },
+  pink: {
+    dark: ['#E91E63', '#9C27B0', '#673AB7'] as const,
+    light: ['#EC407A', '#AB47BC', '#7E57C2'] as const
+  }
+};
+
 type RootStackParamList = {
   Home: undefined;
   Task: { note?: any };
@@ -322,7 +346,7 @@ const DraggableNoteCard = ({
 
 export default function FavoritesScreen() {
   const { notes, updateNote } = useNotes();
-  const { theme } = useTheme();
+  const { theme, appTheme } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation<NavigationProp>();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -520,8 +544,8 @@ export default function FavoritesScreen() {
           <LinearGradient
             colors={
               theme.isDarkMode
-                ? ['#8B45FF', '#FF4E4E', '#FF6B9D']
-                : ['#9F5FFF', '#FF5E7E', '#FF88A8']
+                ? themeGradients[appTheme].dark
+                : themeGradients[appTheme].light
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,8 +23,27 @@ interface Props {
   onAddPress?: () => void;
 }
 
+// Gradient definitions για κάθε theme
+const themeGradients = {
+  purple: {
+    colors: ['#8B45FF', '#FF4E4E'] as const,
+  },
+  blue: {
+    colors: ['#2196F3', '#00BCD4'] as const,
+  },
+  green: {
+    colors: ['#4CAF50', '#8BC34A'] as const,
+  },
+  orange: {
+    colors: ['#FF9800', '#FF5722'] as const,
+  },
+  pink: {
+    colors: ['#E91E63', '#9C27B0'] as const,
+  }
+};
+
 export default function NavigationMenu({ onAddPress }: Props) {
-  const { theme } = useTheme();
+  const { theme, appTheme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const addButtonAnim = useRef(new Animated.Value(1)).current;
   
@@ -88,7 +108,6 @@ export default function NavigationMenu({ onAddPress }: Props) {
       width: 45,
       height: 45,
       borderRadius: 15,
-      backgroundColor: theme.accentColor,
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: theme.accentColor,
@@ -99,6 +118,7 @@ export default function NavigationMenu({ onAddPress }: Props) {
       shadowOpacity: 0.3,
       shadowRadius: 8,
       elevation: 8,
+      overflow: 'hidden',
     },
   });
 
@@ -134,7 +154,20 @@ export default function NavigationMenu({ onAddPress }: Props) {
           onPress={handleAddPress}
           activeOpacity={1}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <LinearGradient
+            colors={themeGradients[appTheme].colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: '100%',
+              height: '100%',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: 15,
+            }}
+          >
+            <Ionicons name="add" size={24} color="#fff" />
+          </LinearGradient>
         </TouchableOpacity>
       </Animated.View>
       

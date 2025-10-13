@@ -14,7 +14,6 @@ import {
   Platform,
   Animated,
   LayoutAnimation,
-  UIManager,
   Easing,
   ToastAndroid,
   Dimensions,
@@ -76,13 +75,6 @@ type RootStackParamList = {
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-// Enable LayoutAnimation for Android
-if (Platform.OS === 'android') {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}
 
 interface BaseNote {
   id: string;           // Unique identifier for the note
@@ -194,12 +186,36 @@ const SyncBadge = ({ isSynced, theme, styles }: SyncBadgeProps) => {
   );
 };
 
+// Gradient definitions για κάθε theme
+const themeGradients = {
+  purple: {
+    dark: ['#8B45FF', '#FF4E4E', '#FF6B9D'] as const,
+    light: ['#9F5FFF', '#FF5E7E', '#FF88A8'] as const
+  },
+  blue: {
+    dark: ['#2196F3', '#00BCD4', '#4DD0E1'] as const,
+    light: ['#42A5F5', '#26C6DA', '#4DD0E1'] as const
+  },
+  green: {
+    dark: ['#4CAF50', '#8BC34A', '#CDDC39'] as const,
+    light: ['#66BB6A', '#9CCC65', '#D4E157'] as const
+  },
+  orange: {
+    dark: ['#FF9800', '#FF5722', '#FF6F00'] as const,
+    light: ['#FFA726', '#FF7043', '#FFA000'] as const
+  },
+  pink: {
+    dark: ['#E91E63', '#9C27B0', '#673AB7'] as const,
+    light: ['#EC407A', '#AB47BC', '#7E57C2'] as const
+  }
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const { notes, deleteNote, updateNote, loadNotes, setNotes, clearStorage, syncNote, isLoading } = useNotes();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { theme, toggleColorScheme } = useTheme();
+  const { theme, toggleColorScheme, appTheme } = useTheme();
   const { t } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
@@ -1448,8 +1464,8 @@ export default function HomeScreen() {
           <LinearGradient
             colors={
               theme.isDarkMode
-                ? ['#8B45FF', '#FF4E4E', '#FF6B9D']
-                : ['#9F5FFF', '#FF5E7E', '#FF88A8']
+                ? themeGradients[appTheme].dark
+                : themeGradients[appTheme].light
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}

@@ -23,10 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isGuestMode, setIsGuestMode] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
       setIsLoading(false);
-      
+
       // Disable guest mode entirely
       setIsGuestMode(false);
       AsyncStorage.setItem('@is_guest_mode', 'false');
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Force disable guest mode startup
     AsyncStorage.setItem('@is_guest_mode', 'false');
     return unsubscribe;
-  }, [user]);
+  }, []);
 
   const setGuestMode = async (_isGuest: boolean) => {
     setIsGuestMode(false);

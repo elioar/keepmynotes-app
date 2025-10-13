@@ -2449,16 +2449,16 @@ export default function EditNote({ route }: { route: any }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', delay: 100 }}
           >
-            <TouchableOpacity 
+          <TouchableOpacity 
               style={[
                 styles.backButton, 
                 isSaving && { opacity: 0.5 },
                 isViewMode && styles.viewModeButton
               ]}
               onPress={isViewMode ? toggleViewMode : handleSave}
-              disabled={isSaving}
-              accessibilityState={{ disabled: isSaving }}
-            >
+            disabled={isSaving}
+            accessibilityState={{ disabled: isSaving }}
+          >
               {isSaving ? (
                 <ActivityIndicator size="small" color={theme.textColor} />
               ) : isViewMode ? (
@@ -2472,7 +2472,7 @@ export default function EditNote({ route }: { route: any }) {
               ) : (
                 <Ionicons name="checkmark" size={22} color={hasChanges ? '#FFFFFF' : theme.textColor} />
               )}
-            </TouchableOpacity>
+          </TouchableOpacity>
           </MotiView>
 
           {isSearchVisible ? (
@@ -2544,34 +2544,34 @@ export default function EditNote({ route }: { route: any }) {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', delay: 150 }}
               >
-                <TouchableOpacity 
-                  style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
-                  onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
-                >
-                  <Ionicons 
-                    name="arrow-undo-outline" 
+              <TouchableOpacity 
+                style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
+                onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
+              >
+                <Ionicons 
+                  name="arrow-undo-outline" 
                     size={19} 
-                    color={theme.textColor} 
+                  color={theme.textColor} 
                     style={{ opacity: canUndo ? 1 : 0.35 }}
-                  />
-                </TouchableOpacity>
+                />
+              </TouchableOpacity>
               </MotiView>
               <MotiView
                 from={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', delay: 200 }}
               >
-                <TouchableOpacity 
-                  style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
-                  onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
-                >
-                  <Ionicons 
-                    name="arrow-redo-outline" 
+              <TouchableOpacity 
+                style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
+                onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
+              >
+                <Ionicons 
+                  name="arrow-redo-outline" 
                     size={19} 
-                    color={theme.textColor}
+                  color={theme.textColor}
                     style={{ opacity: canRedo ? 1 : 0.35 }}
-                  />
-                </TouchableOpacity>
+                />
+              </TouchableOpacity>
               </MotiView>
             </View>
           )}
@@ -2582,24 +2582,24 @@ export default function EditNote({ route }: { route: any }) {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', delay: 250 }}
             >
-              <TouchableOpacity 
-                style={styles.menuButton}
-                onPress={handleMenuPress}
-              >
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={handleMenuPress}
+            >
                 <Ionicons name="ellipsis-horizontal" size={20} color={theme.textColor} />
-              </TouchableOpacity>
+            </TouchableOpacity>
             </MotiView>
           </View>
         </MotiView>
 
         <AnimatePresence>
-          {isMenuVisible && (
-            <>
-              <TouchableOpacity 
-                style={styles.menuOverlay} 
-                activeOpacity={1}
-                onPress={() => setIsMenuVisible(false)}
-              />
+        {isMenuVisible && (
+          <>
+            <TouchableOpacity 
+              style={styles.menuOverlay} 
+              activeOpacity={1}
+              onPress={() => setIsMenuVisible(false)}
+            />
               <MotiView
                 from={{ opacity: 0, scale: 0.9, translateY: -10 }}
                 animate={{ opacity: 1, scale: 1, translateY: 0 }}
@@ -2607,80 +2607,80 @@ export default function EditNote({ route }: { route: any }) {
                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                 style={styles.menuOptions}
               >
-                <TouchableOpacity 
-                  style={[styles.menuOption, isFavorite && styles.menuOptionActive]}
-                  onPress={handleFavoritePress}
-                >
-                  <Ionicons 
-                    name={isFavorite ? "heart" : "heart-outline"} 
+              <TouchableOpacity 
+                style={[styles.menuOption, isFavorite && styles.menuOptionActive]}
+                onPress={handleFavoritePress}
+              >
+                <Ionicons 
+                  name={isFavorite ? "heart" : "heart-outline"} 
                     size={19} 
-                    color={isFavorite ? theme.accentColor : theme.textColor} 
-                  />
-                  <Text style={[
-                    styles.menuOptionText, 
-                    isFavorite && styles.menuOptionTextActive
-                  ]}>
-                    {isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.menuOption}
-                  onPress={() => {
-                    setIsMenuVisible(false);
-                    setIsSearchVisible(true);
-                  }}
-                >
+                  color={isFavorite ? theme.accentColor : theme.textColor} 
+                />
+                <Text style={[
+                  styles.menuOptionText, 
+                  isFavorite && styles.menuOptionTextActive
+                ]}>
+                  {isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={() => {
+                  setIsMenuVisible(false);
+                  setIsSearchVisible(true);
+                }}
+              >
                   <Ionicons name="search-outline" size={19} color={theme.textColor} />
-                  <Text style={styles.menuOptionText}>{t('search')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.menuOption}
-                  onPress={handleSharePress}
-                >
+                <Text style={styles.menuOptionText}>{t('search')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={handleSharePress}
+              >
                   <Ionicons name="share-outline" size={19} color={theme.textColor} />
-                  <Text style={styles.menuOptionText}>{t('share')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.menuOption}
-                  onPress={handleDetailsPress}
-                >
+                <Text style={styles.menuOptionText}>{t('share')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={handleDetailsPress}
+              >
                   <Ionicons name="information-circle-outline" size={19} color={theme.textColor} />
-                  <Text style={styles.menuOptionText}>{t('noteDetails')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.menuOption}
-                  onPress={handleHistoryPress}
-                >
+                <Text style={styles.menuOptionText}>{t('noteDetails')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuOption}
+                onPress={handleHistoryPress}
+              >
                   <Ionicons name="time-outline" size={19} color={theme.textColor} />
-                  <Text style={styles.menuOptionText}>{t('noteHistory')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.menuOption, isViewMode && styles.menuOptionActive]}
-                  onPress={handleReadingModePress}
-                >
-                  <Ionicons 
-                    name={isViewMode ? "create-outline" : "eye-outline"} 
+                <Text style={styles.menuOptionText}>{t('noteHistory')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.menuOption, isViewMode && styles.menuOptionActive]}
+                onPress={handleReadingModePress}
+              >
+                <Ionicons 
+                  name={isViewMode ? "create-outline" : "eye-outline"} 
                     size={19} 
-                    color={isViewMode ? theme.accentColor : theme.textColor} 
-                  />
-                  <Text style={[
-                    styles.menuOptionText, 
-                    isViewMode && styles.menuOptionTextActive
-                  ]}>
-                    {isViewMode ? t('edit') : t('readingMode')}
-                  </Text>
-                </TouchableOpacity>
+                  color={isViewMode ? theme.accentColor : theme.textColor} 
+                />
+                <Text style={[
+                  styles.menuOptionText, 
+                  isViewMode && styles.menuOptionTextActive
+                ]}>
+                  {isViewMode ? t('edit') : t('readingMode')}
+                </Text>
+              </TouchableOpacity>
                 <View style={styles.menuDivider} />
-                <TouchableOpacity 
-                  style={[styles.menuOption, styles.menuOptionDanger]}
-                  onPress={handleDelete}
-                >
+              <TouchableOpacity 
+                style={[styles.menuOption, styles.menuOptionDanger]}
+                onPress={handleDelete}
+              >
                   <Ionicons name="trash-outline" size={19} color="#FF4E4E" />
-                  <Text style={[styles.menuOptionText, styles.menuOptionTextDanger]}>{t('delete')}</Text>
-                </TouchableOpacity>
+                <Text style={[styles.menuOptionText, styles.menuOptionTextDanger]}>{t('delete')}</Text>
+              </TouchableOpacity>
               </MotiView>
-            </>
-          )}
+          </>
+        )}
         </AnimatePresence>
 
         {/* Modern Metadata Card */}
@@ -2690,51 +2690,51 @@ export default function EditNote({ route }: { route: any }) {
           transition={{ type: 'timing', duration: 350, delay: 300 }}
           style={styles.metadataCard}
         >
-          <View style={styles.tagContainer}>
-            <View style={styles.categoryGroup}>
+        <View style={styles.tagContainer}>
+          <View style={styles.categoryGroup}>
               <View style={[
                 styles.categoryBadge,
                 { backgroundColor: (existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.accentColor) + '15' }
               ]}>
-                <Ionicons 
+            <Ionicons 
                   name={TAG_ICONS[existingNote?.color as TagColor] || 'pricetag-outline'} 
                   size={14} 
                   color={existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.accentColor} 
-                />
-                <Text 
-                  style={[
-                    styles.tagLabel, 
+            />
+            <Text 
+              style={[
+                styles.tagLabel, 
                     { color: existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.accentColor }
-                  ]}
-                >
-                  {existingNote?.color ? TAG_LABELS[existingNote.color as TagColor] : TAG_LABELS.none}
-                </Text>
+              ]}
+            >
+              {existingNote?.color ? TAG_LABELS[existingNote.color as TagColor] : TAG_LABELS.none}
+            </Text>
               </View>
-            </View>
-            <View style={styles.metaInfo}>
+          </View>
+          <View style={styles.metaInfo}>
               <View style={styles.metaChip}>
                 <Ionicons name="create-outline" size={12} color={theme.placeholderColor} />
-                <Text style={styles.metaText}>
+            <Text style={styles.metaText}>
                   {stripHtmlTags(noteContent).length}
-                </Text>
+            </Text>
               </View>
               <View style={styles.metaChip}>
                 <Ionicons name="time-outline" size={12} color={theme.placeholderColor} />
-                <Text style={styles.metaText}>
-                  {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString(currentLanguage, {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) : new Date().toLocaleString(currentLanguage, {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Text>
-              </View>
-            </View>
+            <Text style={styles.metaText}>
+              {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString(currentLanguage, {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              }) : new Date().toLocaleString(currentLanguage, {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Text>
+          </View>
+        </View>
           </View>
         </MotiView>
 
@@ -2743,13 +2743,13 @@ export default function EditNote({ route }: { route: any }) {
           animate={{ opacity: 1 }}
           transition={{ type: 'timing', duration: 400, delay: 400 }}
         >
-          <TextInput
-            style={styles.titleInput}
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('enterTitle')}
-            placeholderTextColor={theme.placeholderColor}
-          />
+        <TextInput
+          style={styles.titleInput}
+          value={title}
+          onChangeText={setTitle}
+          placeholder={t('enterTitle')}
+          placeholderTextColor={theme.placeholderColor}
+        />
         </MotiView>
         
         <View style={styles.divider} />

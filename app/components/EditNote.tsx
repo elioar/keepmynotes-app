@@ -223,20 +223,21 @@ export default function EditNote({ route }: { route: any }) {
             width: 100%;
             min-height: calc(100vh - 120px);
             outline: none;
-            padding: 20px;
-            padding-bottom: ${isViewMode ? '20px' : '200px'};
+            padding: 24px;
+            padding-bottom: ${isViewMode ? '24px' : '200px'};
             font-size: 16px;
-            line-height: 1.6;
+            line-height: 1.65;
             caret-color: ${theme.accentColor};
             background-color: ${theme.backgroundColor};
             overflow-y: auto;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
+            letter-spacing: -0.1px;
           }
 
           /* Make sure the scrollbar doesn't affect layout */
           #editor::-webkit-scrollbar {
-            width: 4px !important;
+            width: 3px !important;
           }
 
           #editor::-webkit-scrollbar-track {
@@ -246,19 +247,21 @@ export default function EditNote({ route }: { route: any }) {
           #editor::-webkit-scrollbar-thumb {
             background-color: ${theme.accentColor} !important;
             border-radius: 100px !important;
-            opacity: 0.5 !important;
+            opacity: 0.4 !important;
           }
 
           #editor:hover::-webkit-scrollbar-thumb {
-            opacity: 0.8 !important;
+            opacity: 0.7 !important;
           }
 
           #editor:empty:before {
             content: "${t('writeYourNote')}";
-            color: ${theme.textColor}40;
+            color: ${theme.textColor}35;
             pointer-events: none;
             position: absolute;
-            font-size: 15px;
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: -0.2px;
           }
 
           .search-highlight {
@@ -280,15 +283,16 @@ export default function EditNote({ route }: { route: any }) {
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 8px;
-            background: ${theme.isDarkMode ? '#000000' : theme.backgroundColor};
-            border-top: 1px solid ${theme.borderColor};
+            padding: 10px;
+            background: ${theme.isDarkMode ? theme.backgroundColor + 'E6' : theme.backgroundColor + 'F5'};
+            border-top: 0.5px solid ${theme.borderColor}30;
             display: ${isViewMode ? 'none' : 'flex'};
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
             max-width: 100%;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 -4px 16px ${theme.isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'};
           }
 
           .toolbar-row {
@@ -499,15 +503,15 @@ export default function EditNote({ route }: { route: any }) {
             min-width: 44px;
             height: 44px;
             padding: 0;
-            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground};
+            background: ${theme.isDarkMode ? '#2C2C2E' : theme.secondaryBackground};
             border: none;
             border-radius: 12px;
             color: ${theme.textColor};
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 500;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
             position: relative;
             overflow: hidden;
           }
@@ -521,17 +525,18 @@ export default function EditNote({ route }: { route: any }) {
             bottom: 0;
             background: ${theme.accentColor};
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.25s ease;
             z-index: 1;
           }
 
           .toolbar button > * {
             position: relative;
             z-index: 2;
+            transition: all 0.2s ease;
           }
 
           .toolbar button:active {
-            transform: scale(0.96);
+            transform: scale(0.94);
           }
 
           .toolbar button.active::after {
@@ -539,8 +544,8 @@ export default function EditNote({ route }: { route: any }) {
           }
 
           .toolbar button.active {
-            box-shadow: 0 2px 8px ${theme.accentColor}40;
-            transform: translateY(-1px);
+            box-shadow: 0 3px 12px ${theme.accentColor}35;
+            transform: translateY(-1.5px);
           }
 
           .toolbar button.expand-button {
@@ -1741,9 +1746,13 @@ export default function EditNote({ route }: { route: any }) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: 16,
-      paddingTop: Platform.OS === 'ios' ? 8 : 16,
-      backgroundColor: theme.backgroundColor,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      paddingTop: Platform.OS === 'ios' ? 8 : 12,
+      backgroundColor: theme.isDarkMode ? theme.backgroundColor + 'E6' : theme.backgroundColor + 'F2',
+      backdropFilter: 'blur(20px)',
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.borderColor + '20',
     },
     headerLeft: {
       flexDirection: 'row',
@@ -1751,46 +1760,49 @@ export default function EditNote({ route }: { route: any }) {
     },
     headerCenter: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 10,
       alignItems: 'center',
     },
     headerRight: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 10,
     },
     menuButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      backgroundColor: theme.secondaryBackground,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground + 'CC' : theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 2,
-    },
-    menuOptions: {
-      position: 'absolute',
-      top: 50,
-      right: 16,
-      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
-      borderRadius: 12,
-      padding: 8,
-      shadowColor: '#000',
+      shadowColor: theme.accentColor,
       shadowOffset: {
         width: 0,
         height: 4,
       },
-      shadowOpacity: 0.2,
+      shadowOpacity: 0.08,
       shadowRadius: 8,
-      elevation: 5,
+      elevation: 3,
+    },
+    menuOptions: {
+      position: 'absolute',
+      top: 56,
+      right: 20,
+      backgroundColor: theme.isDarkMode ? '#1C1C1E' : '#FFFFFF',
+      borderRadius: 16,
+      padding: 6,
+      minWidth: 220,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 8,
+      },
+      shadowOpacity: theme.isDarkMode ? 0.4 : 0.12,
+      shadowRadius: 16,
+      elevation: 8,
       zIndex: 1000,
+      borderWidth: theme.isDarkMode ? 0 : 0.5,
+      borderColor: theme.borderColor + '30',
     },
     menuOverlay: {
       position: 'absolute',
@@ -1799,18 +1811,21 @@ export default function EditNote({ route }: { route: any }) {
       right: 0,
       bottom: 0,
       zIndex: 999,
+      backgroundColor: 'transparent',
     },
     menuOption: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 12,
+      padding: 14,
       gap: 12,
-      borderRadius: 8,
+      borderRadius: 10,
+      marginVertical: 1,
     },
     menuOptionText: {
       color: theme.textColor,
       fontSize: 15,
-      fontWeight: '500',
+      fontWeight: '600',
+      letterSpacing: -0.3,
     },
     menuOptionActive: {
       backgroundColor: theme.accentColor + '15',
@@ -1820,49 +1835,60 @@ export default function EditNote({ route }: { route: any }) {
     },
     editControls: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 10,
       alignItems: 'center',
     },
     editButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      backgroundColor: theme.secondaryBackground,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground + 'CC' : theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: 3,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
       elevation: 2,
       opacity: 1,
     },
     editButtonDisabled: {
-      opacity: 0.5,
+      opacity: 1,
     },
     backButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
-      backgroundColor: theme.secondaryBackground,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: hasChanges ? theme.accentColor : theme.isDarkMode ? theme.secondaryBackground + 'CC' : theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
+      shadowColor: hasChanges ? theme.accentColor : '#000',
+      shadowOffset: {
+        width: 0,
+        height: hasChanges ? 4 : 3,
+      },
+      shadowOpacity: hasChanges ? 0.25 : 0.08,
+      shadowRadius: hasChanges ? 8 : 6,
+      elevation: hasChanges ? 4 : 2,
+    },
+    viewModeButton: {
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground + 'CC' : theme.secondaryBackground,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: 3,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
       elevation: 2,
     },
     saveButton: {
-      width: 38,
-      height: 38,
-      borderRadius: 10,
+      width: 40,
+      height: 40,
+      borderRadius: 12,
       backgroundColor: hasChanges ? theme.accentColor : 'transparent',
       borderWidth: hasChanges ? 0 : 1.5,
       borderColor: theme.accentColor,
@@ -1871,32 +1897,34 @@ export default function EditNote({ route }: { route: any }) {
       shadowColor: hasChanges ? theme.accentColor : 'transparent',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: 4,
       },
-      shadowOpacity: hasChanges ? 0.2 : 0,
-      shadowRadius: 3,
-      elevation: hasChanges ? 2 : 0,
+      shadowOpacity: hasChanges ? 0.25 : 0,
+      shadowRadius: 8,
+      elevation: hasChanges ? 3 : 0,
     },
     saveText: {
       color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 15,
+      fontWeight: '700',
       marginLeft: 8,
+      letterSpacing: -0.3,
     },
     titleInput: {
-      fontSize: 24,
-      fontWeight: '600',
+      fontSize: 28,
+      fontWeight: '700',
       color: theme.textColor,
-      padding: 20,
-      paddingTop: 8,
-      paddingBottom: 20,
+      padding: 24,
+      paddingTop: 16,
+      paddingBottom: 16,
       backgroundColor: theme.backgroundColor,
+      letterSpacing: -0.5,
     },
     divider: {
-      height: 1,
+      height: 0.5,
       backgroundColor: theme.borderColor,
-      marginHorizontal: 20,
-      opacity: 0.5,
+      marginHorizontal: 24,
+      opacity: 0.3,
     },
     editor: {
       flex: 1,
@@ -2004,32 +2032,53 @@ export default function EditNote({ route }: { route: any }) {
       gap: 8,
       flex: 1,
     },
+    metadataCard: {
+      paddingHorizontal: 24,
+      paddingVertical: 8,
+      marginBottom: 4,
+    },
     tagContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 4,
-      marginBottom: 0,
+      gap: 12,
     },
     categoryGroup: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+    },
+    categoryBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 10,
     },
     metaInfo: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 8,
+    },
+    metaChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground + '80' : theme.secondaryBackground,
     },
     metaText: {
-      fontSize: 12,
+      fontSize: 11,
       color: theme.placeholderColor,
-      fontWeight: '500',
+      fontWeight: '600',
+      letterSpacing: -0.2,
     },
     tagLabel: {
-      fontSize: 13,
-      fontWeight: '500',
+      fontSize: 12,
+      fontWeight: '600',
+      letterSpacing: -0.2,
     },
     historyModal: {
       flex: 1,
@@ -2039,55 +2088,57 @@ export default function EditNote({ route }: { route: any }) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: 20,
-      paddingTop: Platform.OS === 'ios' ? 16 : 20,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
-      backgroundColor: theme.isDarkMode ? theme.backgroundColor : theme.secondaryBackground,
+      paddingHorizontal: 24,
+      paddingVertical: 18,
+      paddingTop: Platform.OS === 'ios' ? 16 : 18,
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.borderColor + '30',
+      backgroundColor: theme.isDarkMode ? theme.backgroundColor + 'F2' : theme.backgroundColor,
     },
     historyTitle: {
-      fontSize: 20,
-      fontWeight: '700',
+      fontSize: 24,
+      fontWeight: '800',
       color: theme.textColor,
-      letterSpacing: -0.5,
+      letterSpacing: -0.7,
     },
     versionItem: {
-      padding: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.borderColor,
+      padding: 20,
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.borderColor + '30',
       backgroundColor: theme.backgroundColor,
-      marginBottom: 1,
+      marginBottom: 0,
     },
     versionDate: {
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
       color: theme.textColor,
-      marginBottom: 8,
-      letterSpacing: -0.3,
+      marginBottom: 10,
+      letterSpacing: -0.4,
     },
     versionPreview: {
-      fontSize: 14,
+      fontSize: 15,
       color: theme.textColor + '90',
-      lineHeight: 20,
-      marginBottom: 8,
-      letterSpacing: 0.2,
-      paddingHorizontal: 2,
+      lineHeight: 22,
+      marginBottom: 10,
+      letterSpacing: -0.1,
+      paddingHorizontal: 0,
       textAlign: 'left',
       flexWrap: 'wrap',
       fontWeight: '400',
     },
     seeMoreButton: {
       alignSelf: 'flex-start',
-      marginBottom: 12,
-      paddingVertical: 4,
-      paddingHorizontal: 10,
-      borderRadius: 6,
-      backgroundColor: theme.secondaryBackground,
+      marginBottom: 14,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.accentColor + '15',
     },
     seeMoreText: {
       fontSize: 13,
       color: theme.accentColor,
-      fontWeight: '600',
+      fontWeight: '700',
+      letterSpacing: -0.2,
     },
     versionMeta: {
       flexDirection: 'row',
@@ -2112,25 +2163,25 @@ export default function EditNote({ route }: { route: any }) {
     },
     restoreButton: {
       backgroundColor: theme.accentColor,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
       shadowColor: theme.accentColor,
       shadowOffset: {
         width: 0,
-        height: 3,
+        height: 4,
       },
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
     },
     restoreButtonText: {
       color: '#FFFFFF',
-      fontSize: 13,
-      fontWeight: '600',
+      fontSize: 14,
+      fontWeight: '700',
       letterSpacing: -0.3,
     },
     closeButton: {
@@ -2156,48 +2207,50 @@ export default function EditNote({ route }: { route: any }) {
       letterSpacing: -0.3,
     },
     detailsModal: {
-      backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
-      borderRadius: 28,
+      backgroundColor: theme.isDarkMode ? '#1C1C1E' : '#FFFFFF',
+      borderRadius: 24,
       padding: 0,
       width: '100%',
-      maxWidth: 340,
-      shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
+      maxWidth: 360,
+      shadowColor: '#000',
       shadowOffset: {
         width: 0,
-        height: 8,
+        height: 12,
       },
-      shadowOpacity: theme.isDarkMode ? 0.5 : 0.2,
-      shadowRadius: 16,
-      elevation: 8,
+      shadowOpacity: theme.isDarkMode ? 0.5 : 0.15,
+      shadowRadius: 24,
+      elevation: 10,
+      borderWidth: theme.isDarkMode ? 0 : 0.5,
+      borderColor: theme.borderColor + '20',
     },
     detailsHeader: {
-      padding: 24,
-      paddingBottom: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.isDarkMode ? '#2A2A2A' : theme.borderColor,
+      padding: 28,
+      paddingBottom: 24,
+      borderBottomWidth: 0.5,
+      borderBottomColor: theme.borderColor + '30',
       alignItems: 'center',
-      gap: 12,
+      gap: 14,
     },
     detailsTitle: {
-      fontSize: 20,
-      fontWeight: '700',
+      fontSize: 22,
+      fontWeight: '800',
       color: theme.textColor,
-      letterSpacing: -0.5,
+      letterSpacing: -0.6,
     },
     detailsContent: {
-      padding: 20,
+      padding: 24,
     },
     detailsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 16,
-      gap: 16,
+      paddingVertical: 14,
+      gap: 14,
     },
     detailsIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground,
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: theme.isDarkMode ? '#2C2C2E' : theme.secondaryBackground,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -2221,31 +2274,31 @@ export default function EditNote({ route }: { route: any }) {
     },
     doneButton: {
       backgroundColor: theme.accentColor,
-      paddingVertical: 14,
-      paddingHorizontal: 24,
-      borderRadius: 16,
+      paddingVertical: 16,
+      paddingHorizontal: 28,
+      borderRadius: 14,
       alignItems: 'center',
       shadowColor: theme.accentColor,
       shadowOffset: {
         width: 0,
-        height: 4,
+        height: 6,
       },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 5,
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 6,
     },
     doneButtonText: {
       color: '#FFFFFF',
       fontSize: 16,
-      fontWeight: '600',
-      letterSpacing: -0.3,
+      fontWeight: '700',
+      letterSpacing: -0.4,
     },
     modalContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: theme.isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
-      padding: 20,
+      backgroundColor: theme.isDarkMode ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.55)',
+      padding: 24,
     },
     shareModal: {
       backgroundColor: theme.isDarkMode ? '#1A1A1A' : theme.backgroundColor,
@@ -2299,30 +2352,39 @@ export default function EditNote({ route }: { route: any }) {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.secondaryBackground,
-      borderRadius: 10,
-      marginHorizontal: 12,
-      paddingHorizontal: 10,
-      height: 36,
+      backgroundColor: theme.isDarkMode ? theme.secondaryBackground + 'CC' : theme.secondaryBackground,
+      borderRadius: 12,
+      marginHorizontal: 10,
+      paddingHorizontal: 12,
+      height: 40,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 2,
     },
     searchInput: {
       flex: 1,
       color: theme.textColor,
       fontSize: 15,
-      paddingVertical: 6,
-      marginLeft: 6,
+      paddingVertical: 8,
+      marginLeft: 8,
+      fontWeight: '500',
     },
     searchControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 2,
-      backgroundColor: theme.isDarkMode ? '#2A2A2A' : theme.backgroundColor,
-      borderRadius: 6,
-      padding: 2,
+      gap: 3,
+      backgroundColor: theme.isDarkMode ? '#2C2C2E' : theme.backgroundColor,
+      borderRadius: 8,
+      padding: 3,
     },
     searchCounter: {
-      paddingHorizontal: 6,
-      minWidth: 40,
+      paddingHorizontal: 8,
+      minWidth: 44,
       alignItems: 'center',
     },
     searchCounterText: {
@@ -2331,22 +2393,31 @@ export default function EditNote({ route }: { route: any }) {
       fontWeight: '600',
     },
     searchNavButton: {
-      padding: 3,
-      borderRadius: 4,
-      backgroundColor: theme.isDarkMode ? '#3A3A3A' : theme.secondaryBackground,
+      padding: 6,
+      borderRadius: 6,
+      backgroundColor: theme.isDarkMode ? '#3C3C3E' : theme.secondaryBackground,
     },
     searchNavButtonDisabled: {
-      opacity: 0.5,
+      opacity: 0.4,
     },
     searchCloseButton: {
-      padding: 6,
-      marginLeft: 2,
+      padding: 7,
+      marginLeft: 4,
+      borderRadius: 8,
+    },
+    menuDivider: {
+      height: 0.5,
+      backgroundColor: theme.borderColor,
+      marginVertical: 4,
+      marginHorizontal: 8,
+      opacity: 0.4,
     },
     menuOptionDanger: {
-      backgroundColor: '#FF4E4E15',
+      backgroundColor: 'transparent',
     },
     menuOptionTextDanger: {
       color: '#FF4E4E',
+      fontWeight: '600',
     },
     daysRemainingBadge: {
       flexDirection: 'row',
@@ -2364,20 +2435,52 @@ export default function EditNote({ route }: { route: any }) {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity 
-            style={[styles.backButton, isSaving && { opacity: 0.5 }]}
-            onPress={handleSave}
-            disabled={isSaving}
-            accessibilityState={{ disabled: isSaving }}
+        {/* Minimal Glass Header */}
+        <MotiView
+          from={{ opacity: 0, translateY: -20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 400 }}
+          style={styles.header}
+        >
+          <MotiView
+            from={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', delay: 100 }}
           >
-            <Ionicons name="checkmark" size={24} color={theme.textColor} />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.backButton, 
+                isSaving && { opacity: 0.5 },
+                isViewMode && styles.viewModeButton
+              ]}
+              onPress={isViewMode ? toggleViewMode : handleSave}
+              disabled={isSaving}
+              accessibilityState={{ disabled: isSaving }}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color={theme.textColor} />
+              ) : isViewMode ? (
+                <MotiView
+                  from={{ rotate: '90deg', scale: 0.8 }}
+                  animate={{ rotate: '0deg', scale: 1 }}
+                  transition={{ type: 'spring', damping: 12 }}
+                >
+                  <Ionicons name="close" size={24} color={theme.textColor} />
+                </MotiView>
+              ) : (
+                <Ionicons name="checkmark" size={22} color={hasChanges ? '#FFFFFF' : theme.textColor} />
+              )}
+            </TouchableOpacity>
+          </MotiView>
 
           {isSearchVisible ? (
-            <View style={styles.searchContainer}>
+            <MotiView
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={styles.searchContainer}
+            >
               <Ionicons name="search-outline" size={18} color={theme.textColor + '60'} />
               <TextInput
                 style={styles.searchInput}
@@ -2397,7 +2500,7 @@ export default function EditNote({ route }: { route: any }) {
                     onPress={handlePreviousResult}
                     disabled={searchResultsCount <= 1}
                   >
-                    <Ionicons name="chevron-up" size={18} color={theme.textColor} />
+                    <Ionicons name="chevron-up" size={16} color={theme.textColor} />
                   </TouchableOpacity>
                   <View style={styles.searchCounter}>
                     <Text style={styles.searchCounterText}>
@@ -2409,7 +2512,7 @@ export default function EditNote({ route }: { route: any }) {
                     onPress={handleNextResult}
                     disabled={searchResultsCount <= 1}
                   >
-                    <Ionicons name="chevron-down" size={18} color={theme.textColor} />
+                    <Ionicons name="chevron-down" size={16} color={theme.textColor} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -2431,171 +2534,223 @@ export default function EditNote({ route }: { route: any }) {
                   `);
                 }}
               >
-                <Ionicons name="close" size={20} color={theme.textColor} />
+                <Ionicons name="close" size={18} color={theme.textColor} />
               </TouchableOpacity>
-            </View>
+            </MotiView>
           ) : (
             <View style={styles.headerCenter}>
-              <TouchableOpacity 
-                style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
-                onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
+              <MotiView
+                from={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', delay: 150 }}
               >
-                <Ionicons 
-                  name="arrow-undo-outline" 
-                  size={20} 
-                  color={theme.textColor} 
-                  style={{ opacity: canUndo ? 1 : 0.5 }}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
-                onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
+                <TouchableOpacity 
+                  style={[styles.editButton, !canUndo && styles.editButtonDisabled]}
+                  onPress={() => canUndo && editorRef.current?.injectJavaScript('document.execCommand("undo"); true;')}
+                >
+                  <Ionicons 
+                    name="arrow-undo-outline" 
+                    size={19} 
+                    color={theme.textColor} 
+                    style={{ opacity: canUndo ? 1 : 0.35 }}
+                  />
+                </TouchableOpacity>
+              </MotiView>
+              <MotiView
+                from={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', delay: 200 }}
               >
-                <Ionicons 
-                  name="arrow-redo-outline" 
-                  size={20} 
-                  color={theme.textColor}
-                  style={{ opacity: canRedo ? 1 : 0.5 }}
-                />
-              </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.editButton, !canRedo && styles.editButtonDisabled]}
+                  onPress={() => canRedo && editorRef.current?.injectJavaScript('document.execCommand("redo"); true;')}
+                >
+                  <Ionicons 
+                    name="arrow-redo-outline" 
+                    size={19} 
+                    color={theme.textColor}
+                    style={{ opacity: canRedo ? 1 : 0.35 }}
+                  />
+                </TouchableOpacity>
+              </MotiView>
             </View>
           )}
 
           <View style={styles.headerRight}>
-            <TouchableOpacity 
-              style={styles.menuButton}
-              onPress={handleMenuPress}
+            <MotiView
+              from={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', delay: 250 }}
             >
-              <Ionicons name="ellipsis-vertical" size={20} color={theme.textColor} />
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.menuButton}
+                onPress={handleMenuPress}
+              >
+                <Ionicons name="ellipsis-horizontal" size={20} color={theme.textColor} />
+              </TouchableOpacity>
+            </MotiView>
           </View>
-        </View>
+        </MotiView>
 
-        {isMenuVisible && (
-          <>
-            <TouchableOpacity 
-              style={styles.menuOverlay} 
-              activeOpacity={1}
-              onPress={() => setIsMenuVisible(false)}
-            />
-            <View style={styles.menuOptions}>
+        <AnimatePresence>
+          {isMenuVisible && (
+            <>
               <TouchableOpacity 
-                style={[styles.menuOption, isFavorite && styles.menuOptionActive]}
-                onPress={handleFavoritePress}
+                style={styles.menuOverlay} 
+                activeOpacity={1}
+                onPress={() => setIsMenuVisible(false)}
+              />
+              <MotiView
+                from={{ opacity: 0, scale: 0.9, translateY: -10 }}
+                animate={{ opacity: 1, scale: 1, translateY: 0 }}
+                exit={{ opacity: 0, scale: 0.9, translateY: -10 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                style={styles.menuOptions}
               >
+                <TouchableOpacity 
+                  style={[styles.menuOption, isFavorite && styles.menuOptionActive]}
+                  onPress={handleFavoritePress}
+                >
+                  <Ionicons 
+                    name={isFavorite ? "heart" : "heart-outline"} 
+                    size={19} 
+                    color={isFavorite ? theme.accentColor : theme.textColor} 
+                  />
+                  <Text style={[
+                    styles.menuOptionText, 
+                    isFavorite && styles.menuOptionTextActive
+                  ]}>
+                    {isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.menuOption}
+                  onPress={() => {
+                    setIsMenuVisible(false);
+                    setIsSearchVisible(true);
+                  }}
+                >
+                  <Ionicons name="search-outline" size={19} color={theme.textColor} />
+                  <Text style={styles.menuOptionText}>{t('search')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.menuOption}
+                  onPress={handleSharePress}
+                >
+                  <Ionicons name="share-outline" size={19} color={theme.textColor} />
+                  <Text style={styles.menuOptionText}>{t('share')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.menuOption}
+                  onPress={handleDetailsPress}
+                >
+                  <Ionicons name="information-circle-outline" size={19} color={theme.textColor} />
+                  <Text style={styles.menuOptionText}>{t('noteDetails')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.menuOption}
+                  onPress={handleHistoryPress}
+                >
+                  <Ionicons name="time-outline" size={19} color={theme.textColor} />
+                  <Text style={styles.menuOptionText}>{t('noteHistory')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.menuOption, isViewMode && styles.menuOptionActive]}
+                  onPress={handleReadingModePress}
+                >
+                  <Ionicons 
+                    name={isViewMode ? "create-outline" : "eye-outline"} 
+                    size={19} 
+                    color={isViewMode ? theme.accentColor : theme.textColor} 
+                  />
+                  <Text style={[
+                    styles.menuOptionText, 
+                    isViewMode && styles.menuOptionTextActive
+                  ]}>
+                    {isViewMode ? t('edit') : t('readingMode')}
+                  </Text>
+                </TouchableOpacity>
+                <View style={styles.menuDivider} />
+                <TouchableOpacity 
+                  style={[styles.menuOption, styles.menuOptionDanger]}
+                  onPress={handleDelete}
+                >
+                  <Ionicons name="trash-outline" size={19} color="#FF4E4E" />
+                  <Text style={[styles.menuOptionText, styles.menuOptionTextDanger]}>{t('delete')}</Text>
+                </TouchableOpacity>
+              </MotiView>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Modern Metadata Card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 350, delay: 300 }}
+          style={styles.metadataCard}
+        >
+          <View style={styles.tagContainer}>
+            <View style={styles.categoryGroup}>
+              <View style={[
+                styles.categoryBadge,
+                { backgroundColor: (existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.accentColor) + '15' }
+              ]}>
                 <Ionicons 
-                  name={isFavorite ? "heart" : "heart-outline"} 
-                  size={20} 
-                  color={isFavorite ? theme.accentColor : theme.textColor} 
+                  name={TAG_ICONS[existingNote?.color as TagColor] || 'pricetag-outline'} 
+                  size={14} 
+                  color={existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.accentColor} 
                 />
-                <Text style={[
-                  styles.menuOptionText, 
-                  isFavorite && styles.menuOptionTextActive
-                ]}>
-                  {isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+                <Text 
+                  style={[
+                    styles.tagLabel, 
+                    { color: existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.accentColor }
+                  ]}
+                >
+                  {existingNote?.color ? TAG_LABELS[existingNote.color as TagColor] : TAG_LABELS.none}
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.menuOption}
-                onPress={() => {
-                  setIsMenuVisible(false);
-                  setIsSearchVisible(true);
-                }}
-              >
-                <Ionicons name="search-outline" size={20} color={theme.textColor} />
-                <Text style={styles.menuOptionText}>{t('search')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.menuOption}
-                onPress={handleSharePress}
-              >
-                <Ionicons name="share-outline" size={20} color={theme.textColor} />
-                <Text style={styles.menuOptionText}>{t('share')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.menuOption}
-                onPress={handleDetailsPress}
-              >
-                <Ionicons name="information-circle-outline" size={20} color={theme.textColor} />
-                <Text style={styles.menuOptionText}>{t('noteDetails')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.menuOption}
-                onPress={handleHistoryPress}
-              >
-                <Ionicons name="time-outline" size={20} color={theme.textColor} />
-                <Text style={styles.menuOptionText}>{t('noteHistory')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.menuOption, isViewMode && styles.menuOptionActive]}
-                onPress={handleReadingModePress}
-              >
-                <Ionicons 
-                  name={isViewMode ? "create-outline" : "eye-outline"} 
-                  size={20} 
-                  color={isViewMode ? theme.accentColor : theme.textColor} 
-                />
-                <Text style={[
-                  styles.menuOptionText, 
-                  isViewMode && styles.menuOptionTextActive
-                ]}>
-                  {isViewMode ? t('edit') : t('readingMode')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.menuOption, styles.menuOptionDanger]}
-                onPress={handleDelete}
-              >
-                <Ionicons name="trash-outline" size={20} color="#FF4E4E" />
-                <Text style={[styles.menuOptionText, styles.menuOptionTextDanger]}>{t('delete')}</Text>
-              </TouchableOpacity>
+              </View>
             </View>
-          </>
-        )}
-
-        <View style={styles.tagContainer}>
-          <View style={styles.categoryGroup}>
-            <Ionicons 
-              name={TAG_ICONS[existingNote?.color as TagColor] || 'remove-outline'} 
-              size={16} 
-              color={existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.placeholderColor} 
-            />
-            <Text 
-              style={[
-                styles.tagLabel, 
-                { color: existingNote?.color ? TAG_COLORS[existingNote.color as TagColor] : theme.placeholderColor }
-              ]}
-            >
-              {existingNote?.color ? TAG_LABELS[existingNote.color as TagColor] : TAG_LABELS.none}
-            </Text>
+            <View style={styles.metaInfo}>
+              <View style={styles.metaChip}>
+                <Ionicons name="create-outline" size={12} color={theme.placeholderColor} />
+                <Text style={styles.metaText}>
+                  {stripHtmlTags(noteContent).length}
+                </Text>
+              </View>
+              <View style={styles.metaChip}>
+                <Ionicons name="time-outline" size={12} color={theme.placeholderColor} />
+                <Text style={styles.metaText}>
+                  {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString(currentLanguage, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : new Date().toLocaleString(currentLanguage, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.metaInfo}>
-            <Text style={styles.metaText}>
-              {stripHtmlTags(noteContent).length} {t('characters')}
-            </Text>
-            <Text style={styles.metaText}>
-              {existingNote?.updatedAt ? new Date(existingNote.updatedAt).toLocaleString(currentLanguage, {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-              }) : new Date().toLocaleString(currentLanguage, {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </Text>
-          </View>
-        </View>
+        </MotiView>
 
-        <TextInput
-          style={styles.titleInput}
-          value={title}
-          onChangeText={setTitle}
-          placeholder={t('enterTitle')}
-          placeholderTextColor={theme.placeholderColor}
-        />
+        <MotiView
+          from={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ type: 'timing', duration: 400, delay: 400 }}
+        >
+          <TextInput
+            style={styles.titleInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder={t('enterTitle')}
+            placeholderTextColor={theme.placeholderColor}
+          />
+        </MotiView>
         
         <View style={styles.divider} />
         

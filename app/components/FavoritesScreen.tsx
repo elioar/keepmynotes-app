@@ -77,7 +77,7 @@ const DraggableNoteCard = ({
   const scale = useSharedValue(1);
   const zIndex = useSharedValue(0);
   const opacity = useSharedValue(1);
-  const shadowOpacity = useSharedValue(0.1);
+  const shadowOpacity = useSharedValue(theme.isDarkMode ? 0.1 : 0);
   const rotateZ = useSharedValue('0deg');
   
   const triggerHaptic = () => {
@@ -92,7 +92,7 @@ const DraggableNoteCard = ({
       runOnJS(triggerHaptic)();
       scale.value = withSpring(1.05, { damping: 15, stiffness: 300 });
       zIndex.value = 1000;
-      shadowOpacity.value = withTiming(0.3, { duration: 200 });
+      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.3 : 0, { duration: 200 });
       rotateZ.value = withSpring('1deg', { damping: 15 });
     })
     .onUpdate((event) => {
@@ -110,14 +110,14 @@ const DraggableNoteCard = ({
       translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       scale.value = withSpring(1, { damping: 15, stiffness: 300 });
       zIndex.value = 0;
-      shadowOpacity.value = withTiming(0.1, { duration: 200 });
+      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.1 : 0, { duration: 200 });
       rotateZ.value = withSpring('0deg', { damping: 15 });
     })
     .onFinalize(() => {
       translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
       scale.value = withSpring(1, { damping: 15, stiffness: 300 });
       zIndex.value = 0;
-      shadowOpacity.value = withTiming(0.1, { duration: 200 });
+      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.1 : 0, { duration: 200 });
       rotateZ.value = withSpring('0deg', { damping: 15 });
     });
 
@@ -144,16 +144,18 @@ const DraggableNoteCard = ({
       borderRadius: 18,
       padding: 16,
       flexDirection: 'row',
-      alignItems: 'center',
-      minHeight: CARD_HEIGHT,
-      shadowColor: '#000',
+      alignItems: 'flex-start',
+      height: CARD_HEIGHT,
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: theme.isDarkMode ? 2 : 0,
       },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 3,
+      shadowOpacity: theme.isDarkMode ? 0.08 : 0,
+      shadowRadius: theme.isDarkMode ? 8 : 0,
+      elevation: theme.isDarkMode ? 3 : 0,
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
     },
     dragHandle: {
       width: 20,
@@ -471,14 +473,14 @@ export default function FavoritesScreen() {
       borderRadius: 20,
       paddingHorizontal: 18,
       height: 58,
-      shadowColor: '#000',
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
         width: 0,
-        height: 3,
+        height: theme.isDarkMode ? 3 : 0,
       },
-      shadowOpacity: isSearchFocused ? 0.2 : 0.08,
-      shadowRadius: isSearchFocused ? 10 : 5,
-      elevation: isSearchFocused ? 8 : 3,
+      shadowOpacity: theme.isDarkMode ? (isSearchFocused ? 0.2 : 0.08) : 0,
+      shadowRadius: theme.isDarkMode ? (isSearchFocused ? 10 : 5) : 0,
+      elevation: theme.isDarkMode ? (isSearchFocused ? 8 : 3) : 0,
       borderWidth: 2,
       borderColor: isSearchFocused ? theme.accentColor : 'transparent',
     },

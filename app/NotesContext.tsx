@@ -126,7 +126,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   const [lastFetch, setLastFetch] = useState<number>(Date.now());
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const { user } = useAuth();
-  const SYNC_INTERVAL = 30000; // 30 seconds
+  const SYNC_INTERVAL = 2000; // 2 seconds - fast sync on every change
 
   // Μεμονωμένη συνάρτηση για αποκοπή HTML
   const stripHtmlTags = useCallback((html: string) => {

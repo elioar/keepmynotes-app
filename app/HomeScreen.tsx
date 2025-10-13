@@ -132,6 +132,68 @@ function getBorderColor(color: string | TagColor | null | undefined, defaultColo
   return defaultColor;
 }
 
+// Sync Badge Component with animations
+interface SyncBadgeProps {
+  isSynced: boolean;
+  theme: any;
+  styles: any;
+}
+
+const SyncBadge = ({ isSynced, theme, styles }: SyncBadgeProps) => {
+  const getSyncStatus = () => {
+    if (isSynced) {
+      return {
+        icon: 'cloud-done',
+        color: '#4CAF50',
+        text: 'Synced',
+        bgColor: theme.isDarkMode ? 'rgba(76, 175, 80, 0.2)' : 'rgba(76, 175, 80, 0.1)',
+        borderColor: '#4CAF50',
+      };
+    }
+    return {
+      icon: 'cloud-offline',
+      color: '#FF9800',
+      text: 'Local',
+      bgColor: theme.isDarkMode ? 'rgba(255, 152, 0, 0.2)' : 'rgba(255, 152, 0, 0.1)',
+      borderColor: '#FF9800',
+    };
+  };
+
+  const status = getSyncStatus();
+
+  return (
+    <MotiView
+      from={{ opacity: 0, scale: 0.8, translateY: 10 }}
+      animate={{ opacity: 1, scale: 1, translateY: 0 }}
+      transition={{ type: 'spring', damping: 15, stiffness: 300, delay: 100 }}
+      style={[
+        styles.syncBadge, 
+        { 
+          backgroundColor: status.bgColor,
+          borderWidth: theme.isDarkMode ? 1 : 0.5,
+          borderColor: theme.isDarkMode ? status.borderColor + '40' : status.borderColor + '20',
+        }
+      ]}
+    >
+      <MotiView
+        animate={{
+          scale: isSynced ? [1, 1.15, 1] : 1,
+        }}
+        transition={{
+          type: 'timing',
+          duration: isSynced ? 600 : 0,
+        }}
+      >
+        <Ionicons 
+          name={status.icon as any}
+          size={14} 
+          color={status.color}
+        />
+      </MotiView>
+    </MotiView>
+  );
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
@@ -771,14 +833,14 @@ export default function HomeScreen() {
       borderRadius: 20,
       paddingHorizontal: 18,
       height: 58,
-      shadowColor: '#000',
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
         width: 0,
-        height: 3,
+        height: theme.isDarkMode ? 3 : 0,
       },
-      shadowOpacity: isSearchFocused ? 0.2 : 0.08,
-      shadowRadius: isSearchFocused ? 10 : 5,
-      elevation: isSearchFocused ? 8 : 3,
+      shadowOpacity: theme.isDarkMode ? (isSearchFocused ? 0.2 : 0.08) : 0,
+      shadowRadius: theme.isDarkMode ? (isSearchFocused ? 10 : 5) : 0,
+      elevation: theme.isDarkMode ? (isSearchFocused ? 8 : 3) : 0,
       borderWidth: 2,
       borderColor: isSearchFocused ? theme.accentColor : 'transparent',
     },
@@ -796,38 +858,41 @@ export default function HomeScreen() {
     },
     noteCard: {
       backgroundColor: theme.secondaryBackground,
-      borderRadius: wp(4),
-      padding: wp(4),
-      marginBottom: hp(2),
-      minHeight: hp(20),
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 14,
+      height: 200,
       flexDirection: 'column',
-      borderLeftWidth: 3,
-      borderLeftColor: getBorderColor(selectedNote?.color, theme.borderColor),
-      shadowColor: '#000',
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: theme.isDarkMode ? 2 : 0,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
+      shadowOpacity: theme.isDarkMode ? 0.06 : 0,
+      shadowRadius: theme.isDarkMode ? 8 : 0,
+      elevation: theme.isDarkMode ? 3 : 0,
       overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
     },
     tagLabel: {
-      fontSize: normalize(12),
-      fontWeight: '500',
+      fontSize: 11,
+      fontWeight: '600',
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
     },
     noteHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: hp(1),
+      marginBottom: 12,
     },
     noteDate: {
       color: theme.placeholderColor,
-      fontSize: normalize(12),
+      fontSize: 11,
       fontWeight: '500',
       marginTop: 4,
+      opacity: 0.7,
     },
     noteContent: {
       flex: 1,
@@ -835,15 +900,17 @@ export default function HomeScreen() {
     },
     noteTitle: {
       color: theme.textColor,
-      fontSize: normalize(18),
-      fontWeight: '600',
-      marginBottom: hp(0.7),
+      fontSize: 17,
+      fontWeight: '700',
+      marginBottom: 8,
+      letterSpacing: 0.1,
     },
     noteDescription: {
       color: theme.placeholderColor,
-      fontSize: normalize(14),
-      lineHeight: normalize(18),
+      fontSize: 14,
+      lineHeight: 20,
       overflow: 'hidden',
+      opacity: 0.8,
     },
     noteFooter: {
       flexDirection: 'row',
@@ -1065,54 +1132,71 @@ export default function HomeScreen() {
     },
     gridCard: {
       width: (SCREEN_WIDTH - (wp(5) * 2) - wp(4)) / 2,
-      minHeight: hp(18),
+      height: 180,
       backgroundColor: theme.secondaryBackground,
-      borderRadius: wp(4),
-      padding: wp(3),
-      marginBottom: hp(2),
+      borderRadius: 20,
+      padding: 14,
+      marginBottom: 14,
       justifyContent: 'space-between',
-      shadowColor: '#000',
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
         width: 0,
-        height: 2,
+        height: theme.isDarkMode ? 2 : 0,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
+      shadowOpacity: theme.isDarkMode ? 0.06 : 0,
+      shadowRadius: theme.isDarkMode ? 8 : 0,
+      elevation: theme.isDarkMode ? 3 : 0,
       overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
     },
-    syncCornerIcon: {
+    syncBadge: {
       position: 'absolute',
-      right: 8,
       bottom: 8,
+      right: 8,
+      width: 28,
+      height: 28,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 14,
       zIndex: 10,
-      opacity: 0.9,
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      elevation: 0,
     },
     gridCardHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: hp(1),
+      marginBottom: 10,
     },
     gridCardDate: {
-      fontSize: normalize(12),
+      fontSize: 11,
       color: theme.placeholderColor,
       marginTop: 4,
+      opacity: 0.7,
     },
     gridCardContent: {
       flex: 1,
-      marginTop: hp(0.5),
+      marginTop: 6,
     },
     gridCardTitle: {
-      fontSize: normalize(14),
-      fontWeight: '600',
+      fontSize: 15,
+      fontWeight: '700',
       color: theme.textColor,
-      marginBottom: hp(0.5),
+      marginBottom: 6,
+      letterSpacing: 0.1,
     },
     gridCardDescription: {
-      fontSize: normalize(12),
+      fontSize: 13,
       color: theme.placeholderColor,
-      lineHeight: normalize(16),
+      lineHeight: 18,
+      opacity: 0.75,
     },
     gridCardFooter: {
       marginTop: hp(0.5),
@@ -1143,32 +1227,36 @@ export default function HomeScreen() {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 2,
+      marginBottom: 4,
+    },
+    categoryBadge: {
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+      backgroundColor: 'transparent',
     },
     addCategoryButton: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 4,
-      paddingHorizontal: 8,
+      paddingHorizontal: 10,
       gap: 4,
       backgroundColor: theme.isDarkMode ? 
-        `${theme.backgroundColor}80` : 
-        `${theme.secondaryBackground}80`,
-      borderRadius: 8,
-      marginLeft: -14,
+        'rgba(255, 255, 255, 0.06)' : 
+        'rgba(0, 0, 0, 0.04)',
+      borderRadius: 12,
+      marginLeft: -10,
     },
     burgerButton: {
       marginLeft: 10,
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      borderRadius: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+      borderRadius: 14,
       opacity: 1,
-      borderWidth: 2.5,
-      borderColor: theme.accentColor, // Assuming this is resolved properly
-      shadowColor: theme.accentColor, // iOS only
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.8,
-      shadowRadius: 8,
-      elevation: 5, // Android shadow
+      shadowColor: '#FFF',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.6,
+      shadowRadius: 10,
+      elevation: 8,
       width: 45,
       height: 45,
       justifyContent: 'center',
@@ -1179,8 +1267,8 @@ export default function HomeScreen() {
       top: 0,
       left: 0,
       bottom: 0,
-      width: 300,
-      backgroundColor: theme.isDarkMode ? '#121212' : '#F8F9FA',
+      width: 280,
+      backgroundColor: theme.isDarkMode ? '#121212' : '#FFFFFF',
       zIndex: 1000,
       elevation: 8,
       shadowColor: '#000',
@@ -1188,11 +1276,11 @@ export default function HomeScreen() {
         width: 4,
         height: 0,
       },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      paddingTop: Platform.OS === 'ios' ? 50 : 35,
-      paddingBottom: 24,
-      paddingHorizontal: 20,
+      shadowOpacity: theme.isDarkMode ? 0.5 : 0.1,
+      shadowRadius: 16,
+      paddingTop: Platform.OS === 'ios' ? 50 : 40,
+      paddingBottom: 20,
+      paddingHorizontal: 0,
       display: 'flex',
       flexDirection: 'column',
       borderTopRightRadius: 30,
@@ -1204,92 +1292,113 @@ export default function HomeScreen() {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: '#000',
       zIndex: 999,
     },
     profileSection: {
       alignItems: 'center',
       flexDirection: 'row',
-      paddingVertical: 16,
-      paddingHorizontal: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      marginHorizontal: 12,
       marginBottom: 20,
+      borderRadius: 16,
+      backgroundColor: theme.isDarkMode 
+        ? 'rgba(139, 69, 255, 0.08)' 
+        : 'rgba(139, 69, 255, 0.04)',
     },
     profileImageContainer: {
-      width: 70,
-      height: 70,
-      borderRadius: 35,
-      backgroundColor: theme.accentColor + '40',
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: theme.accentColor,
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 14,
       overflow: 'hidden',
     },
     profileImage: {
-      width: 65,
-      height: 65,
-      borderRadius: 35,
+      width: 54,
+      height: 54,
+      borderRadius: 27,
     },
     profileInfo: {
       flex: 1,
     },
     greetingText: {
-      fontSize: 13,
+      fontSize: 11,
       color: theme.placeholderColor,
       marginBottom: 3,
+      opacity: 0.6,
+      fontWeight: '500',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
     },
     profileName: {
-      fontSize: 20,
-      fontWeight: '600',
+      fontSize: 17,
+      fontWeight: '700',
       color: theme.textColor,
+      letterSpacing: 0.3,
     },
     menuItem: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 14,
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
+      marginHorizontal: 12,
+      marginBottom: 4,
+      borderRadius: 12,
+      backgroundColor: 'transparent',
     },
     menuItemIcon: {
-      width: 24,
-      height: 24,
+      width: 32,
+      height: 32,
+      borderRadius: 8,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 16,
+      marginRight: 14,
+      backgroundColor: 'transparent',
     },
     menuItemText: {
       fontSize: 15,
       color: theme.textColor,
       fontWeight: '500',
+      letterSpacing: 0.2,
+      opacity: 0.9,
     },
     menuDivider: {
-      height: 1,
-      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-      marginVertical: 10,
-      marginHorizontal: 12,
+      height: 0.5,
+      backgroundColor: theme.isDarkMode 
+        ? 'rgba(139, 69, 255, 0.15)' 
+        : 'rgba(139, 69, 255, 0.1)',
+      marginVertical: 12,
+      marginHorizontal: 20,
+      borderRadius: 1,
     },
     darkModeContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingVertical: 14,
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
+      marginHorizontal: 12,
+      marginBottom: 4,
+      borderRadius: 12,
+      backgroundColor: 'transparent',
     },
     darkModeText: {
       fontSize: 15,
       color: theme.textColor,
       fontWeight: '500',
       flex: 1,
-      marginLeft: 16,
+      marginLeft: 14,
+      letterSpacing: 0.2,
+      opacity: 0.9,
     },
     toggleSwitch: {
       transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
     },
     spacer: {
       flex: 1,
-    },
-    syncIcon: {
-      marginLeft: 8,
     },
     guestModeIndicator: {
       flexDirection: 'row',
@@ -1306,6 +1415,11 @@ export default function HomeScreen() {
       color: theme.placeholderColor,
       marginLeft: 5,
       fontWeight: '500',
+    },
+    menuItemPressed: {
+      backgroundColor: theme.isDarkMode 
+        ? 'rgba(139, 69, 255, 0.12)' 
+        : 'rgba(139, 69, 255, 0.08)',
     },
     
   });
@@ -1580,25 +1694,12 @@ export default function HomeScreen() {
                   >
                   <Pressable 
                     key={note.id}
-                    style={[
-                      styles.gridCard,
-                      { 
-                        backgroundColor: theme.secondaryBackground,
-                        borderRadius: wp(4),
-                        borderLeftWidth: 3,
-                        borderLeftColor: getBorderColor(note.color, theme.borderColor),
-                      }
-                    ]}
+                    style={styles.gridCard}
                     onPress={() => handleNotePress(note)}
                     onLongPress={() => handleLongPress(note)}
                     delayLongPress={300}
                   >
-                    <Ionicons 
-                      style={styles.syncCornerIcon}
-                      name={note.isSynced ? 'cloud-done-outline' : 'cloud-offline-outline'}
-                      size={normalize(16)} 
-                      color={note.isSynced ? theme.accentColor : '#FF9800'}
-                    />
+                    <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
                     <View style={styles.gridCardHeader}>
                       <View>
                         <View style={styles.categoryContainer}>
@@ -1644,7 +1745,7 @@ export default function HomeScreen() {
                         {note.title}
                       </Text>
                       {note.description && (
-                        <Text style={styles.gridCardDescription} numberOfLines={3}>
+                        <Text style={styles.gridCardDescription} numberOfLines={4}>
                           {note.description}
                         </Text>
                       )}
@@ -1676,25 +1777,12 @@ export default function HomeScreen() {
                       enabled={!isGridView}
                     >
                       <Pressable 
-                        style={[
-                          styles.noteCard,
-                          { 
-                            backgroundColor: theme.secondaryBackground,
-                            borderRadius: wp(4),
-                            borderLeftWidth: 3,
-                            borderLeftColor: getBorderColor(note.color, theme.borderColor),
-                          }
-                        ]}
+                        style={styles.noteCard}
                         onPress={() => handleNotePress(note)}
                         onLongPress={() => handleLongPress(note)}
                         delayLongPress={300}
                       >
-                        <Ionicons 
-                          style={styles.syncCornerIcon}
-                          name={note.isSynced ? 'cloud-done-outline' : 'cloud-offline-outline'}
-                          size={normalize(16)} 
-                          color={note.isSynced ? theme.accentColor : '#FF9800'}
-                        />
+                        <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
                         <View style={[styles.noteHeader]}>
                           <View>
                             <View style={styles.categoryContainer}>
@@ -1757,8 +1845,8 @@ export default function HomeScreen() {
 
                         <View style={styles.noteContent}>
                           <Text 
-                            style={[styles.noteTitle]} 
-                            numberOfLines={1}
+                            style={[styles.noteTitle]}
+                            numberOfLines={2}
                           >
                             <HighlightText 
                               text={note.title}
@@ -1769,11 +1857,11 @@ export default function HomeScreen() {
 
                           {note.description && (
                             <Text 
-                              style={[styles.noteDescription]} 
+                              style={[styles.noteDescription]}
                               numberOfLines={3}
                             >
                               <HighlightText 
-                                text={truncateText(note.description, 100)}
+                                text={note.description}
                                 highlight={searchQuery}
                                 style={[styles.noteDescription]}
                               />
@@ -1833,7 +1921,9 @@ export default function HomeScreen() {
         />
 
         {/* Side Menu */}
-        <Animated.View 
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={toggleSideMenu}
           style={[
             styles.menuOverlay, 
             { 
@@ -1841,7 +1931,6 @@ export default function HomeScreen() {
               display: isSideMenuOpen ? 'flex' : 'none'
             }
           ]} 
-          onTouchStart={toggleSideMenu}
         />
         
         <Animated.View 
@@ -1853,159 +1942,249 @@ export default function HomeScreen() {
           ]}
         >
           {/* Profile section */}
-          <View style={styles.profileSection}>
-            <TouchableOpacity 
-              style={styles.profileImageContainer}
-              onPress={() => {
-              navigation.navigate({ name: 'Profile', params: undefined });
-                toggleSideMenu();
-              }}
-            >
-              {(profileImage || user?.photoURL) ? (
-                <Image 
-                  source={{ uri: profileImage || (user?.photoURL as string) }} 
-                  style={styles.profileImage}
-                />
-              ) : (
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 100 }}
+          >
+            <View style={styles.profileSection}>
+              <TouchableOpacity 
+                style={styles.profileImageContainer}
+                onPress={() => {
+                navigation.navigate({ name: 'Profile', params: undefined });
+                  toggleSideMenu();
+                }}
+              >
+                {(profileImage || user?.photoURL) ? (
+                  <Image 
+                    source={{ uri: profileImage || (user?.photoURL as string) }} 
+                    style={styles.profileImage}
+                  />
+                ) : (
                 <Ionicons 
                   name="person" 
                   size={24} 
                   color="#FFFFFF" 
                 />
-              )}
-            </TouchableOpacity>
-            <View style={styles.profileInfo}>
-              <Text style={styles.greetingText}>{getTimeBasedGreeting()}</Text>
-              <Text style={styles.profileName}>
-                {cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest')}
-              </Text>
+                )}
+              </TouchableOpacity>
+              <View style={styles.profileInfo}>
+                <Text style={styles.greetingText}>{getTimeBasedGreeting()}</Text>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest')}
+                </Text>
+              </View>
             </View>
-          </View>
+          </MotiView>
           
           {/* Menu Items */}
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              navigation.navigate({ name: 'Tasks', params: undefined });
-              toggleSideMenu();
-            }}
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 150 }}
           >
-            <View style={styles.menuItemIcon}>
-              <Ionicons name="checkbox-outline" size={22} color={theme.accentColor} />
-            </View>
-            <Text style={styles.menuItemText}>{t('tasks')}</Text>
-          </TouchableOpacity>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'Tasks', params: undefined });
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="checkbox-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('tasks')}</Text>
+            </Pressable>
+          </MotiView>
           
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              navigation.navigate({ name: 'Favorites', params: undefined });
-              toggleSideMenu();
-            }}
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 200 }}
           >
-            <View style={styles.menuItemIcon}>
-              <Ionicons name="heart-outline" size={22} color={theme.accentColor} />
-            </View>
-            <Text style={styles.menuItemText}>{t('favorites')}</Text>
-          </TouchableOpacity>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'Favorites', params: undefined });
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="heart-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('favorites')}</Text>
+            </Pressable>
+          </MotiView>
           
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              navigation.navigate({ name: 'Settings', params: undefined });
-              toggleSideMenu();
-            }}
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 250 }}
           >
-            <View style={styles.menuItemIcon}>
-              <Ionicons name="settings-outline" size={22} color={theme.accentColor} />
-            </View>
-            <Text style={styles.menuItemText}>{t('settings')}</Text>
-          </TouchableOpacity>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'Settings', params: undefined });
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="settings-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('settings')}</Text>
+            </Pressable>
+          </MotiView>
           
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              navigation.navigate({ name: 'SecurityCheck', params: undefined });
-              toggleSideMenu();
-            }}
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 300 }}
           >
-            <View style={styles.menuItemIcon}>
-              <Ionicons name="eye-off-outline" size={22} color={theme.accentColor} />
-            </View>
-            <Text style={styles.menuItemText}>{t('hiddenNotes')}</Text>
-          </TouchableOpacity>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'SecurityCheck', params: undefined });
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="eye-off-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('hiddenNotes')}</Text>
+            </Pressable>
+          </MotiView>
           
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              navigation.navigate({ name: 'Trash', params: undefined });
-              toggleSideMenu();
-            }}
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 350 }}
           >
-            <View style={styles.menuItemIcon}>
-              <Ionicons name="trash-outline" size={22} color={theme.accentColor} />
-            </View>
-            <Text style={styles.menuItemText}>{t('trash')}</Text>
-          </TouchableOpacity>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'Trash', params: undefined });
+                toggleSideMenu();
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="trash-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('trash')}</Text>
+            </Pressable>
+          </MotiView>
           
           {isUserLoggedIn && (
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                navigation.navigate({ name: 'Profile', params: undefined });
-                toggleSideMenu();
-              }}
+            <MotiView
+              from={{ opacity: 0, translateX: -50 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: 'spring', damping: 20, delay: 400 }}
             >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="person-outline" size={22} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('profile')}</Text>
-            </TouchableOpacity>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  pressed && styles.menuItemPressed
+                ]}
+                onPress={() => {
+                  navigation.navigate({ name: 'Profile', params: undefined });
+                  toggleSideMenu();
+                }}
+              >
+                <View style={styles.menuItemIcon}>
+                  <Ionicons name="person-outline" size={20} color={theme.accentColor} />
+                </View>
+                <Text style={styles.menuItemText}>{t('profile')}</Text>
+              </Pressable>
+            </MotiView>
           )}
           
-          <View style={styles.menuDivider} />
+          <MotiView
+            from={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ type: 'timing', duration: 300, delay: 450 }}
+          >
+            <View style={styles.menuDivider} />
+          </MotiView>
           
           {isUserLoggedIn ? (
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={handleSignOut}
+            <MotiView
+              from={{ opacity: 0, translateX: -50 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: 'spring', damping: 20, delay: 500 }}
             >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="log-out-outline" size={22} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('signOut')}</Text>
-            </TouchableOpacity>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  pressed && styles.menuItemPressed
+                ]}
+                onPress={handleSignOut}
+              >
+                <View style={styles.menuItemIcon}>
+                  <Ionicons name="log-out-outline" size={20} color={theme.accentColor} />
+                </View>
+                <Text style={styles.menuItemText}>{t('signOut')}</Text>
+              </Pressable>
+            </MotiView>
           ) : (
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                navigation.navigate({ name: 'Login', params: undefined });
-                toggleSideMenu();
-              }}
+            <MotiView
+              from={{ opacity: 0, translateX: -50 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: 'spring', damping: 20, delay: 500 }}
             >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="log-in-outline" size={22} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('signIn')}</Text>
-            </TouchableOpacity>
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.menuItem,
+                  pressed && styles.menuItemPressed
+                ]}
+                onPress={() => {
+                  navigation.navigate({ name: 'Login', params: undefined });
+                  toggleSideMenu();
+                }}
+              >
+                <View style={styles.menuItemIcon}>
+                  <Ionicons name="log-in-outline" size={20} color={theme.accentColor} />
+                </View>
+                <Text style={styles.menuItemText}>{t('signIn')}</Text>
+              </Pressable>
+            </MotiView>
           )}
 
           {/* Guest mode removed */}
           
-          <View style={styles.darkModeContainer}>
-            <View style={styles.menuItemIcon}>
-              <Ionicons name="moon-outline" size={22} color={theme.accentColor} />
+          <MotiView
+            from={{ opacity: 0, translateX: -50 }}
+            animate={{ opacity: 1, translateX: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 550 }}
+          >
+            <View style={styles.darkModeContainer}>
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="moon-outline" size={18} color={theme.accentColor} />
+              </View>
+              <Text style={styles.darkModeText}>{t('darkMode')}</Text>
+              <Switch
+                trackColor={{ false: '#767577', true: theme.accentColor }}
+                thumbColor={theme.isDarkMode ? '#FFFFFF' : '#f4f3f4'}
+                ios_backgroundColor="#3e3e3e"
+                onValueChange={toggleColorScheme}
+                value={theme.isDarkMode}
+                style={styles.toggleSwitch}
+              />
             </View>
-            <Text style={styles.darkModeText}>{t('darkMode')}</Text>
-            <Switch
-              trackColor={{ false: '#767577', true: theme.accentColor }}
-              thumbColor={theme.isDarkMode ? '#FFFFFF' : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-              onValueChange={toggleColorScheme}
-              value={theme.isDarkMode}
-              style={styles.toggleSwitch}
-            />
-          </View>
+          </MotiView>
           
           <View style={styles.spacer} />
         </Animated.View>

@@ -439,29 +439,38 @@ export default function HomeScreen() {
   const handleDelete = async (noteId: string | undefined) => {
     if (!noteId) return;
     try {
+      // Trigger haptic feedback
+      if (Platform.OS === 'ios') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      
       setFadingNoteId(noteId);
       
-      // Configure layout animation
+      // Configure enhanced layout animation
       LayoutAnimation.configureNext({
-        duration: 500,
+        duration: 400,
         create: {
-          type: LayoutAnimation.Types.easeInEaseOut,
+          type: LayoutAnimation.Types.spring,
           property: LayoutAnimation.Properties.opacity,
-          springDamping: 0.7,
+          springDamping: 0.8,
         },
         update: {
           type: LayoutAnimation.Types.spring,
-          springDamping: 0.7,
+          springDamping: 0.8,
         },
         delete: {
-          type: LayoutAnimation.Types.easeInEaseOut,
+          type: LayoutAnimation.Types.spring,
           property: LayoutAnimation.Properties.opacity,
+          springDamping: 0.8,
         }
       });
 
-      // Smooth remove via Moti exit + Reanimated layout (fire-and-forget)
-      deleteNote(noteId).catch(() => {});
-      setFadingNoteId(null);
+      // Add a small delay for better UX
+      setTimeout(() => {
+        deleteNote(noteId).catch(() => {});
+        setFadingNoteId(null);
+      }, 100);
+
       // Εμφάνιση μηνύματος ότι η σημείωση μετακινήθηκε στον κάδο
       if (Platform.OS === 'android') {
         ToastAndroid.show(t('noteMovedToTrash'), ToastAndroid.SHORT);
@@ -470,6 +479,7 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error deleting note:', error);
+      setFadingNoteId(null);
     }
   };
 
@@ -974,8 +984,10 @@ export default function HomeScreen() {
     actionContainer: {
       width: 80,
       marginLeft: 8,
-      marginBottom: hp(2),
-      height: hp(20),
+      marginBottom: 14,
+      height: 200,
+      borderRadius: 20,
+      overflow: 'hidden',
     },
     deleteButton: {
       width: '100%',
@@ -983,15 +995,15 @@ export default function HomeScreen() {
       backgroundColor: '#FF4E4E',
       justifyContent: 'center',
       alignItems: 'center',
-      borderRadius: wp(4),
-      shadowColor: '#000',
+      borderRadius: 20,
+      shadowColor: '#FF4E4E',
       shadowOffset: {
         width: 0,
         height: 2,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
     },
     filterDot: {
       position: 'absolute',
@@ -1772,25 +1784,51 @@ export default function HomeScreen() {
                 ))
               ) : (
                 getFilteredNotes().map((note) => (
-                  <Reanimated.View key={note.id} layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+                  <Reanimated.View key={note.id} layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
                   <MotiView
-                    from={{ opacity: 0, translateY: 12 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
-                    transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
+                    from={{ opacity: 0, translateY: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, translateY: 0, scale: 1 }}
+                    exit={{ opacity: 0, translateY: -15, scale: 0.9 }}
+                    transition={{ 
+                      type: 'spring', 
+                      damping: 15, 
+                      stiffness: 200, 
+                      mass: 0.8,
+                      delay: 0
+                    }}
                   >
                     <Swipeable
-                      renderRightActions={(progress, dragX) => (
-                        <View style={styles.actionContainer}>
-                          <TouchableOpacity 
-                            style={styles.deleteButton}
-                            onPress={() => handleDelete(note.id)}
-                          >
-                            <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                      renderRightActions={(progress, dragX) => {
+                        const scale = progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.8, 1],
+                          extrapolate: 'clamp',
+                        });
+                        
+                        const opacity = progress.interpolate({
+                          inputRange: [0, 0.5, 1],
+                          outputRange: [0, 0.7, 1],
+                          extrapolate: 'clamp',
+                        });
+
+                        return (
+                          <Animated.View style={[styles.actionContainer, { opacity }]}>
+                            <Animated.View style={{ transform: [{ scale }] }}>
+                              <TouchableOpacity 
+                                style={styles.deleteButton}
+                                onPress={() => handleDelete(note.id)}
+                                activeOpacity={0.8}
+                              >
+                                <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
+                              </TouchableOpacity>
+                            </Animated.View>
+                          </Animated.View>
+                        );
+                      }}
                       enabled={!isGridView}
+                      rightThreshold={40}
+                      friction={2}
+                      overshootRight={false}
                     >
                       <Pressable 
                         style={styles.noteCard}

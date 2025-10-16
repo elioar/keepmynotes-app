@@ -68,33 +68,47 @@ const NoteActionMenu = ({
   const { theme } = useTheme();
   const { t } = useLanguage();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(400)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const navigation = useNavigation();
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.timing(slideAnim, {
+        Animated.spring(slideAnim, {
           toValue: 1,
-          duration: 300,
           useNativeDriver: true,
+          tension: 100,
+          friction: 8,
         }),
-        Animated.timing(translateY, {
+        Animated.spring(translateY, {
           toValue: 0,
-          duration: 300,
           useNativeDriver: true,
+          tension: 100,
+          friction: 8,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 100,
+          friction: 8,
         })
       ]).start();
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 200,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(translateY, {
           toValue: 400,
-          duration: 200,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.9,
+          duration: 250,
           useNativeDriver: true,
         })
       ]).start();
@@ -106,26 +120,44 @@ const NoteActionMenu = ({
     .onUpdate((event) => {
       if (event.translationY > 0) {
         translateY.setValue(event.translationY);
+        // Add subtle scale effect during drag
+        const scaleValue = Math.max(0.95, 1 - (event.translationY / 1000));
+        scaleAnim.setValue(scaleValue);
       }
     })
     .onEnd((event) => {
       if (event.translationY > 100 || event.velocityY > 500) {
         // Close the modal
-        Animated.timing(translateY, {
-          toValue: 400,
-          duration: 200,
-          useNativeDriver: true,
-        }).start(() => {
+        Animated.parallel([
+          Animated.timing(translateY, {
+            toValue: 400,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 0.9,
+            duration: 250,
+            useNativeDriver: true,
+          })
+        ]).start(() => {
           onClose();
         });
       } else {
         // Spring back
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          damping: 20,
-          stiffness: 300,
-        }).start();
+        Animated.parallel([
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            damping: 20,
+            stiffness: 300,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            damping: 20,
+            stiffness: 300,
+          })
+        ]).start();
       }
     });
 
@@ -172,7 +204,8 @@ const NoteActionMenu = ({
       elevation: 10,
     },
     headerArea: {
-      paddingVertical: 8,
+      paddingVertical: 12,
+      paddingBottom: 16,
     },
     handle: {
       width: 36,
@@ -210,15 +243,16 @@ const NoteActionMenu = ({
     },
     actionsRow: {
       flexDirection: 'row',
-      gap: 10,
-      marginBottom: 8,
+      gap: 12,
+      marginBottom: 16,
+      paddingHorizontal: 4,
     },
     option: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: 12,
-      paddingHorizontal: 8,
-      borderRadius: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 6,
+      borderRadius: 16,
       backgroundColor: theme.isDarkMode ? 
         'rgba(255, 255, 255, 0.05)' : 
         'rgba(0, 0, 0, 0.03)',
@@ -226,23 +260,25 @@ const NoteActionMenu = ({
       borderColor: theme.isDarkMode ? 
         'rgba(255, 255, 255, 0.08)' : 
         'rgba(0, 0, 0, 0.06)',
+      marginHorizontal: 2,
     },
     iconContainer: {
-      width: 36,
-      height: 36,
-      borderRadius: 12,
+      width: 38,
+      height: 38,
+      borderRadius: 14,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 6,
+      marginBottom: 8,
     },
     optionContent: {
       alignItems: 'center',
     },
     optionTitle: {
       color: theme.textColor,
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: '600',
       textAlign: 'center',
+      letterSpacing: 0.2,
     },
     optionSubtitle: {
       color: theme.placeholderColor,
@@ -326,6 +362,10 @@ const NoteActionMenu = ({
       elevation: 0,
     },
     animatedContent: {
+      transform: [{ translateY }, { scale: scaleAnim }],
+      opacity: slideAnim,
+    },
+    contentContainer: {
       transform: [{ translateY }],
       opacity: slideAnim,
     },
@@ -340,18 +380,24 @@ const NoteActionMenu = ({
     delay = 0
   ) => (
     <MotiView
-      from={{ opacity: 0, scale: 0.9, translateY: 20 }}
-      animate={{ opacity: 1, scale: 1, translateY: 0 }}
-      transition={{ type: 'spring', damping: 15, stiffness: 300, delay }}
+      from={{ opacity: 0, translateY: 15 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ 
+        type: 'spring', 
+        damping: 20, 
+        stiffness: 200, 
+        delay,
+        mass: 0.8
+      }}
       style={{ flex: 1 }}
     >
       <TouchableOpacity
         style={[styles.option, isDanger && styles.dangerOption]}
         onPress={onPress}
-        activeOpacity={0.7}
+        activeOpacity={0.6}
       >
         <LinearGradient
-          colors={isDanger ? ['#FF4E4E', '#FF6B9D'] : gradientColors}
+          colors={isDanger ? ['#FF4E4E', '#FF6B9D'] : gradientColors as [string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.iconContainer, isDanger && styles.dangerIconContainer]}
@@ -374,7 +420,7 @@ const NoteActionMenu = ({
   return (
     <Modal visible={visible} transparent animationType="none">
       <View style={styles.overlay}>
-        <Animated.View style={[styles.modalContent, styles.animatedContent]}>
+        <View style={styles.modalContent}>
           {/* Draggable Handle Area */}
           <GestureDetector gesture={panGesture}>
             <View style={styles.headerArea}>
@@ -388,11 +434,13 @@ const NoteActionMenu = ({
             </View>
           </GestureDetector>
 
-          <ScrollView 
-            style={styles.optionsContainer}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 16 }}
-          >
+          {/* Animated Content Container */}
+          <Animated.View style={[styles.contentContainer]}>
+            <ScrollView 
+              style={styles.optionsContainer}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 16 }}
+            >
             {/* Actions Row */}
             <View style={styles.actionsRow}>
               {/* Edit Button */}
@@ -504,6 +552,7 @@ const NoteActionMenu = ({
             </View>
           </ScrollView>
         </Animated.View>
+        </View>
       </View>
     </Modal>
   );

@@ -14,6 +14,7 @@ import { Share } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as ImagePicker from 'expo-image-picker';
 import { MotiView, AnimatePresence } from 'moti';
 import { Skeleton } from 'moti/skeleton';
 
@@ -359,6 +360,208 @@ export default function EditNote({ route }: { route: any }) {
             pointer-events: auto;
             margin-top: 8px;
             transform: scaleY(1);
+          }
+
+          .toolbar-plus {
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: -8px;
+            overflow: hidden;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 4px;
+            transform: translateY(-100%);
+            transform-origin: top;
+          }
+
+          .toolbar-plus::-webkit-scrollbar {
+            display: none;
+          }
+
+          .toolbar-plus.expanded {
+            height: 44px;
+            opacity: 1;
+            pointer-events: auto;
+            margin-bottom: 8px;
+            transform: translateY(0);
+          }
+
+          .plus-option {
+            flex: 0 0 auto;
+            min-width: 44px;
+            height: 44px;
+            padding: 8px 12px;
+            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground} !important;
+            border: 1px solid ${theme.borderColor}20;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            gap: 6px;
+          }
+
+          .plus-option:active {
+            transform: scale(0.96);
+          }
+
+          .plus-option:hover {
+            background: ${theme.isDarkMode ? '#333333' : theme.backgroundColor} !important;
+            border-color: ${theme.accentColor}40;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px ${theme.accentColor}20;
+          }
+
+          .plus-option-icon {
+            font-size: 18px;
+            color: ${theme.textColor};
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+          }
+
+          .plus-option-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: ${theme.textColor};
+            transition: all 0.2s ease;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+          }
+
+          .plus-option:hover .plus-option-icon {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .plus-option:hover .plus-option-text {
+            color: ${theme.accentColor};
+          }
+
+          /* Clean Minimal Icons */
+          .icon-image {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            transition: all 0.2s ease;
+          }
+
+          .icon-image::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 10px;
+            border: 2px solid ${theme.textColor};
+            border-radius: 2px;
+            background: transparent;
+          }
+
+          .icon-image::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 6px;
+            height: 4px;
+            background: ${theme.textColor};
+            border-radius: 1px;
+            transform: rotate(-15deg);
+          }
+
+          .icon-audio {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            transition: all 0.2s ease;
+          }
+
+          .icon-audio::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 12px;
+            border: 2px solid ${theme.textColor};
+            border-radius: 4px 4px 0 0;
+            background: transparent;
+          }
+
+          .icon-audio::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 8px;
+            background: ${theme.textColor};
+            border-radius: 1px;
+            margin-left: 6px;
+          }
+
+          .icon-task {
+            position: relative;
+            width: 20px;
+            height: 20px;
+            border: 2px solid ${theme.textColor};
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            background: transparent;
+          }
+
+          .icon-task::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            width: 6px;
+            height: 3px;
+            border: 2px solid ${theme.textColor};
+            border-top: none;
+            border-right: none;
+            transform: rotate(-45deg);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+          }
+
+          .icon-task.checked {
+            background: ${theme.accentColor};
+            border-color: ${theme.accentColor};
+          }
+
+          .icon-task.checked::before {
+            border-color: #FFFFFF;
+            opacity: 1;
+          }
+
+          .plus-option:hover .icon-image::before,
+          .plus-option:hover .icon-image::after,
+          .plus-option:hover .icon-audio::before,
+          .plus-option:hover .icon-audio::after,
+          .plus-option:hover .icon-task {
+            border-color: ${theme.accentColor};
+          }
+
+          .plus-option:hover .icon-image::after,
+          .plus-option:hover .icon-audio::after {
+            background: ${theme.accentColor};
+          }
+
+          .plus-option:hover .icon-task.checked {
+            background: ${theme.accentColor};
+            border-color: ${theme.accentColor};
           }
 
 
@@ -877,6 +1080,74 @@ export default function EditNote({ route }: { route: any }) {
             transform: rotate(-45deg);
             opacity: 0.9;
           }
+
+          .format-icon.plus-icon {
+            font-size: 24px;
+            font-weight: 300;
+            color: ${theme.accentColor};
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          }
+
+          #plus {
+            background: ${theme.accentColor}15 !important;
+            border: 1.5px solid ${theme.accentColor}30 !important;
+            position: relative;
+            overflow: hidden;
+          }
+
+          #plus::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, ${theme.accentColor}20, ${theme.accentColor}10);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+          }
+
+          #plus:hover::before {
+            opacity: 1;
+          }
+
+          #plus:hover .format-icon.plus-icon {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+            text-shadow: 0 2px 4px ${theme.accentColor}40;
+          }
+
+          #plus.active {
+            background: ${theme.accentColor} !important;
+            border-color: ${theme.accentColor} !important;
+            box-shadow: 0 6px 20px ${theme.accentColor}40;
+            transform: translateY(-2px);
+          }
+
+          #plus.active .format-icon.plus-icon {
+            color: #FFFFFF;
+            transform: scale(1.2) rotate(45deg);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            font-weight: 400;
+          }
+
+          #plus.active::before {
+            opacity: 0;
+          }
+
+          #plus.active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+            border-radius: 12px;
+            z-index: 1;
+          }
         </style>
       </head>
       <body>
@@ -884,7 +1155,24 @@ export default function EditNote({ route }: { route: any }) {
           ${existingNote?.content || ''}
         </div>
         <div class="toolbar">
+          <div class="toolbar-plus">
+            <button id="add-image" class="plus-option" onclick="addImage()" aria-label="Add Image">
+              <span class="icon-image"></span>
+              <span class="plus-option-text">Image</span>
+            </button>
+            <button id="add-recording" class="plus-option" onclick="addRecording()" aria-label="Add Recording">
+              <span class="icon-audio"></span>
+              <span class="plus-option-text">Audio</span>
+            </button>
+            <button id="add-checkbox" class="plus-option" onclick="addCheckbox()" aria-label="Add Checkbox">
+              <span class="icon-task"></span>
+              <span class="plus-option-text">Task</span>
+            </button>
+          </div>
           <div class="toolbar-main">
+            <button id="plus" onclick="togglePlusRow()" aria-label="Add Content">
+              <span class="format-icon plus-icon">+</span>
+            </button>
             <button id="bold" onclick="format('bold')" aria-label="Bold">
               <span class="format-icon bold">B</span>
             </button>
@@ -933,12 +1221,22 @@ export default function EditNote({ route }: { route: any }) {
           const toolbar = document.querySelector('.toolbar');
           const buttons = document.querySelectorAll('.toolbar button');
           const colorRow = document.querySelector('.toolbar-colors');
+          const plusRow = document.querySelector('.toolbar-plus');
           let isColorsExpanded = false;
+          let isPlusExpanded = false;
           let currentHighlightColor = '#FFE57F';
 
           function toggleColorRow() {
             isColorsExpanded = !isColorsExpanded;
             colorRow.classList.toggle('expanded');
+            
+            // Close plus row if open
+            if (isPlusExpanded) {
+              isPlusExpanded = false;
+              plusRow.classList.remove('expanded');
+              const plusButton = document.querySelector('#plus');
+              plusButton.classList.remove('active');
+            }
             
             // Add smooth animation to highlight button
             const highlightButton = document.querySelector('#highlight');
@@ -953,6 +1251,35 @@ export default function EditNote({ route }: { route: any }) {
               highlightButton.style.transform = 'scale(0.95)';
               setTimeout(() => {
                 highlightButton.style.transform = 'scale(1)';
+              }, 200);
+            }
+          }
+
+          function togglePlusRow() {
+            isPlusExpanded = !isPlusExpanded;
+            plusRow.classList.toggle('expanded');
+            
+            // Close color row if open
+            if (isColorsExpanded) {
+              isColorsExpanded = false;
+              colorRow.classList.remove('expanded');
+              const highlightButton = document.querySelector('#highlight');
+              highlightButton.classList.remove('active');
+            }
+            
+            // Add smooth animation to plus button
+            const plusButton = document.querySelector('#plus');
+            if (isPlusExpanded) {
+              plusButton.classList.add('active');
+              plusButton.style.transform = 'scale(1.05)';
+              setTimeout(() => {
+                plusButton.style.transform = 'scale(1)';
+              }, 200);
+            } else {
+              plusButton.classList.remove('active');
+              plusButton.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                plusButton.style.transform = 'scale(1)';
               }, 200);
             }
           }
@@ -1252,6 +1579,89 @@ export default function EditNote({ route }: { route: any }) {
               updateButtons();
               notifyContent();
             }
+          }
+
+          function addImage() {
+            // Close plus row
+            setTimeout(() => {
+              togglePlusRow();
+            }, 150);
+            
+            // Notify React Native to open image picker
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'addImage'
+            }));
+          }
+
+          function addRecording() {
+            // Close plus row
+            setTimeout(() => {
+              togglePlusRow();
+            }, 150);
+            
+            // Notify React Native to start recording
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'addRecording'
+            }));
+          }
+
+          function addCheckbox() {
+            // Close plus row
+            setTimeout(() => {
+              togglePlusRow();
+            }, 150);
+            
+            // Insert checkbox at current cursor position
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            
+            const checkboxContainer = document.createElement('div');
+            checkboxContainer.style.display = 'flex';
+            checkboxContainer.style.alignItems = 'center';
+            checkboxContainer.style.marginBottom = '12px';
+            checkboxContainer.style.paddingLeft = '4px';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.style.marginRight = '12px';
+            checkbox.style.width = '20px';
+            checkbox.style.height = '20px';
+            checkbox.style.accentColor = '${theme.accentColor}';
+            checkbox.style.cursor = 'pointer';
+            checkbox.addEventListener('change', function() {
+              const span = this.nextSibling;
+              if (span) {
+                if (this.checked) {
+                  span.style.textDecoration = 'line-through';
+                  span.style.opacity = '0.6';
+                  span.style.color = '${theme.textColor}';
+                } else {
+                  span.style.textDecoration = 'none';
+                  span.style.opacity = '1';
+                  span.style.color = '${theme.textColor}';
+                }
+              }
+              notifyContent();
+            });
+            
+            const span = document.createElement('span');
+            span.contentEditable = 'true';
+            span.textContent = 'Checkbox item';
+            span.style.fontSize = '16px';
+            span.style.flex = '1';
+            span.style.outline = 'none';
+            span.style.minHeight = '24px';
+            span.style.lineHeight = '24px';
+            span.style.color = '${theme.textColor}';
+            
+            checkboxContainer.appendChild(checkbox);
+            checkboxContainer.appendChild(span);
+            
+            range.insertNode(checkboxContainer);
+            range.collapse(false);
+            
+            span.focus();
+            notifyContent();
           }
 
           // Update the initial setup
@@ -1656,6 +2066,26 @@ export default function EditNote({ route }: { route: any }) {
     } catch (error) {
       console.error('Error deleting note:', error);
       Alert.alert(t('error'), t('errorDeletingNote'));
+    }
+  };
+
+  const handleAddImage = async () => {
+    try {
+      // TODO: Implement image picker functionality
+      Alert.alert('Σύντομα', 'Η λειτουργία προσθήκης εικόνων θα είναι διαθέσιμη σύντομα');
+    } catch (error) {
+      console.error('Error adding image:', error);
+      Alert.alert(t('error'), t('errorSavingNote'));
+    }
+  };
+
+  const handleAddRecording = async () => {
+    try {
+      // TODO: Implement audio recording functionality
+      Alert.alert('Σύντομα', 'Η λειτουργία ηχογράφησης θα είναι διαθέσιμη σύντομα');
+    } catch (error) {
+      console.error('Error adding recording:', error);
+      Alert.alert(t('error'), t('errorSavingNote'));
     }
   };
 
@@ -2762,6 +3192,10 @@ export default function EditNote({ route }: { route: any }) {
 									setIsKeyboardVisible(true);
 								} else if (data.type === 'keyboardHide') {
 									setIsKeyboardVisible(false);
+								} else if (data.type === 'addImage') {
+									handleAddImage();
+								} else if (data.type === 'addRecording') {
+									handleAddRecording();
 								}
 							}}
 							scrollEnabled={true}

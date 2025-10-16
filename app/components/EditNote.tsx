@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal, ActivityIndicator, InteractionManager } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput, Alert, BackHandler, ScrollView, KeyboardAvoidingView, Modal, ActivityIndicator, InteractionManager, Keyboard } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotes } from '../NotesContext';
@@ -49,6 +49,7 @@ export default function EditNote({ route }: { route: any }) {
   const { t, currentLanguage } = useLanguage();
   const { notes, addNote, updateNote, deleteNote, loadNotes } = useNotes();
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   
   const routeNoteId = route.params?.noteId as string | undefined;
   const isNewNote = !routeNoteId;
@@ -86,6 +87,7 @@ export default function EditNote({ route }: { route: any }) {
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [showEditor, setShowEditor] = useState(Platform.OS !== 'android');
 	const [isContentLoading, setIsContentLoading] = useState(true);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,6 +96,21 @@ export default function EditNote({ route }: { route: any }) {
       return () => task.cancel();
     }, [showEditor])
   );
+
+  // Keyboard visibility detection
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (existingNote) {
@@ -224,7 +241,7 @@ export default function EditNote({ route }: { route: any }) {
             min-height: calc(100vh - 120px);
             outline: none;
             padding: 24px;
-            padding-bottom: ${isViewMode ? '24px' : '200px'};
+            padding-bottom: ${isViewMode ? '24px' : (isKeyboardVisible ? '120px' : '120px')};
             font-size: 16px;
             line-height: 1.65;
             caret-color: ${theme.accentColor};
@@ -280,7 +297,7 @@ export default function EditNote({ route }: { route: any }) {
 
           .toolbar {
             position: fixed;
-            bottom: 0;
+            bottom: ${isKeyboardVisible ? '0px' : `${insets.bottom}px`};
             left: 0;
             right: 0;
             padding: 10px;
@@ -288,47 +305,20 @@ export default function EditNote({ route }: { route: any }) {
             border-top: 0.5px solid ${theme.borderColor}30;
             display: ${isViewMode ? 'none' : 'flex'};
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             max-width: 100%;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             box-shadow: 0 -4px 16px ${theme.isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'};
+            z-index: 1000;
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
 
-          .toolbar-row {
+          .toolbar-main {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 4px;
+            gap: 6px;
             width: 100%;
-          }
-
-          .toolbar-row.secondary {
-            height: 0;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.2s ease;
-            margin-top: -4px;
-            overflow: hidden;
-          }
-
-          .toolbar-row.secondary.expanded {
-            height: 44px;
-            opacity: 1;
-            pointer-events: auto;
-            margin-top: 4px;
-          }
-
-          .toolbar-row.colors {
-            height: 0;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s ease;
-            margin-top: -4px;
-            overflow: hidden;
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 4px;
             overflow-x: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -336,115 +326,41 @@ export default function EditNote({ route }: { route: any }) {
             padding: 0 4px;
           }
 
-          .toolbar-row.colors::-webkit-scrollbar {
+          .toolbar-main::-webkit-scrollbar {
             display: none;
           }
 
-          .toolbar-row.colors.expanded {
-            height: 44px;
-            opacity: 1;
-            pointer-events: auto;
-            margin-top: 4px;
-          }
-
-          .toolbar-row.font-size {
+          .toolbar-colors {
             height: 0;
             opacity: 0;
             pointer-events: none;
-            transition: all 0.3s ease;
-            margin-top: -4px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: -8px;
             overflow: hidden;
-            padding: 0 16px;
-            flex-direction: column;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            -webkit-overflow-scrolling: touch;
+            padding: 0 4px;
+            transform: scaleY(0);
+            transform-origin: top;
           }
 
-          .toolbar-row.font-size.expanded {
-            height: 70px;
+          .toolbar-colors::-webkit-scrollbar {
+            display: none;
+          }
+
+          .toolbar-colors.expanded {
+            height: 44px;
             opacity: 1;
             pointer-events: auto;
-            margin-top: 4px;
-            padding-bottom: 12px;
+            margin-top: 8px;
+            transform: scaleY(1);
           }
 
-          .font-size-slider {
-            flex: 1;
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            touch-action: none;
-            padding: 24px 0 8px;
-          }
-
-          .font-size-track {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: ${theme.textColor}15;
-            border-radius: 1.5px;
-            overflow: hidden;
-          }
-
-          .font-size-dots {
-            position: absolute;
-            left: 0;
-            right: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-
-          .font-size-dot {
-            width: 16px;
-            height: 16px;
-            background: ${theme.backgroundColor};
-            border: 2px solid ${theme.textColor}30;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            z-index: 2;
-          }
-
-          .font-size-labels {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 0;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-          }
-
-          .font-size-label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            transform: translateX(-50%);
-          }
-
-          .font-size-label:first-child {
-            transform: translateX(0);
-          }
-
-          .font-size-label:last-child {
-            transform: translateX(0);
-          }
-
-          .font-size-icon {
-            font-weight: 600;
-            color: ${theme.textColor}60;
-            line-height: 1;
-          }
-
-          .font-size-value {
-            font-size: 11px;
-            color: ${theme.textColor}60;
-            margin-top: 2px;
-          }
 
           .color-button {
             flex: 0 0 44px;
@@ -548,16 +464,6 @@ export default function EditNote({ route }: { route: any }) {
             transform: translateY(-1.5px);
           }
 
-          .toolbar button.expand-button {
-            width: 44px;
-            flex: 0 0 44px;
-            margin-left: 4px;
-          }
-
-          .toolbar button.expand-button.active {
-            background: ${theme.accentColor};
-            box-shadow: 0 2px 8px ${theme.accentColor}40;
-          }
 
           .format-icon {
             font-size: 20px;
@@ -701,37 +607,6 @@ export default function EditNote({ route }: { route: any }) {
             border-radius: 1px;
           }
 
-          .format-icon.expand {
-            width: 14px;
-            height: 14px;
-            position: relative;
-          }
-
-          .format-icon.expand::before,
-          .format-icon.expand::after {
-            content: '';
-            position: absolute;
-            background: ${theme.textColor};
-            border-radius: 1px;
-          }
-
-          .format-icon.expand::before {
-            width: 10px;
-            height: 2px;
-            top: 6px;
-            left: 2px;
-          }
-
-          .format-icon.expand::after {
-            width: 2px;
-            height: 10px;
-            left: 6px;
-            top: 2px;
-          }
-
-          .toolbar button.active .format-icon.expand::after {
-            transform: scaleY(0);
-          }
 
           .toolbar button.active .format-icon {
             transform: scale(1.1);
@@ -1009,7 +884,7 @@ export default function EditNote({ route }: { route: any }) {
           ${existingNote?.content || ''}
         </div>
         <div class="toolbar">
-          <div class="toolbar-row">
+          <div class="toolbar-main">
             <button id="bold" onclick="format('bold')" aria-label="Bold">
               <span class="format-icon bold">B</span>
             </button>
@@ -1022,11 +897,6 @@ export default function EditNote({ route }: { route: any }) {
             <button id="highlight" onclick="toggleColorRow()" aria-label="Highlight">
               <span class="highlight-icon"></span>
             </button>
-            <button class="expand-button" onclick="toggleSecondaryTools()" aria-label="More formatting options">
-              <span class="format-icon expand"></span>
-            </button>
-          </div>
-          <div class="toolbar-row secondary">
             <button id="list-ol" onclick="format('insertOrderedList')" aria-label="Numbered List">
               <span class="format-icon list-ol">123</span>
             </button>
@@ -1043,7 +913,7 @@ export default function EditNote({ route }: { route: any }) {
               <span class="format-icon align align-right"></span>
             </button>
           </div>
-          <div class="toolbar-row colors">
+          <div class="toolbar-colors">
             <button id="remove-color" class="color-button" onclick="removeHighlightColor()" aria-label="Χωρίς χρώμα">
               <span class="no-color-icon"></span>
             </button>
@@ -1062,39 +932,29 @@ export default function EditNote({ route }: { route: any }) {
           const editor = document.getElementById('editor');
           const toolbar = document.querySelector('.toolbar');
           const buttons = document.querySelectorAll('.toolbar button');
-          const expandButton = document.querySelector('.expand-button');
-          const secondaryRow = document.querySelector('.toolbar-row.secondary');
-          let isExpanded = false;
+          const colorRow = document.querySelector('.toolbar-colors');
           let isColorsExpanded = false;
           let currentHighlightColor = '#FFE57F';
 
-          function toggleSecondaryTools(e) {
-            if (e) {
-              e.preventDefault();
-              e.stopPropagation();
-            }
-            isExpanded = !isExpanded;
-            
-            if (isColorsExpanded) {
-              toggleColorRow();
-            }
-            
-            expandButton.classList.toggle('active');
-            secondaryRow.classList.toggle('expanded');
-            editor.blur();
-          }
-
           function toggleColorRow() {
-            const colorRow = document.querySelector('.toolbar-row.colors');
             isColorsExpanded = !isColorsExpanded;
-            
-            if (isExpanded) {
-              isExpanded = false;
-              secondaryRow.classList.remove('expanded');
-              expandButton.classList.remove('active');
-            }
-            
             colorRow.classList.toggle('expanded');
+            
+            // Add smooth animation to highlight button
+            const highlightButton = document.querySelector('#highlight');
+            if (isColorsExpanded) {
+              highlightButton.classList.add('active');
+              highlightButton.style.transform = 'scale(1.05)';
+              setTimeout(() => {
+                highlightButton.style.transform = 'scale(1)';
+              }, 200);
+            } else {
+              highlightButton.classList.remove('active');
+              highlightButton.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                highlightButton.style.transform = 'scale(1)';
+              }, 200);
+            }
           }
 
           function setHighlightColor(color) {
@@ -1110,7 +970,10 @@ export default function EditNote({ route }: { route: any }) {
               document.execCommand('backColor', false, color);
             }
             
-            toggleColorRow();
+            // Close color row after selection with smooth animation
+            setTimeout(() => {
+              toggleColorRow();
+            }, 150);
             updateButtons();
           }
 
@@ -1186,13 +1049,68 @@ export default function EditNote({ route }: { route: any }) {
           });
           editor.addEventListener('mouseup', updateButtons);
 
+          // Keyboard detection for WebView
+          editor.addEventListener('focus', () => {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'keyboardShow'
+            }));
+            
+            // Update toolbar position for keyboard
+            const toolbar = document.querySelector('.toolbar');
+            if (toolbar) {
+              toolbar.style.bottom = '0px';
+              toolbar.style.transform = 'translateY(0)';
+            }
+          });
+
+          editor.addEventListener('blur', () => {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'keyboardHide'
+            }));
+            
+            // Reset toolbar position when keyboard hides
+            const toolbar = document.querySelector('.toolbar');
+            if (toolbar) {
+              toolbar.style.bottom = '${insets.bottom}px';
+              toolbar.style.transform = 'translateY(0)';
+            }
+          });
+
+          // Visual Viewport API for better keyboard detection
+          if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+              const toolbar = document.querySelector('.toolbar');
+              if (toolbar) {
+                const viewportHeight = window.visualViewport.height;
+                const windowHeight = window.innerHeight;
+                const keyboardHeight = windowHeight - viewportHeight;
+                
+                if (keyboardHeight > 0) {
+                  // Keyboard is visible
+                  toolbar.style.bottom = '0px';
+                  toolbar.style.transform = 'translateY(0)';
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'keyboardShow'
+                  }));
+                } else {
+                  // Keyboard is hidden
+                  toolbar.style.bottom = '${insets.bottom}px';
+                  toolbar.style.transform = 'translateY(0)';
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'keyboardHide'
+                  }));
+                }
+              }
+            });
+          }
+
           // Add function to ensure caret is visible
           function ensureCaretVisible() {
             const selection = window.getSelection();
             if (selection && selection.rangeCount > 0) {
               const range = selection.getRangeAt(0);
               const rect = range.getBoundingClientRect();
-              const toolbarHeight = 220; // Height of the toolbar
+              const toolbarHeight = 120; // Height of the toolbar
               const buffer = 40; // Extra space above the toolbar
               
               if (rect.bottom > window.innerHeight - toolbarHeight) {
@@ -1304,13 +1222,17 @@ export default function EditNote({ route }: { route: any }) {
             notifyContent();
           }
 
-          // Add message listener for view mode toggle
+          // Add message listener for view mode toggle and keyboard state
           window.addEventListener('message', function(event) {
             if (event.data === 'view-mode') {
               editor.contentEditable = 'false';
             } else if (event.data === 'edit-mode') {
               editor.contentEditable = 'true';
               editor.focus();
+            } else if (event.data === 'keyboard-show') {
+              // Keyboard is visible, toolbar should be shown
+            } else if (event.data === 'keyboard-hide') {
+              // Keyboard is hidden, toolbar should be hidden
             }
           });
 
@@ -1323,7 +1245,10 @@ export default function EditNote({ route }: { route: any }) {
               colorButtons.forEach(btn => btn.classList.remove('selected'));
               document.querySelector('#remove-color').classList.add('selected');
               
-              toggleColorRow();
+              // Close color row after selection with smooth animation
+              setTimeout(() => {
+                toggleColorRow();
+              }, 150);
               updateButtons();
               notifyContent();
             }
@@ -1335,7 +1260,7 @@ export default function EditNote({ route }: { route: any }) {
         </script>
       </body>
     </html>
-  `, [theme, isViewMode, t]);
+  `, [theme, isViewMode, t, isKeyboardVisible, insets.bottom]);
 
   const handleAddTag = () => {
     if (newTag.trim()) {
@@ -2436,7 +2361,11 @@ export default function EditNote({ route }: { route: any }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.content}>
+      <KeyboardAvoidingView 
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         {/* Minimal Glass Header */}
         <MotiView
           from={{ opacity: 0, translateY: -20 }}
@@ -2829,6 +2758,10 @@ export default function EditNote({ route }: { route: any }) {
 									} else {
 										setCurrentMatchIndex(0);
 									}
+								} else if (data.type === 'keyboardShow') {
+									setIsKeyboardVisible(true);
+								} else if (data.type === 'keyboardHide') {
+									setIsKeyboardVisible(false);
 								}
 							}}
 							scrollEnabled={true}
@@ -2844,7 +2777,6 @@ export default function EditNote({ route }: { route: any }) {
 				</>
 			)}
 		</View>
-      </View>
 
       {/* History Modal */}
       <Modal
@@ -3276,6 +3208,7 @@ export default function EditNote({ route }: { route: any }) {
           </View>
         </View>
       </Modal>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

@@ -107,6 +107,9 @@ export const en: Translations = {
   recent: 'Recent',
   thisWeek: 'This week',
   thisMonth: 'This month',
+  thisYear: 'This year',
+  hidden: 'Hidden',
+  filterByTags: 'Tags',
   clearFilter: 'Clear filters',
 
   // Settings
@@ -531,8 +534,6 @@ export const en: Translations = {
   confirmNewPassword: 'Confirm New Password',
 
   // Sync
-  sync: 'Sync',
-  synced: 'Synced',
   continueAsGuest: 'Continue as Guest',
   guestMode: 'Guest Mode',
   signInToSync: 'Sign in to sync your notes',
@@ -540,7 +541,6 @@ export const en: Translations = {
   // Email Verification
   verifyYourEmail: 'Verify Your Email',
   verificationEmailSentTo: 'We sent a verification email to',
-  verificationEmailSent: 'A verification email has been sent to your inbox',
   enterVerificationCode: 'Enter the 6-digit code',
   didntReceiveEmail: "Didn't receive the email?",
   resendEmail: 'Resend Email',
@@ -562,6 +562,28 @@ export const en: Translations = {
   checkSpamFolder: 'Check your spam/junk folder',
   waitFewMinutes: 'Wait a few minutes for the email to arrive',
   checkEmailCorrect: 'Make sure the email address is correct',
+
+  // Filter Modal
+  allNotes: 'All Notes',
+  dateRange: 'Date Range',
+  sortBy: 'Sort By',
+  sortOrder: 'Sort Order',
+  favoritesOnly: 'Favorites Only',
+  excludeFavorites: 'Exclude Favorites',
+  allTime: 'All Time',
+  sortByTitle: 'Title',
+  sortByFavorites: 'Favorites',
+  sortByDate: 'Date',
+  newestFirst: 'Newest First',
+  oldestFirst: 'Oldest First',
+  apply: 'Apply',
+
+  // Missing translations
+  userLocation: 'Location',
+  guest: 'Guest',
+  tooManyAttempts: 'Too many attempts',
+  networkError: 'Network error',
+  accountCreated: 'Account created successfully',
 };
 
 export default en; 

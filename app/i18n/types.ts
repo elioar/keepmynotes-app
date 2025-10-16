@@ -105,6 +105,9 @@ export interface Translations {
   recent: string;
   thisWeek: string;
   thisMonth: string;
+  thisYear: string;
+  hidden: string;
+  filterByTags: string;
   clearFilter: string;
 
   // Settings
@@ -583,6 +586,31 @@ export interface Translations {
   checkSpamFolder: string;
   waitFewMinutes: string;
   checkEmailCorrect: string;
+
+  // Filter Modal
+  filterBy: string;
+  reset: string;
+  tags: string;
+  favorites: string;
+  dateRange: string;
+  sortBy: string;
+  sortOrder: string;
+  favoritesOnly: string;
+  excludeFavorites: string;
+  allNotes: string;
+  allTime: string;
+  today: string;
+  thisWeek: string;
+  thisMonth: string;
+  thisYear: string;
+  sortByTitle: string;
+  sortByFavorites: string;
+  sortByDate: string;
+  date: string;
+  title: string;
+  newestFirst: string;
+  oldestFirst: string;
+  apply: string;
 }
 
 export { en } from './en';

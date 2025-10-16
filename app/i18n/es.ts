@@ -461,6 +461,31 @@ export const es = {
   checkSpamFolder: 'Revisa tu carpeta de spam/correo no deseado',
   waitFewMinutes: 'Espera unos minutos para que llegue el email',
   checkEmailCorrect: 'Asegúrate de que la dirección de email sea correcta',
+
+  // Filter Modal
+  filterBy: 'Filtrar Por',
+  reset: 'Restablecer',
+  tags: 'Etiquetas',
+  favorites: 'Favoritos',
+  dateRange: 'Rango de Fechas',
+  sortBy: 'Ordenar Por',
+  sortOrder: 'Orden de Clasificación',
+  favoritesOnly: 'Solo Favoritos',
+  excludeFavorites: 'Excluir Favoritos',
+  allNotes: 'Todas las Notas',
+  allTime: 'Todo el Tiempo',
+  today: 'Hoy',
+  thisWeek: 'Esta Semana',
+  thisMonth: 'Este Mes',
+  thisYear: 'Este Año',
+  sortByTitle: 'Título',
+  sortByFavorites: 'Favoritos',
+  sortByDate: 'Fecha',
+  date: 'Fecha',
+  title: 'Título',
+  newestFirst: 'Más Recientes Primero',
+  oldestFirst: 'Más Antiguos Primero',
+  apply: 'Aplicar',
 } as const;
 
 export default es; 

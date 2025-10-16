@@ -38,7 +38,7 @@ import SettingsModal from './components/SettingsModal';
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import NavigationMenu from './components/NavigationMenu';
-import FilterModal from './components/FilterModal';
+import FilterModal, { FilterState } from './components/FilterModal';
 import NoteActionMenu from './components/NoteActionMenu';
 import * as Haptics from 'expo-haptics';
 import { TAG_COLORS, TagColor, getTagColorValue } from './constants/tags';
@@ -219,7 +219,13 @@ export default function HomeScreen() {
   const { t } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [currentFilters, setCurrentFilters] = useState<FilterState>({
+    tags: [],
+    favorites: null,
+    dateRange: 'all',
+    sortBy: 'date',
+    sortOrder: 'desc',
+  });
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [fadingNoteId, setFadingNoteId] = useState<string | null>(null);
@@ -483,6 +489,27 @@ export default function HomeScreen() {
     }
   };
 
+  // Debug function to check filter state
+  const hasActiveFilters = () => {
+    const hasFilters = currentFilters.tags.length > 0 || currentFilters.favorites !== null || currentFilters.dateRange !== 'all';
+    console.log('🔍 Filter State:', {
+      tags: currentFilters.tags,
+      favorites: currentFilters.favorites,
+      dateRange: currentFilters.dateRange,
+      hasActiveFilters: hasFilters
+    });
+    return hasFilters;
+  };
+
+  // Function to count active filters
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (currentFilters.tags.length > 0) count += currentFilters.tags.length;
+    if (currentFilters.favorites !== null) count += 1;
+    if (currentFilters.dateRange !== 'all') count += 1;
+    return count;
+  };
+
   const getFilteredNotes = () => {
     if (!notes || notes.length === 0) {
       return [];
@@ -492,56 +519,79 @@ export default function HomeScreen() {
       // Exclude hidden notes, deleted notes, and checklist tasks from HomeScreen
       let filteredNotes = notes.filter(note => !note.isHidden && !note.isDeleted && note.type !== 'checklist');
 
-      // Sort by creation date (newest first)
-      filteredNotes = filteredNotes.sort((a, b) => {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-
-      if (searchQuery) {
+      // Apply search filter
+      if (searchQuery.trim()) {
         const searchLower = searchQuery.toLowerCase();
         filteredNotes = filteredNotes.filter(note => 
           note.title.toLowerCase().includes(searchLower) ||
-          (note.description && note.description.toLowerCase().includes(searchLower))
+          note.description?.toLowerCase().includes(searchLower) ||
+          note.content?.toLowerCase().includes(searchLower) ||
+          (note.tasks && note.tasks.some(task => 
+            task.text.toLowerCase().includes(searchLower))
+          )
         );
       }
 
-      if (activeFilters.length > 0) {
-        // Apply date filters
-        if (activeFilters.includes('today')) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= today);
-        }
-        if (activeFilters.includes('week')) {
-          const thisWeek = new Date();
-          thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay());
-          thisWeek.setHours(0, 0, 0, 0);
-          filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= thisWeek);
-        }
-        if (activeFilters.includes('month')) {
-          const thisMonth = new Date();
-          thisMonth.setDate(1);
-          thisMonth.setHours(0, 0, 0, 0);
-          filteredNotes = filteredNotes.filter(note => new Date(note.createdAt) >= thisMonth);
-        }
+      // Apply tag filters
+      if (currentFilters.tags.length > 0) {
+        filteredNotes = filteredNotes.filter(note => 
+          currentFilters.tags.includes((note.color as TagColor) || 'none')
+        );
+      }
 
-        // Apply tag filters
-        const tagFilter = activeFilters.find(filter => ['green', 'purple', 'blue', 'orange', 'red'].includes(filter));
-        if (tagFilter) {
-          filteredNotes = filteredNotes.filter(note => note.color === tagFilter);
-        }
-
-        // Apply type filters
-        if (activeFilters.includes('notes')) {
-          filteredNotes = filteredNotes.filter(note => note.type === 'text');
-        }
-        if (activeFilters.includes('favorites')) {
+      // Apply favorites filter
+      if (currentFilters.favorites !== null) {
+        if (currentFilters.favorites === true) {
           filteredNotes = filteredNotes.filter(note => note.isFavorite);
-        }
-        if (activeFilters.includes('recent')) {
-          filteredNotes = filteredNotes.slice(0, 10);
+        } else if (currentFilters.favorites === false) {
+          filteredNotes = filteredNotes.filter(note => !note.isFavorite);
         }
       }
+
+      // Apply date range filter
+      if (currentFilters.dateRange !== 'all') {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const yearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+        filteredNotes = filteredNotes.filter(note => {
+          const noteDate = new Date(note.createdAt);
+          switch (currentFilters.dateRange) {
+            case 'today':
+              return noteDate >= today;
+            case 'week':
+              return noteDate >= weekAgo;
+            case 'month':
+              return noteDate >= monthAgo;
+            case 'year':
+              return noteDate >= yearAgo;
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Apply sorting
+      filteredNotes.sort((a, b) => {
+        let comparison = 0;
+        
+        switch (currentFilters.sortBy) {
+          case 'title':
+            comparison = a.title.localeCompare(b.title);
+            break;
+          case 'favorites':
+            comparison = (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
+            break;
+          case 'date':
+          default:
+            comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            break;
+        }
+
+        return currentFilters.sortOrder === 'asc' ? -comparison : comparison;
+      });
 
       return filteredNotes;
     } catch (error) {
@@ -1005,16 +1055,44 @@ export default function HomeScreen() {
       shadowRadius: 3.84,
       elevation: 5,
     },
+    filterIconContainer: {
+      position: 'relative',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     filterDot: {
       position: 'absolute',
-      top: -4,
-      right: -4,
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: '#FF4E4E',
-      borderWidth: 1,
-      borderColor: theme.backgroundColor,
+      top: -6,
+      right: -6,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: '#FF4444',
+      borderWidth: 2,
+      borderColor: '#FFFFFF',
+      shadowColor: '#FF4444',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.8,
+      shadowRadius: 4,
+      elevation: 8,
+    },
+    clearFiltersTextContainer: {
+      alignItems: 'flex-end',
+      paddingVertical: 8,
+      paddingHorizontal: 20,
+    },
+    clearFiltersButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    clearFiltersSimpleText: {
+      color: theme.accentColor,
+      fontSize: 14,
+      fontWeight: '500',
+      textDecorationLine: 'underline',
+    },
+    clearFiltersIcon: {
+      marginLeft: 6,
     },
     headerActions: {
       flexDirection: 'row',
@@ -1532,17 +1610,22 @@ export default function HomeScreen() {
                     style={styles.iconButton}
                     onPress={() => setIsFilterModalVisible(true)}
                   >
-                    <View>
+                    <View style={styles.filterIconContainer}>
                       <Ionicons 
                         name="funnel-outline" 
                         size={20} 
-                        color={activeFilters.length > 0 ? '#FFD700' : '#FFF'} 
+                        color={hasActiveFilters() ? '#FFD700' : '#FFF'} 
                       />
-                      {activeFilters.length > 0 && (
+                      {hasActiveFilters() && (
                         <MotiView
-                          from={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', damping: 15 }}
+                          from={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ 
+                            type: 'spring', 
+                            damping: 12,
+                            stiffness: 200,
+                            delay: 100
+                          }}
                           style={styles.filterDot}
                         />
                       )}
@@ -1556,7 +1639,7 @@ export default function HomeScreen() {
                     type: 'spring', 
                     damping: 20, 
                     stiffness: 300,
-                    delay: 150,
+                    delay: 200,
                   }}
                 >
                   <TouchableOpacity 
@@ -1631,6 +1714,38 @@ export default function HomeScreen() {
             </View>
           </MotiView>
 
+          {/* Simple Clear Filters Text */}
+          {hasActiveFilters() && (
+            <MotiView
+              from={{ opacity: 0, translateY: -10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'spring', damping: 20, delay: 250 }}
+              style={styles.clearFiltersTextContainer}
+            >
+              <TouchableOpacity 
+                onPress={() => {
+                  setCurrentFilters({
+                    tags: [],
+                    favorites: null,
+                    dateRange: 'all',
+                    sortBy: 'date',
+                    sortOrder: 'desc',
+                  });
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                style={styles.clearFiltersButton}
+              >
+                <Text style={styles.clearFiltersSimpleText}>{t('clearFilters')}</Text>
+                <Ionicons 
+                  name="close" 
+                  size={16} 
+                  color={theme.accentColor} 
+                  style={styles.clearFiltersIcon}
+                />
+              </TouchableOpacity>
+            </MotiView>
+          )}
+
           {isLoading ? (
             <View style={isGridView ? styles.notesGrid : null}>
               {Array.from({ length: isGridView ? 6 : 5 }).map((_, idx) => (
@@ -1677,7 +1792,7 @@ export default function HomeScreen() {
                   color={theme.accentColor} 
                 />
               </View>
-              {searchQuery.length > 0 || activeFilters.length > 0 ? (
+              {searchQuery.length > 0 || hasActiveFilters() ? (
                 <>
                   <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
                     {t('noResults')}
@@ -1687,7 +1802,13 @@ export default function HomeScreen() {
                     style={styles.emptyCtaSecondary}
                     onPress={() => {
                       setSearchQuery('');
-                      setActiveFilters([]);
+                      setCurrentFilters({
+                        tags: [],
+                        favorites: null,
+                        dateRange: 'all',
+                        sortBy: 'date',
+                        sortOrder: 'desc',
+                      });
                     }}
                   >
                     <Text style={styles.emptyCtaSecondaryText}>{t('clearFilters')}</Text>
@@ -1955,9 +2076,8 @@ export default function HomeScreen() {
         <FilterModal
           visible={isFilterModalVisible}
           onClose={() => setIsFilterModalVisible(false)}
-          onSelectFilter={setActiveFilters}
-          activeFilters={activeFilters}
-          filteredCount={getFilteredNotes().length}
+          onApplyFilters={setCurrentFilters}
+          currentFilters={currentFilters}
         />
 
         <NoteActionMenu

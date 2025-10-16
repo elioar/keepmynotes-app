@@ -99,6 +99,9 @@ export const el = {
   recent: 'Πρόσφατα',
   thisWeek: 'Αυτή την εβδομάδα',
   thisMonth: 'Αυτό το μήνα',
+  thisYear: 'Αυτό το έτος',
+  hidden: 'Κρυφές',
+  filterByTags: 'Ετικέτες',
   clearFilter: 'Καθαρισμός φίλτρων',
 
   // Ρυθμίσεις
@@ -527,7 +530,6 @@ set: 'Ορισμός',
   // Email Verification
   verifyYourEmail: 'Επαλήθευση Email',
   verificationEmailSentTo: 'Στείλαμε email επαλήθευσης στο',
-  verificationEmailSent: 'Ένα email επαλήθευσης στάλθηκε στα εισερχόμενά σας',
   enterVerificationCode: 'Εισάγετε τον 6ψήφιο κωδικό',
   didntReceiveEmail: 'Δεν λάβατε το email;',
   resendEmail: 'Επαναποστολή Email',
@@ -549,6 +551,21 @@ set: 'Ορισμός',
   checkSpamFolder: 'Ελέγξτε τον φάκελο spam/ανεπιθύμητα',
   waitFewMinutes: 'Περιμένετε λίγα λεπτά για να φτάσει το email',
   checkEmailCorrect: 'Βεβαιωθείτε ότι η διεύθυνση email είναι σωστή',
+
+  // Filter Modal
+  dateRange: 'Χρονικό Διάστημα',
+  sortBy: 'Ταξινόμηση',
+  sortOrder: 'Σειρά Ταξινόμησης',
+  favoritesOnly: 'Μόνο Αγαπημένα',
+  excludeFavorites: 'Εκτός Αγαπημένων',
+  allNotes: 'Όλες οι Σημειώσεις',
+  allTime: 'Όλες',
+  sortByTitle: 'Τίτλος',
+  sortByFavorites: 'Αγαπημένα',
+  sortByDate: 'Ημερομηνία',
+  newestFirst: 'Νεότερα Πρώτα',
+  oldestFirst: 'Παλαιότερα Πρώτα',
+  apply: 'Εφαρμογή',
 } as const;
 
 export default el; 

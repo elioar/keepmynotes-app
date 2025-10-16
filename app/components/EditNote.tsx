@@ -1693,6 +1693,20 @@ export default function EditNote({ route }: { route: any }) {
         Alert.alert(t('error'), t('titleRequired'));
         return;
       }
+
+      // Check if content contains images
+      const hasImages = noteContent.includes('<img') || noteContent.includes('data:image');
+      if (hasImages) {
+        Alert.alert(
+          'Σημείωση με Εικόνες',
+          'Οι σημειώσεις με εικόνες δεν μπορούν να συγχρονιστούν προς το παρόν. Η σημείωση θα αποθηκευτεί τοπικά.',
+          [{ text: 'ΟΚ', style: 'default' }]
+        );
+        // Save locally only (no Firebase sync)
+        await saveNoteLocally();
+        return;
+      }
+
       setIsSaving(true);
 
       let savedNote;
@@ -1741,6 +1755,54 @@ export default function EditNote({ route }: { route: any }) {
       return null;
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const saveNoteLocally = async () => {
+    try {
+      // Save to AsyncStorage only (no Firebase sync)
+      const localNote = {
+        id: existingNote?.id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        title: title.trim(),
+        content: noteContent,
+        description: stripHtmlTags(noteContent).substring(0, 100),
+        type: (existingNote?.type as any) || 'text',
+        isFavorite: isFavorite,
+        isHidden: false,
+        tags,
+        createdAt: existingNote?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isLocalOnly: true // Flag to indicate this is local only
+      };
+
+      // Save to AsyncStorage
+      const existingNotes = await AsyncStorage.getItem('notes');
+      const notes = existingNotes ? JSON.parse(existingNotes) : [];
+      
+      if (existingNote?.id) {
+        // Update existing note
+        const noteIndex = notes.findIndex((n: any) => n.id === existingNote.id);
+        if (noteIndex !== -1) {
+          notes[noteIndex] = localNote;
+        }
+      } else {
+        // Add new note
+        notes.push(localNote);
+      }
+      
+      await AsyncStorage.setItem('notes', JSON.stringify(notes));
+      
+      setHasChanges(false);
+      navigation.navigate('Home');
+      
+      Alert.alert(
+        'Αποθηκεύτηκε Τοπικά',
+        'Η σημείωση αποθηκεύτηκε τοπικά και θα συγχρονιστεί όταν λυθεί το πρόβλημα με τις εικόνες.',
+        [{ text: 'ΟΚ', style: 'default' }]
+      );
+    } catch (error) {
+      console.error('Error saving locally:', error);
+      Alert.alert('Σφάλμα', 'Προέκυψε σφάλμα κατά την αποθήκευση');
     }
   };
 

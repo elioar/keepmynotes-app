@@ -177,7 +177,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const migrationFlagKey = `@notes_migrated_${user.uid}`;
       const hasMigrated = await AsyncStorage.getItem(migrationFlagKey);
       if (hasMigrated === 'true') {
-        console.log('ℹ️ Migration already completed for user, skipping');
         return;
       }
 
@@ -186,7 +185,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       if (!storedNotesJson) {
         // Καμία παλιά σημείωση — σημειώνουμε το flag ώστε να μην ξανατρέξει
         await AsyncStorage.setItem(migrationFlagKey, 'true');
-        console.log('ℹ️ No legacy notes found in AsyncStorage');
         return;
       }
 
@@ -202,11 +200,9 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
 
       if (localNotes.length === 0) {
         await AsyncStorage.setItem(migrationFlagKey, 'true');
-        console.log('ℹ️ Legacy notes array is empty, marking migration as done');
         return;
       }
 
-      console.log(`🔄 Starting legacy notes migration: ${localNotes.length} notes`);
 
       // Ανάκτηση υπαρχόντων remote ids ώστε να αποφύγουμε overwrite
       const notesCollectionRef = collection(db, 'users', user.uid, 'notes');
@@ -217,11 +213,9 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       const notesToUpload = localNotes.filter(n => !remoteIds.has(n.id));
 
       if (notesToUpload.length === 0) {
-        console.log('ℹ️ All legacy notes already exist remotely');
         // Καθαρίζουμε το παλιό κλειδί και σημειώνουμε flag
         await AsyncStorage.removeItem(STORAGE_KEY);
         await AsyncStorage.setItem(migrationFlagKey, 'true');
-        console.log('✅ Legacy key removed, migration flag set');
         return;
       }
 
@@ -237,7 +231,6 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.removeItem(STORAGE_KEY);
       await AsyncStorage.setItem(migrationFlagKey, 'true');
 
-      console.log(`✅ Migrated ${notesToUpload.length}/${localNotes.length} legacy notes and removed local key`);
     } catch (error) {
       console.error('❌ Error migrating legacy notes to Firestore:', error);
       // Σε σφάλμα, δεν πειράζουμε το παλιό κλειδί ούτε το flag για να ξαναπροσπαθήσει στο επόμενο login

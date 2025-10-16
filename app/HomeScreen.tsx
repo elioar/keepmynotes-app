@@ -492,12 +492,6 @@ export default function HomeScreen() {
   // Debug function to check filter state
   const hasActiveFilters = () => {
     const hasFilters = currentFilters.tags.length > 0 || currentFilters.favorites !== null || currentFilters.dateRange !== 'all';
-    console.log('🔍 Filter State:', {
-      tags: currentFilters.tags,
-      favorites: currentFilters.favorites,
-      dateRange: currentFilters.dateRange,
-      hasActiveFilters: hasFilters
-    });
     return hasFilters;
   };
 
@@ -814,18 +808,14 @@ export default function HomeScreen() {
 
   const handleSyncNote = async (noteId: string) => {
     try {
-      console.log('🔄 Starting sync process for note:', noteId);
-      
       // Πρώτα κάνουμε sync τη σημείωση
       await syncNote(noteId);
-      console.log('✅ Note synced successfully');
       
       // Ενημερώνουμε το UI
       const updatedNotes = notes.map(note => 
         note.id === noteId ? { ...note, isSynced: true } : note
       );
       setNotes(updatedNotes);
-      console.log('✅ UI updated');
       
       // Εμφανίζουμε μήνυμα επιτυχίας
       if (Platform.OS === 'android') {
@@ -833,10 +823,8 @@ export default function HomeScreen() {
       } else {
         Alert.alert('', t('save'));
       }
-      console.log('✅ Success message shown');
       
       // Επιστρέφουμε στην προηγούμενη οθόνη
-      console.log('🔄 Navigating back');
       navigation.goBack();
     } catch (error) {
       console.error('❌ Error syncing note:', error);
@@ -1848,7 +1836,6 @@ export default function HomeScreen() {
                     onLongPress={() => handleLongPress(note)}
                     delayLongPress={300}
                   >
-                    <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
                     <View style={styles.gridCardHeader}>
                       <View>
                         <View style={styles.categoryContainer}>

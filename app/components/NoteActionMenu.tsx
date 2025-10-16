@@ -9,6 +9,9 @@ import {
   ScrollView,
   Animated,
   Alert,
+  Dimensions,
+  Platform,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -44,6 +47,9 @@ const TAG_LABELS: Record<TagColor, string> = {
   red: 'Important'
 };
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const BOTTOM_OFFSET = Platform.OS === 'ios' ? 100 : 80;
+
 interface NoteActionMenuProps {
   visible: boolean;
   onClose: () => void;
@@ -68,48 +74,71 @@ const NoteActionMenu = ({
   const { theme } = useTheme();
   const { t } = useLanguage();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(400)).current;
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slideAnim, {
+        // Background overlay fade-in
+        Animated.timing(overlayOpacity, {
           toValue: 1,
+          duration: 300,
           useNativeDriver: true,
-          tension: 100,
-          friction: 8,
         }),
-        Animated.spring(translateY, {
+        // Modal slide-up with smooth easing
+        Animated.timing(translateY, {
           toValue: 0,
+          duration: 400,
           useNativeDriver: true,
-          tension: 100,
-          friction: 8,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1), // Custom easing curve
         }),
+        // Content fade-in
+        Animated.timing(slideAnim, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        }),
+        // Subtle scale animation
         Animated.spring(scaleAnim, {
           toValue: 1,
           useNativeDriver: true,
-          tension: 100,
+          tension: 120,
           friction: 8,
         })
       ]).start();
     } else {
       Animated.parallel([
+        // Background overlay fade-out with smooth timing
+        Animated.timing(overlayOpacity, {
+          toValue: 0,
+          duration: 350,
+          useNativeDriver: true,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        }),
+        // Modal slide-down with smooth easing
+        Animated.timing(translateY, {
+          toValue: SCREEN_HEIGHT,
+          duration: 400,
+          useNativeDriver: true,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        }),
+        // Content fade-out with smooth timing
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 250,
+          duration: 300,
           useNativeDriver: true,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         }),
-        Animated.timing(translateY, {
-          toValue: 400,
-          duration: 250,
-          useNativeDriver: true,
-        }),
+        // Scale animation with smooth easing
         Animated.timing(scaleAnim, {
           toValue: 0.9,
-          duration: 250,
+          duration: 400,
           useNativeDriver: true,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
         })
       ]).start();
     }
@@ -119,43 +148,60 @@ const NoteActionMenu = ({
     .activeOffsetY(10)
     .onUpdate((event) => {
       if (event.translationY > 0) {
+        // Smooth drag with improved scaling
+        const progress = Math.min(event.translationY / SCREEN_HEIGHT, 1);
         translateY.setValue(event.translationY);
-        // Add subtle scale effect during drag
-        const scaleValue = Math.max(0.95, 1 - (event.translationY / 1000));
+        
+        // More subtle scale effect during drag
+        const scaleValue = Math.max(0.96, 1 - (progress * 0.04));
         scaleAnim.setValue(scaleValue);
+        
+        // Subtle overlay opacity change during drag
+        const overlayValue = Math.max(0.3, 1 - (progress * 0.7));
+        overlayOpacity.setValue(overlayValue);
       }
     })
     .onEnd((event) => {
       if (event.translationY > 100 || event.velocityY > 500) {
-        // Close the modal
+        // Close the modal with smooth animation
         Animated.parallel([
-          Animated.timing(translateY, {
-            toValue: 400,
-            duration: 250,
+          Animated.timing(overlayOpacity, {
+            toValue: 0,
+            duration: 350,
             useNativeDriver: true,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          }),
+          Animated.timing(translateY, {
+            toValue: SCREEN_HEIGHT,
+            duration: 400,
+            useNativeDriver: true,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
           }),
           Animated.timing(scaleAnim, {
             toValue: 0.9,
-            duration: 250,
+            duration: 400,
             useNativeDriver: true,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
           })
         ]).start(() => {
           onClose();
         });
       } else {
-        // Spring back
+        // Spring back with improved physics
         Animated.parallel([
           Animated.spring(translateY, {
             toValue: 0,
             useNativeDriver: true,
-            damping: 20,
-            stiffness: 300,
+            damping: 25,
+            stiffness: 400,
+            mass: 0.8,
           }),
           Animated.spring(scaleAnim, {
             toValue: 1,
             useNativeDriver: true,
-            damping: 20,
-            stiffness: 300,
+            damping: 25,
+            stiffness: 400,
+            mass: 0.8,
           })
         ]).start();
       }
@@ -184,6 +230,16 @@ const NoteActionMenu = ({
       flex: 1,
       justifyContent: 'flex-end',
     },
+    backgroundOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.isDarkMode ? 
+        'rgba(0, 0, 0, 0.85)' : 
+        'rgba(0, 0, 0, 0.4)',
+    },
     modalContent: {
       backgroundColor: theme.isDarkMode ? 
         theme.secondaryBackground : 
@@ -192,16 +248,17 @@ const NoteActionMenu = ({
       borderTopRightRadius: 24,
       paddingTop: 6,
       paddingHorizontal: 18,
-      paddingBottom: 24,
-      maxHeight: '60%',
+      paddingBottom: Math.max(BOTTOM_OFFSET - 20, 30),
+      maxHeight: SCREEN_HEIGHT * 0.7,
+      minHeight: SCREEN_HEIGHT * 0.3,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
         height: -4,
       },
-      shadowOpacity: 0.3,
+      shadowOpacity: theme.isDarkMode ? 0.4 : 0.1,
       shadowRadius: 12,
-      elevation: 10,
+      elevation: 20,
     },
     headerArea: {
       paddingVertical: 12,
@@ -243,15 +300,16 @@ const NoteActionMenu = ({
     },
     actionsRow: {
       flexDirection: 'row',
-      gap: 12,
+      gap: Math.max(8, SCREEN_HEIGHT * 0.01),
       marginBottom: 16,
       paddingHorizontal: 4,
+      justifyContent: 'space-between',
     },
     option: {
       flex: 1,
       alignItems: 'center',
-      paddingVertical: 14,
-      paddingHorizontal: 6,
+      paddingVertical: Math.max(12, SCREEN_HEIGHT * 0.015),
+      paddingHorizontal: Math.max(4, SCREEN_HEIGHT * 0.005),
       borderRadius: 16,
       backgroundColor: theme.isDarkMode ? 
         'rgba(255, 255, 255, 0.05)' : 
@@ -261,21 +319,22 @@ const NoteActionMenu = ({
         'rgba(255, 255, 255, 0.08)' : 
         'rgba(0, 0, 0, 0.06)',
       marginHorizontal: 2,
+      minHeight: Math.max(80, SCREEN_HEIGHT * 0.1),
     },
     iconContainer: {
-      width: 38,
-      height: 38,
+      width: Math.max(36, SCREEN_HEIGHT * 0.045),
+      height: Math.max(36, SCREEN_HEIGHT * 0.045),
       borderRadius: 14,
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: Math.max(6, SCREEN_HEIGHT * 0.008),
     },
     optionContent: {
       alignItems: 'center',
     },
     optionTitle: {
       color: theme.textColor,
-      fontSize: 14,
+      fontSize: Math.max(13, SCREEN_HEIGHT * 0.017),
       fontWeight: '600',
       textAlign: 'center',
       letterSpacing: 0.2,
@@ -325,13 +384,14 @@ const NoteActionMenu = ({
     tagsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 8,
+      gap: Math.max(6, SCREEN_HEIGHT * 0.008),
+      justifyContent: 'space-between',
     },
     tagButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 8,
-      paddingHorizontal: 12,
+      paddingVertical: Math.max(6, SCREEN_HEIGHT * 0.008),
+      paddingHorizontal: Math.max(10, SCREEN_HEIGHT * 0.012),
       borderRadius: 12,
       borderWidth: theme.isDarkMode ? 1.5 : 1,
       marginBottom: 2,
@@ -343,17 +403,19 @@ const NoteActionMenu = ({
       shadowOpacity: 0,
       shadowRadius: 0,
       elevation: 0,
+      minWidth: Math.max(80, SCREEN_HEIGHT * 0.1),
+      justifyContent: 'center',
     },
     tagIconContainer: {
-      width: 22,
-      height: 22,
+      width: Math.max(20, SCREEN_HEIGHT * 0.025),
+      height: Math.max(20, SCREEN_HEIGHT * 0.025),
       borderRadius: 6,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 7,
+      marginRight: Math.max(6, SCREEN_HEIGHT * 0.007),
     },
     tagText: {
-      fontSize: 13,
+      fontSize: Math.max(12, SCREEN_HEIGHT * 0.015),
       fontWeight: '600',
     },
     selectedTag: {
@@ -404,7 +466,7 @@ const NoteActionMenu = ({
         >
           <Ionicons
             name={icon as any}
-            size={18}
+            size={Math.max(16, SCREEN_HEIGHT * 0.02)}
             color="#FFF"
           />
         </LinearGradient>
@@ -420,7 +482,13 @@ const NoteActionMenu = ({
   return (
     <Modal visible={visible} transparent animationType="none">
       <View style={styles.overlay}>
-        <View style={styles.modalContent}>
+        {/* Background Overlay with fade animation */}
+        <Animated.View style={[styles.backgroundOverlay, { opacity: overlayOpacity }]}>
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
+        </Animated.View>
+        
+        {/* Modal Content */}
+        <Animated.View style={[styles.modalContent, { transform: [{ translateY }, { scale: scaleAnim }] }]}>
           {/* Draggable Handle Area */}
           <GestureDetector gesture={panGesture}>
             <View style={styles.headerArea}>
@@ -435,7 +503,7 @@ const NoteActionMenu = ({
           </GestureDetector>
 
           {/* Animated Content Container */}
-          <Animated.View style={[styles.contentContainer]}>
+          <Animated.View style={[styles.contentContainer, { opacity: slideAnim }]}>
             <ScrollView 
               style={styles.optionsContainer}
               showsVerticalScrollIndicator={false}
@@ -483,7 +551,7 @@ const NoteActionMenu = ({
                   end={{ x: 1, y: 1 }}
                   style={styles.tagsSectionIcon}
                 >
-                  <Ionicons name="pricetags" size={12} color="#FFF" />
+                  <Ionicons name="pricetags" size={Math.max(10, SCREEN_HEIGHT * 0.012)} color="#FFF" />
                 </LinearGradient>
                 <Text style={styles.tagsSectionTitle}>{t('tags')}</Text>
               </View>
@@ -529,7 +597,7 @@ const NoteActionMenu = ({
                       >
                         <Ionicons
                           name={TAG_ICONS[color]}
-                          size={11}
+                          size={Math.max(10, SCREEN_HEIGHT * 0.012)}
                           color={TAG_COLORS[color] === 'transparent' ? theme.textColor : TAG_COLORS[color]}
                         />
                       </View>
@@ -552,7 +620,7 @@ const NoteActionMenu = ({
             </View>
           </ScrollView>
         </Animated.View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

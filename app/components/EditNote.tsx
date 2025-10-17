@@ -209,6 +209,7 @@ export default function EditNote({ route }: { route: any }) {
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <style>
           * {
             box-sizing: border-box;
@@ -452,30 +453,18 @@ export default function EditNote({ route }: { route: any }) {
             width: 20px;
             height: 20px;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Pro', sans-serif;
+            font-weight: 900;
           }
 
           .icon-image::before {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 14px;
-            height: 10px;
-            border: 2px solid ${theme.textColor};
-            border-radius: 2px;
-            background: transparent;
-          }
-
-          .icon-image::after {
-            content: '';
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            width: 6px;
-            height: 4px;
-            background: ${theme.textColor};
-            border-radius: 1px;
-            transform: rotate(-15deg);
+            content: '\\f302';
+            font-size: 16px;
+            color: ${theme.textColor};
+            transition: all 0.2s ease;
           }
 
           .icon-audio {
@@ -483,85 +472,52 @@ export default function EditNote({ route }: { route: any }) {
             width: 20px;
             height: 20px;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Pro', sans-serif;
+            font-weight: 900;
           }
 
           .icon-audio::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 8px;
-            height: 12px;
-            border: 2px solid ${theme.textColor};
-            border-radius: 4px 4px 0 0;
-            background: transparent;
-          }
-
-          .icon-audio::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 2px;
-            height: 8px;
-            background: ${theme.textColor};
-            border-radius: 1px;
-            margin-left: 6px;
+            content: '\\f3c9';
+            font-size: 16px;
+            color: ${theme.textColor};
+            transition: all 0.2s ease;
           }
 
           .icon-task {
             position: relative;
             width: 20px;
             height: 20px;
-            border: 2px solid ${theme.textColor};
-            border-radius: 3px;
             transition: all 0.2s ease;
-            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Pro', sans-serif;
+            font-weight: 900;
           }
 
           .icon-task::before {
-            content: '';
-            position: absolute;
-            top: 3px;
-            left: 4px;
-            width: 6px;
-            height: 3px;
-            border: 2px solid ${theme.textColor};
-            border-top: none;
-            border-right: none;
-            transform: rotate(-45deg);
-            opacity: 0;
-            transition: opacity 0.2s ease;
+            content: '\\f14a';
+            font-size: 16px;
+            color: ${theme.textColor};
+            transition: all 0.2s ease;
           }
 
-          .icon-task.checked {
-            background: ${theme.accentColor};
-            border-color: ${theme.accentColor};
+          .plus-option:hover .icon-image::before {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
           }
 
-          .icon-task.checked::before {
-            border-color: #FFFFFF;
-            opacity: 1;
+          .plus-option:hover .icon-audio::before {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
           }
 
-          .plus-option:hover .icon-image::before,
-          .plus-option:hover .icon-image::after,
-          .plus-option:hover .icon-audio::before,
-          .plus-option:hover .icon-audio::after,
-          .plus-option:hover .icon-task {
-            border-color: ${theme.accentColor};
-          }
-
-          .plus-option:hover .icon-image::after,
-          .plus-option:hover .icon-audio::after {
-            background: ${theme.accentColor};
-          }
-
-          .plus-option:hover .icon-task.checked {
-            background: ${theme.accentColor};
-            border-color: ${theme.accentColor};
+          .plus-option:hover .icon-task::before {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
           }
 
 
@@ -1587,10 +1543,8 @@ export default function EditNote({ route }: { route: any }) {
               togglePlusRow();
             }, 150);
             
-            // Notify React Native to open image picker
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'addImage'
-            }));
+            // Show coming soon message
+            alert('Η λειτουργία προσθήκης εικόνων θα είναι διαθέσιμη σύντομα');
           }
 
           function addRecording() {
@@ -1599,10 +1553,8 @@ export default function EditNote({ route }: { route: any }) {
               togglePlusRow();
             }, 150);
             
-            // Notify React Native to start recording
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'addRecording'
-            }));
+            // Show coming soon message
+            alert('Η λειτουργία ηχογράφησης θα είναι διαθέσιμη σύντομα');
           }
 
           function addCheckbox() {
@@ -2131,25 +2083,6 @@ export default function EditNote({ route }: { route: any }) {
     }
   };
 
-  const handleAddImage = async () => {
-    try {
-      // TODO: Implement image picker functionality
-      Alert.alert('Σύντομα', 'Η λειτουργία προσθήκης εικόνων θα είναι διαθέσιμη σύντομα');
-    } catch (error) {
-      console.error('Error adding image:', error);
-      Alert.alert(t('error'), t('errorSavingNote'));
-    }
-  };
-
-  const handleAddRecording = async () => {
-    try {
-      // TODO: Implement audio recording functionality
-      Alert.alert('Σύντομα', 'Η λειτουργία ηχογράφησης θα είναι διαθέσιμη σύντομα');
-    } catch (error) {
-      console.error('Error adding recording:', error);
-      Alert.alert(t('error'), t('errorSavingNote'));
-    }
-  };
 
   const styles = StyleSheet.create({
     container: {
@@ -3254,10 +3187,6 @@ export default function EditNote({ route }: { route: any }) {
 									setIsKeyboardVisible(true);
 								} else if (data.type === 'keyboardHide') {
 									setIsKeyboardVisible(false);
-								} else if (data.type === 'addImage') {
-									handleAddImage();
-								} else if (data.type === 'addRecording') {
-									handleAddRecording();
 								}
 							}}
 							scrollEnabled={true}

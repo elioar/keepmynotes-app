@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,6 +45,7 @@ const themeGradients = {
 
 export default function NavigationMenu({ onAddPress }: Props) {
   const { theme, appTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const addButtonAnim = useRef(new Animated.Value(1)).current;
   
@@ -79,7 +81,7 @@ export default function NavigationMenu({ onAddPress }: Props) {
       bottom: 0,
       left: 0,
       right: 0,
-      height: 70,
+      height: 70 + insets.bottom,
       backgroundColor: theme.isDarkMode 
         ? 'rgba(45, 45, 45, 0.98)'
         : 'rgba(245, 245, 245, 0.98)',
@@ -96,7 +98,7 @@ export default function NavigationMenu({ onAddPress }: Props) {
       shadowOpacity: 0.1,
       shadowRadius: 3,
       elevation: 5,
-      paddingBottom: 10,
+      paddingBottom: 10 + insets.bottom,
     },
     navItem: {
       alignItems: 'center',

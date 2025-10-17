@@ -30,6 +30,7 @@ import {
   Gesture,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useNotes } from '../NotesContext';
 import { useTheme } from '../context/ThemeContext';
@@ -345,6 +346,7 @@ const DraggableNoteCard = ({
 };
 
 export default function FavoritesScreen() {
+  const insets = useSafeAreaInsets();
   const { notes, updateNote } = useNotes();
   const { theme, appTheme } = useTheme();
   const { t } = useLanguage();
@@ -534,7 +536,7 @@ export default function FavoritesScreen() {
         Keyboard.dismiss();
         setIsSearchFocused(false);
       }}>
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: insets.bottom }]}>
           <StatusBar
             backgroundColor="transparent"
             barStyle="light-content"
@@ -729,7 +731,7 @@ export default function FavoritesScreen() {
             onSelectOption={handleOptionSelect}
           />
         </View>
-      </TouchableWithoutFeedback>
-    </GestureHandlerRootView>
-  );
-} 
+        </TouchableWithoutFeedback>
+      </GestureHandlerRootView>
+    );
+  }

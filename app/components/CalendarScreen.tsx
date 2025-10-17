@@ -17,6 +17,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTasks, Task } from '../context/TaskContext';
 import NavigationMenu from './NavigationMenu';
 import { Calendar, DateData } from 'react-native-calendars';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TAG_COLORS, TagColor } from '../constants/tags';
@@ -184,6 +185,7 @@ export async function scheduleTaskNotification(
 }
 
 export default function CalendarScreen() {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { tasks, updateTask } = useTasks();
@@ -776,7 +778,7 @@ export default function CalendarScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar
         backgroundColor={theme.backgroundColor}
         barStyle={theme.isDarkMode ? "light-content" : "dark-content"}

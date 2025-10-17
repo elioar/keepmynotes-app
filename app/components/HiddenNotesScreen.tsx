@@ -19,6 +19,7 @@ import { useNotes } from '../NotesContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HighlightText from './HighlightText';
 import NoteActionMenu from './NoteActionMenu';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -32,6 +33,7 @@ type RootStackParamList = {
 };
 
 export default function HiddenNotesScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { notes, deleteNote, updateNote } = useNotes();
   const { theme } = useTheme();
@@ -306,7 +308,7 @@ export default function HiddenNotesScreen() {
       Keyboard.dismiss();
       setIsSearchFocused(false);
     }}>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingBottom: insets.bottom }]}>
         <StatusBar
           backgroundColor={theme.secondaryBackground}
           barStyle={theme.isDarkMode ? "light-content" : "dark-content"}

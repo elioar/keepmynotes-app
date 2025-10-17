@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -186,6 +186,308 @@ const SyncBadge = ({ isSynced, theme, styles }: SyncBadgeProps) => {
     </MotiView>
   );
 };
+
+// Memoized NoteCard component for list view
+interface NoteCardProps {
+  note: Note;
+  theme: any;
+  styles: any;
+  searchQuery: string;
+  onPress: (note: Note) => void;
+  onLongPress: (note: Note) => void;
+  onFavorite: (note: Note) => void;
+  onActionMenu: (note: Note) => void;
+  onAddTag: (note: Note) => void;
+  onDelete: (noteId: string) => void;
+  getTimeAgo: (dateString: string) => string;
+  t: (key: string) => string;
+}
+
+const NoteCard = memo(({ 
+  note, 
+  theme, 
+  styles, 
+  searchQuery, 
+  onPress, 
+  onLongPress, 
+  onFavorite, 
+  onActionMenu, 
+  onAddTag, 
+  onDelete,
+  getTimeAgo, 
+  t 
+}: NoteCardProps) => {
+  const handlePress = useCallback(() => {
+    onPress(note);
+  }, [note, onPress]);
+
+  const handleLongPress = useCallback(() => {
+    onLongPress(note);
+  }, [note, onLongPress]);
+
+  const handleFavorite = useCallback(() => {
+    onFavorite(note);
+  }, [note, onFavorite]);
+
+  const handleActionMenu = useCallback(() => {
+    onActionMenu(note);
+  }, [note, onActionMenu]);
+
+  const handleAddTag = useCallback(() => {
+    onAddTag(note);
+  }, [note, onAddTag]);
+
+  return (
+    <Reanimated.View layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
+      <MotiView
+        from={{ opacity: 0, translateY: 20, scale: 0.95 }}
+        animate={{ opacity: 1, translateY: 0, scale: 1 }}
+        exit={{ opacity: 0, translateY: -15, scale: 0.9 }}
+        transition={{ 
+          type: 'spring', 
+          damping: 15, 
+          stiffness: 200, 
+          mass: 0.8,
+          delay: 0
+        }}
+      >
+        <Swipeable
+          renderRightActions={(progress, dragX) => {
+            const scale = progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.8, 1],
+              extrapolate: 'clamp',
+            });
+            
+            const opacity = progress.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [0, 0.7, 1],
+              extrapolate: 'clamp',
+            });
+
+            return (
+              <Animated.View style={[styles.actionContainer, { opacity }]}>
+                <Animated.View style={{ transform: [{ scale }] }}>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => onDelete(note.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
+                  </TouchableOpacity>
+                </Animated.View>
+              </Animated.View>
+            );
+          }}
+          enabled={true}
+          rightThreshold={40}
+          friction={2}
+          overshootRight={false}
+        >
+          <Pressable 
+            style={styles.noteCard}
+            onPress={handlePress}
+            onLongPress={handleLongPress}
+            delayLongPress={300}
+          >
+            <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
+            <View style={[styles.noteHeader]}>
+              <View>
+                <View style={styles.categoryContainer}>
+                  <Text 
+                    style={[
+                      styles.tagLabel, 
+                      { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
+                    ]}
+                  >
+                    {note.color ? TAG_LABELS[note.color as TagColor] : ''}
+                  </Text>
+                  {!note.color && (
+                    <TouchableOpacity 
+                      style={styles.addCategoryButton}
+                      onPress={handleAddTag}
+                    >
+                      <Ionicons 
+                        name="add-circle-outline" 
+                        size={normalize(16)} 
+                        color={theme.placeholderColor} 
+                      />
+                      <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
+                        {t('addTag')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <Text style={styles.noteDate}>
+                  {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
+                    day: 'numeric', 
+                    month: 'short' 
+                  })}
+                </Text>
+              </View>
+              <View style={[styles.headerActions]}>
+                <TouchableOpacity onPress={handleFavorite}>
+                  <Ionicons 
+                    name={note.isFavorite ? "heart" : "heart-outline"}
+                    size={normalize(24)}
+                    color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleActionMenu}>
+                  <Ionicons 
+                    name="ellipsis-vertical" 
+                    size={normalize(24)}
+                    color={theme.placeholderColor} 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.noteContent}>
+              <Text 
+                style={[styles.noteTitle]}
+                numberOfLines={2}
+              >
+                <HighlightText 
+                  text={note.title}
+                  highlight={searchQuery}
+                  style={[styles.noteTitle]}
+                />
+              </Text>
+
+              {note.description && (
+                <Text 
+                  style={[styles.noteDescription]}
+                  numberOfLines={3}
+                >
+                  <HighlightText 
+                    text={note.description}
+                    highlight={searchQuery}
+                    style={[styles.noteDescription]}
+                  />
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.noteFooter}>
+              <View style={styles.statusContainer}>
+                <View style={styles.statusDot} />
+                <Text style={[styles.statusText]}>
+                  {getTimeAgo(note.createdAt || new Date().toISOString())}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        </Swipeable>
+      </MotiView>
+    </Reanimated.View>
+  );
+});
+
+// Memoized GridCard component for grid view
+interface GridCardProps {
+  note: Note;
+  theme: any;
+  styles: any;
+  onPress: (note: Note) => void;
+  onLongPress: (note: Note) => void;
+  onFavorite: (note: Note) => void;
+  onAddTag: (note: Note) => void;
+  t: (key: string) => string;
+}
+
+const GridCard = memo(({ 
+  note, 
+  theme, 
+  styles, 
+  onPress, 
+  onLongPress, 
+  onFavorite, 
+  onAddTag, 
+  t 
+}: GridCardProps) => {
+  const handlePress = useCallback(() => {
+    onPress(note);
+  }, [note, onPress]);
+
+  const handleLongPress = useCallback(() => {
+    onLongPress(note);
+  }, [note, onLongPress]);
+
+  const handleFavorite = useCallback(() => {
+    onFavorite(note);
+  }, [note, onFavorite]);
+
+  const handleAddTag = useCallback(() => {
+    onAddTag(note);
+  }, [note, onAddTag]);
+
+  return (
+    <Reanimated.View layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
+        transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
+      >
+        <Pressable 
+          style={styles.gridCard}
+          onPress={handlePress}
+          onLongPress={handleLongPress}
+          delayLongPress={300}
+        >
+          <View style={styles.gridCardHeader}>
+            <View>
+              <View style={styles.categoryContainer}>
+                <Text 
+                  style={[
+                    styles.tagLabel, 
+                    { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
+                  ]}
+                >
+                  {note.color ? TAG_LABELS[note.color as TagColor] : ''}
+                </Text>
+                {!note.color && (
+                  <TouchableOpacity 
+                    style={styles.addCategoryButton}
+                    onPress={handleAddTag}
+                  >
+                    <Ionicons 
+                      name="add-circle-outline" 
+                      size={normalize(16)} 
+                      color={theme.placeholderColor} 
+                    />
+                    <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
+                      {t('addTag')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleFavorite}>
+              <Ionicons 
+                name={note.isFavorite ? "heart" : "heart-outline"}
+                size={normalize(20)}
+                color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.gridCardContent}>
+            <Text style={styles.gridCardTitle} numberOfLines={2}>
+              {note.title}
+            </Text>
+            {note.description && (
+              <Text style={styles.gridCardDescription} numberOfLines={4}>
+                {note.description}
+              </Text>
+            )}
+          </View>
+        </Pressable>
+      </MotiView>
+    </Reanimated.View>
+  );
+});
 
 // Gradient definitions για κάθε theme
 const themeGradients = {
@@ -411,15 +713,15 @@ export default function HomeScreen() {
     extrapolate: 'clamp'
   });
 
-  const handleNotePress = (note: any) => {
+  const handleNotePress = useCallback((note: any) => {
     navigation.navigate({ name: 'AddEditNote', params: { noteId: note.id } });
-  };
+  }, [navigation]);
   
-  const handleAddNote = () => {
+  const handleAddNote = useCallback(() => {
     navigation.navigate({ name: 'AddEditNote', params: {} });
-  };
+  }, [navigation]);
 
-  const toggleChecklistItem = async (noteId: string, itemIndex: number) => {
+  const toggleChecklistItem = useCallback(async (noteId: string, itemIndex: number) => {
     const noteToUpdate = notes.find(note => note.id === noteId);
     if (noteToUpdate?.type === 'checklist' && noteToUpdate.tasks) {
       const newItems = noteToUpdate.tasks.map((task, index) => {
@@ -430,9 +732,9 @@ export default function HomeScreen() {
       });
       await updateNote({ ...noteToUpdate, tasks: newItems });
     }
-  };
+  }, [notes, updateNote]);
 
-  const handleFavorite = async (note: any) => {
+  const handleFavorite = useCallback(async (note: any) => {
     try {
       const updatedNote = { 
         ...note, 
@@ -442,9 +744,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
-  };
+  }, [updateNote]);
 
-  const handleDelete = async (noteId: string | undefined) => {
+  const handleDelete = useCallback(async (noteId: string | undefined) => {
     if (!noteId) return;
     try {
       // Trigger haptic feedback
@@ -489,7 +791,7 @@ export default function HomeScreen() {
       console.error('Error deleting note:', error);
       setFadingNoteId(null);
     }
-  };
+  }, [deleteNote, t]);
 
   // Debug function to check filter state
   const hasActiveFilters = () => {
@@ -596,7 +898,7 @@ export default function HomeScreen() {
     }
   };
 
-  const handleOptionSelect = (type: string) => {
+  const handleOptionSelect = useCallback((type: string) => {
     setIsModalVisible(false);
     
     switch (type) {
@@ -607,9 +909,9 @@ export default function HomeScreen() {
         navigation.navigate({ name: 'QuickTask', params: undefined });
         break;
     }
-  };
+  }, [navigation]);
 
-  const getTimeAgo = (dateString: string) => {
+  const getTimeAgo = useCallback((dateString: string) => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
@@ -640,23 +942,23 @@ export default function HomeScreen() {
     } catch (error) {
       return t('justNow');
     }
-  };
+  }, [t]);
 
-  const handleNavigateToFavorites = () => {
+  const handleNavigateToFavorites = useCallback(() => {
     navigation.navigate({ name: 'Favorites', params: undefined });
-  };
+  }, [navigation]);
 
-  const truncateText = (text: string, maxLength: number) => {
+  const truncateText = useCallback((text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
-  };
+  }, []);
 
-  const handleLongPress = (note: any) => {
+  const handleLongPress = useCallback((note: any) => {
     setSelectedNote(note);
     setShowActionMenu(true);
-  };
+  }, []);
 
-  const handleNoteAction = async (action: 'edit' | 'delete' | 'hide') => {
+  const handleNoteAction = useCallback(async (action: 'edit' | 'delete' | 'hide') => {
     if (!selectedNote?.id) return;
 
     try {
@@ -759,9 +1061,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error(`Error performing ${action} action:`, error);
     }
-  };
+  }, [selectedNote, navigation, deleteNote, t, updateNote, scrollY]);
 
-  const handleColorChange = async (color: TagColor | null) => {
+  const handleColorChange = useCallback(async (color: TagColor | null) => {
     if (!selectedNote?.id) return;
     
     try {
@@ -776,9 +1078,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error changing note color:', error);
     }
-  };
+  }, [selectedNote, updateNote]);
 
-  const pickImage = async () => {
+  const pickImage = useCallback(async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -795,20 +1097,19 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error picking image:', error);
     }
-  };
+  }, []);
 
-  const getTimeBasedGreeting = () => {
+  const getTimeBasedGreeting = useCallback(() => {
     const now = new Date();
     const hours = now.getHours();
-
 
     if (hours >= 5 && hours < 12) return 'Good morning';
     if (hours >= 12 && hours < 17) return 'Good afternoon';
     if (hours >= 17 && hours < 22) return 'Good evening';
     return 'Good night';
-  };
+  }, []);
 
-  const handleSyncNote = async (noteId: string) => {
+  const handleSyncNote = useCallback(async (noteId: string) => {
     try {
       // Πρώτα κάνουμε sync τη σημείωση
       await syncNote(noteId);
@@ -835,7 +1136,78 @@ export default function HomeScreen() {
         t('errorSavingNote')
       );
     }
-  };
+  }, [syncNote, notes, setNotes, t, navigation]);
+
+  // Memoized handlers for note card actions
+  const handleNoteCardPress = useCallback((note: Note) => {
+    handleNotePress(note);
+  }, [handleNotePress]);
+
+  const handleNoteCardLongPress = useCallback((note: Note) => {
+    handleLongPress(note);
+  }, [handleLongPress]);
+
+  const handleNoteCardFavorite = useCallback((note: Note) => {
+    handleFavorite(note);
+  }, [handleFavorite]);
+
+  const handleNoteCardActionMenu = useCallback((note: Note) => {
+    setSelectedNote(note);
+    setShowActionMenu(true);
+  }, []);
+
+  const handleNoteCardAddTag = useCallback((note: Note) => {
+    setSelectedNote(note);
+    setShowActionMenu(true);
+  }, []);
+
+  // Memoized renderItem function
+  const renderItem = useCallback(({ item: note }: { item: Note }) => {
+    if (isGridView) {
+      return (
+        <GridCard
+          note={note}
+          theme={theme}
+          styles={styles}
+          onPress={handleNoteCardPress}
+          onLongPress={handleNoteCardLongPress}
+          onFavorite={handleNoteCardFavorite}
+          onAddTag={handleNoteCardAddTag}
+          t={t}
+        />
+      );
+    } else {
+      return (
+        <NoteCard
+          note={note}
+          theme={theme}
+          styles={styles}
+          searchQuery={searchQuery}
+          onPress={handleNoteCardPress}
+          onLongPress={handleNoteCardLongPress}
+          onFavorite={handleNoteCardFavorite}
+          onActionMenu={handleNoteCardActionMenu}
+          onAddTag={handleNoteCardAddTag}
+          onDelete={handleDelete}
+          getTimeAgo={getTimeAgo}
+          t={t}
+        />
+      );
+    }
+  }, [
+    isGridView,
+    theme,
+    styles,
+    searchQuery,
+    handleNoteCardPress,
+    handleNoteCardLongPress,
+    handleNoteCardFavorite,
+    handleNoteCardActionMenu,
+    handleNoteCardAddTag,
+    handleDelete,
+    getTimeAgo,
+    t
+  ]);
 
   // Memoized active filters check
   const hasActiveFiltersMemo = useMemo(() => {
@@ -925,7 +1297,7 @@ export default function HomeScreen() {
     );
   }, [searchQuery, isSearchFocused, hasActiveFiltersMemo, theme.accentColor, theme.placeholderColor, t, styles]);
 
-  const styles = StyleSheet.create({
+  const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.backgroundColor,
@@ -1606,7 +1978,7 @@ export default function HomeScreen() {
         : 'rgba(139, 69, 255, 0.08)',
     },
     
-  });
+  }), [theme, isSearchFocused, isGridView, isSideMenuOpen, appTheme, isUserLoggedIn]);
 
   return (
     <TouchableWithoutFeedback onPress={() => {
@@ -1757,228 +2129,7 @@ export default function HomeScreen() {
           numColumns={isGridView ? 2 : 1}
           key={isGridView ? 'grid' : 'list'}
           ListHeaderComponent={ListHeaderComponent}
-          renderItem={({ item: note }) => (
-            isGridView ? (
-              <Reanimated.View layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
-                <MotiView
-                  from={{ opacity: 0, translateY: 12 }}
-                  animate={{ opacity: 1, translateY: 0 }}
-                  exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
-                  transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
-                >
-                  <Pressable 
-                    style={styles.gridCard}
-                    onPress={() => handleNotePress(note)}
-                    onLongPress={() => handleLongPress(note)}
-                    delayLongPress={300}
-                  >
-                    <View style={styles.gridCardHeader}>
-                      <View>
-                        <View style={styles.categoryContainer}>
-                          <Text 
-                            style={[
-                              styles.tagLabel, 
-                              { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
-                            ]}
-                          >
-                            {note.color ? TAG_LABELS[note.color as TagColor] : ''}
-                          </Text>
-                          {!note.color && (
-                            <TouchableOpacity 
-                              style={styles.addCategoryButton}
-                              onPress={() => {
-                                setSelectedNote(note);
-                                setShowActionMenu(true);
-                              }}
-                            >
-                              <Ionicons 
-                                name="add-circle-outline" 
-                                size={normalize(16)} 
-                                color={theme.placeholderColor} 
-                              />
-                              <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
-                                {t('addTag')}
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-                      <TouchableOpacity onPress={() => handleFavorite(note)}>
-                        <Ionicons 
-                          name={note.isFavorite ? "heart" : "heart-outline"}
-                          size={normalize(20)}
-                          color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                        />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.gridCardContent}>
-                      <Text style={styles.gridCardTitle} numberOfLines={2}>
-                        {note.title}
-                      </Text>
-                      {note.description && (
-                        <Text style={styles.gridCardDescription} numberOfLines={4}>
-                          {note.description}
-                        </Text>
-                      )}
-                    </View>
-                  </Pressable>
-                </MotiView>
-              </Reanimated.View>
-            ) : (
-              <Reanimated.View layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
-                <MotiView
-                  from={{ opacity: 0, translateY: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, translateY: 0, scale: 1 }}
-                  exit={{ opacity: 0, translateY: -15, scale: 0.9 }}
-                  transition={{ 
-                    type: 'spring', 
-                    damping: 15, 
-                    stiffness: 200, 
-                    mass: 0.8,
-                    delay: 0
-                  }}
-                >
-                  <Swipeable
-                    renderRightActions={(progress, dragX) => {
-                      const scale = progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1],
-                        extrapolate: 'clamp',
-                      });
-                      
-                      const opacity = progress.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0, 0.7, 1],
-                        extrapolate: 'clamp',
-                      });
-
-                      return (
-                        <Animated.View style={[styles.actionContainer, { opacity }]}>
-                          <Animated.View style={{ transform: [{ scale }] }}>
-                            <TouchableOpacity 
-                              style={styles.deleteButton}
-                              onPress={() => handleDelete(note.id)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
-                            </TouchableOpacity>
-                          </Animated.View>
-                        </Animated.View>
-                      );
-                    }}
-                    enabled={!isGridView}
-                    rightThreshold={40}
-                    friction={2}
-                    overshootRight={false}
-                  >
-                    <Pressable 
-                      style={styles.noteCard}
-                      onPress={() => handleNotePress(note)}
-                      onLongPress={() => handleLongPress(note)}
-                      delayLongPress={300}
-                    >
-                      <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
-                      <View style={[styles.noteHeader]}>
-                        <View>
-                          <View style={styles.categoryContainer}>
-                            <Text 
-                              style={[
-                                styles.tagLabel, 
-                                { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
-                              ]}
-                            >
-                              {note.color ? TAG_LABELS[note.color as TagColor] : ''}
-                            </Text>
-                            {!note.color && (
-                              <TouchableOpacity 
-                                style={styles.addCategoryButton}
-                                onPress={() => {
-                                  setSelectedNote(note);
-                                  setShowActionMenu(true);
-                                }}
-                              >
-                                <Ionicons 
-                                  name="add-circle-outline" 
-                                  size={normalize(16)} 
-                                  color={theme.placeholderColor} 
-                                />
-                                <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
-                                  {t('addTag')}
-                                </Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                          <Text style={styles.noteDate}>
-                            {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
-                              day: 'numeric', 
-                              month: 'short' 
-                            })}
-                          </Text>
-                        </View>
-                        <View style={[styles.headerActions]}>
-                          <TouchableOpacity onPress={() => handleFavorite(note)}>
-                            <Ionicons 
-                              name={note.isFavorite ? "heart" : "heart-outline"}
-                              size={normalize(24)}
-                              color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                            />
-                          </TouchableOpacity>
-                          <TouchableOpacity 
-                            onPress={() => {
-                              setSelectedNote(note);
-                              setShowActionMenu(true);
-                            }}
-                          >
-                            <Ionicons 
-                              name="ellipsis-vertical" 
-                              size={normalize(24)}
-                              color={theme.placeholderColor} 
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      <View style={styles.noteContent}>
-                        <Text 
-                          style={[styles.noteTitle]}
-                          numberOfLines={2}
-                        >
-                          <HighlightText 
-                            text={note.title}
-                            highlight={searchQuery}
-                            style={[styles.noteTitle]}
-                          />
-                        </Text>
-
-                        {note.description && (
-                          <Text 
-                            style={[styles.noteDescription]}
-                            numberOfLines={3}
-                          >
-                            <HighlightText 
-                              text={note.description}
-                              highlight={searchQuery}
-                              style={[styles.noteDescription]}
-                            />
-                          </Text>
-                        )}
-                      </View>
-
-                      <View style={styles.noteFooter}>
-                        <View style={styles.statusContainer}>
-                          <View style={styles.statusDot} />
-                          <Text style={[styles.statusText]}>
-                            {getTimeAgo(note.createdAt || new Date().toISOString())}
-                          </Text>
-                        </View>
-                      </View>
-                    </Pressable>
-                  </Swipeable>
-                </MotiView>
-              </Reanimated.View>
-            )
-          )}
+          renderItem={renderItem}
           ListEmptyComponent={() => (
             isLoading ? (
               <View style={isGridView ? styles.notesGrid : null}>

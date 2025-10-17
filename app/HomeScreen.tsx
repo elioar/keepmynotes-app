@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
   Image,
   Alert,
   Switch,
+  FlatList,
 } from 'react-native';
 import Reanimated, { Layout } from 'react-native-reanimated';
 import { MotiView, AnimatePresence } from 'moti';
@@ -836,6 +837,94 @@ export default function HomeScreen() {
     }
   };
 
+  // Memoized active filters check
+  const hasActiveFiltersMemo = useMemo(() => {
+    return currentFilters.tags.length > 0 || currentFilters.favorites !== null || currentFilters.dateRange !== 'all';
+  }, [currentFilters.tags.length, currentFilters.favorites, currentFilters.dateRange]);
+
+  // Memoized header component to prevent animation restarts
+  const ListHeaderComponent = useMemo(() => {
+    return () => (
+      <>
+        <MotiView
+          from={{ opacity: 0, translateY: -10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'spring', damping: 20, delay: 200 }}
+        >
+          <View style={styles.searchContainer}>
+            <Ionicons 
+              name="search-outline" 
+              size={22} 
+              color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('searchHere')}
+              placeholderTextColor={theme.placeholderColor}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+            {searchQuery.length > 0 && (
+              <MotiView
+                from={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ type: 'spring', damping: 15 }}
+              >
+                <TouchableOpacity 
+                  onPress={() => setSearchQuery('')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons 
+                    name="close-circle" 
+                    size={22} 
+                    color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                  />
+                </TouchableOpacity>
+              </MotiView>
+            )}
+          </View>
+        </MotiView>
+
+        {/* Simple Clear Filters Text */}
+        {hasActiveFiltersMemo && (
+          <MotiView
+            from={{ opacity: 0, translateY: -10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'spring', damping: 20, delay: 250 }}
+            style={styles.clearFiltersTextContainer}
+          >
+            <TouchableOpacity 
+              onPress={() => {
+                setCurrentFilters({
+                  tags: [],
+                  favorites: null,
+                  dateRange: 'all',
+                  sortBy: 'date',
+                  sortOrder: 'desc',
+                });
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              style={styles.clearFiltersButton}
+            >
+              <Text style={styles.clearFiltersSimpleText}>{t('clearFilters')}</Text>
+              <Ionicons 
+                name="close" 
+                size={16} 
+                color={theme.accentColor} 
+                style={styles.clearFiltersIcon}
+              />
+            </TouchableOpacity>
+          </MotiView>
+        )}
+      </>
+    );
+  }, [searchQuery, isSearchFocused, hasActiveFiltersMemo, theme.accentColor, theme.placeholderColor, t, styles]);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -1603,9 +1692,9 @@ export default function HomeScreen() {
                       <Ionicons 
                         name="funnel-outline" 
                         size={20} 
-                        color={hasActiveFilters() ? '#FFD700' : '#FFF'} 
+                        color={hasActiveFiltersMemo ? '#FFD700' : '#FFF'} 
                       />
-                      {hasActiveFilters() && (
+                      {hasActiveFiltersMemo && (
                         <MotiView
                           from={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -1647,7 +1736,7 @@ export default function HomeScreen() {
           </LinearGradient>
         </Animated.View>
 
-        <Animated.ScrollView 
+        <Animated.FlatList 
           style={styles.notesContainer}
           contentContainerStyle={{ 
             paddingTop: hp(20),
@@ -1658,180 +1747,26 @@ export default function HomeScreen() {
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
-        >
-          <MotiView
-            from={{ opacity: 0, translateY: -10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 200 }}
-          >
-            <View style={styles.searchContainer}>
-              <Ionicons 
-                name="search-outline" 
-                size={22} 
-                color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t('searchHere')}
-                placeholderTextColor={theme.placeholderColor}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-              />
-              {searchQuery.length > 0 && (
+          removeClippedSubviews={true}
+          windowSize={5}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          data={isLoading ? [] : getFilteredNotes()}
+          keyExtractor={(item) => item.id}
+          numColumns={isGridView ? 2 : 1}
+          key={isGridView ? 'grid' : 'list'}
+          ListHeaderComponent={ListHeaderComponent}
+          renderItem={({ item: note }) => (
+            isGridView ? (
+              <Reanimated.View layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
                 <MotiView
-                  from={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ type: 'spring', damping: 15 }}
+                  from={{ opacity: 0, translateY: 12 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
+                  transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
                 >
-                  <TouchableOpacity 
-                    onPress={() => setSearchQuery('')}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons 
-                      name="close-circle" 
-                      size={22} 
-                      color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-                    />
-                  </TouchableOpacity>
-                </MotiView>
-              )}
-            </View>
-          </MotiView>
-
-          {/* Simple Clear Filters Text */}
-          {hasActiveFilters() && (
-            <MotiView
-              from={{ opacity: 0, translateY: -10 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'spring', damping: 20, delay: 250 }}
-              style={styles.clearFiltersTextContainer}
-            >
-              <TouchableOpacity 
-                onPress={() => {
-                  setCurrentFilters({
-                    tags: [],
-                    favorites: null,
-                    dateRange: 'all',
-                    sortBy: 'date',
-                    sortOrder: 'desc',
-                  });
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                style={styles.clearFiltersButton}
-              >
-                <Text style={styles.clearFiltersSimpleText}>{t('clearFilters')}</Text>
-                <Ionicons 
-                  name="close" 
-                  size={16} 
-                  color={theme.accentColor} 
-                  style={styles.clearFiltersIcon}
-                />
-              </TouchableOpacity>
-            </MotiView>
-          )}
-
-          {isLoading ? (
-            <View style={isGridView ? styles.notesGrid : null}>
-              {Array.from({ length: isGridView ? 6 : 5 }).map((_, idx) => (
-                isGridView ? (
-                  <Animated.View
-                    key={`skeleton-grid-${idx}`}
-                    style={[styles.skeletonCardGrid, { opacity: skeletonPulse }]}
-                  >
-                    <View style={styles.skeletonHeaderRow}>
-                      <View style={styles.skeletonTag} />
-                      <View style={styles.skeletonFavDot} />
-                    </View>
-                    <View>
-                      <View style={styles.skeletonTitle} />
-                      <View style={styles.skeletonLine} />
-                      <View style={styles.skeletonLineShort} />
-                    </View>
-                  </Animated.View>
-                ) : (
-                  <Animated.View
-                    key={`skeleton-list-${idx}`}
-                    style={[styles.skeletonCardList, { opacity: skeletonPulse }]}
-                  >
-                    <View style={styles.skeletonHeaderRow}>
-                      <View style={styles.skeletonTag} />
-                      <View style={styles.skeletonFavDot} />
-                    </View>
-                    <View>
-                      <View style={styles.skeletonTitle} />
-                      <View style={styles.skeletonLine} />
-                      <View style={styles.skeletonLine} />
-                      <View style={styles.skeletonLineShort} />
-                    </View>
-                  </Animated.View>
-                )
-              ))}
-            </View>
-          ) : getFilteredNotes().length === 0 ? (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyStateIcon}>
-                <Ionicons 
-                  name="document-text-outline" 
-                  size={normalize(48)} 
-                  color={theme.accentColor} 
-                />
-              </View>
-              {searchQuery.length > 0 || hasActiveFilters() ? (
-                <>
-                  <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
-                    {t('noResults')}
-                  </Text>
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    style={styles.emptyCtaSecondary}
-                    onPress={() => {
-                      setSearchQuery('');
-                      setCurrentFilters({
-                        tags: [],
-                        favorites: null,
-                        dateRange: 'all',
-                        sortBy: 'date',
-                        sortOrder: 'desc',
-                      });
-                    }}
-                  >
-                    <Text style={styles.emptyCtaSecondaryText}>{t('clearFilters')}</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
-                    {t('noNotes')}
-                  </Text>
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    style={styles.emptyCtaPrimary}
-                    onPress={() => setIsModalVisible(true)}
-                  >
-                    <Text style={styles.emptyCtaPrimaryText}>{t('addNote')}</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          ) : isViewPreferenceLoaded ? (
-            <View style={isGridView ? styles.notesGrid : null}>
-              <AnimatePresence>
-              {isGridView ? (
-                getFilteredNotes().map((note) => (
-                  <Reanimated.View key={note.id} layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
-                  <MotiView
-                    from={{ opacity: 0, translateY: 12 }}
-                    animate={{ opacity: 1, translateY: 0 }}
-                    exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
-                    transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
-                  >
                   <Pressable 
-                    key={note.id}
                     style={styles.gridCard}
                     onPress={() => handleNotePress(note)}
                     onLongPress={() => handleLongPress(note)}
@@ -1888,168 +1823,249 @@ export default function HomeScreen() {
                       )}
                     </View>
                   </Pressable>
-                  </MotiView>
-                  </Reanimated.View>
-                ))
-              ) : (
-                getFilteredNotes().map((note) => (
-                  <Reanimated.View key={note.id} layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
-                  <MotiView
-                    from={{ opacity: 0, translateY: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, translateY: 0, scale: 1 }}
-                    exit={{ opacity: 0, translateY: -15, scale: 0.9 }}
-                    transition={{ 
-                      type: 'spring', 
-                      damping: 15, 
-                      stiffness: 200, 
-                      mass: 0.8,
-                      delay: 0
-                    }}
-                  >
-                    <Swipeable
-                      renderRightActions={(progress, dragX) => {
-                        const scale = progress.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.8, 1],
-                          extrapolate: 'clamp',
-                        });
-                        
-                        const opacity = progress.interpolate({
-                          inputRange: [0, 0.5, 1],
-                          outputRange: [0, 0.7, 1],
-                          extrapolate: 'clamp',
-                        });
+                </MotiView>
+              </Reanimated.View>
+            ) : (
+              <Reanimated.View layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
+                <MotiView
+                  from={{ opacity: 0, translateY: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, translateY: 0, scale: 1 }}
+                  exit={{ opacity: 0, translateY: -15, scale: 0.9 }}
+                  transition={{ 
+                    type: 'spring', 
+                    damping: 15, 
+                    stiffness: 200, 
+                    mass: 0.8,
+                    delay: 0
+                  }}
+                >
+                  <Swipeable
+                    renderRightActions={(progress, dragX) => {
+                      const scale = progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.8, 1],
+                        extrapolate: 'clamp',
+                      });
+                      
+                      const opacity = progress.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0, 0.7, 1],
+                        extrapolate: 'clamp',
+                      });
 
-                        return (
-                          <Animated.View style={[styles.actionContainer, { opacity }]}>
-                            <Animated.View style={{ transform: [{ scale }] }}>
-                              <TouchableOpacity 
-                                style={styles.deleteButton}
-                                onPress={() => handleDelete(note.id)}
-                                activeOpacity={0.8}
-                              >
-                                <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
-                              </TouchableOpacity>
-                            </Animated.View>
-                          </Animated.View>
-                        );
-                      }}
-                      enabled={!isGridView}
-                      rightThreshold={40}
-                      friction={2}
-                      overshootRight={false}
-                    >
-                      <Pressable 
-                        style={styles.noteCard}
-                        onPress={() => handleNotePress(note)}
-                        onLongPress={() => handleLongPress(note)}
-                        delayLongPress={300}
-                      >
-                        <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
-                        <View style={[styles.noteHeader]}>
-                          <View>
-                            <View style={styles.categoryContainer}>
-                              <Text 
-                                style={[
-                                  styles.tagLabel, 
-                                  { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
-                                ]}
-                              >
-                                {note.color ? TAG_LABELS[note.color as TagColor] : ''}
-                              </Text>
-                              {!note.color && (
-                                <TouchableOpacity 
-                                  style={styles.addCategoryButton}
-                                  onPress={() => {
-                                    setSelectedNote(note);
-                                    setShowActionMenu(true);
-                                  }}
-                                >
-                                  <Ionicons 
-                                    name="add-circle-outline" 
-                                    size={normalize(16)} 
-                                    color={theme.placeholderColor} 
-                                  />
-                                  <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
-                                    {t('addTag')}
-                                  </Text>
-                                </TouchableOpacity>
-                              )}
-                            </View>
-                            <Text style={styles.noteDate}>
-                              {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
-                                day: 'numeric', 
-                                month: 'short' 
-                              })}
-                            </Text>
-                          </View>
-                          <View style={[styles.headerActions]}>
-                            <TouchableOpacity onPress={() => handleFavorite(note)}>
-                              <Ionicons 
-                                name={note.isFavorite ? "heart" : "heart-outline"}
-                                size={normalize(24)}
-                                color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
-                              />
-                            </TouchableOpacity>
+                      return (
+                        <Animated.View style={[styles.actionContainer, { opacity }]}>
+                          <Animated.View style={{ transform: [{ scale }] }}>
                             <TouchableOpacity 
-                              onPress={() => {
-                                setSelectedNote(note);
-                                setShowActionMenu(true);
-                              }}
+                              style={styles.deleteButton}
+                              onPress={() => handleDelete(note.id)}
+                              activeOpacity={0.8}
                             >
-                              <Ionicons 
-                                name="ellipsis-vertical" 
-                                size={normalize(24)}
-                                color={theme.placeholderColor} 
-                              />
+                              <Ionicons name="trash-outline" size={normalize(22)} color="#fff" />
                             </TouchableOpacity>
+                          </Animated.View>
+                        </Animated.View>
+                      );
+                    }}
+                    enabled={!isGridView}
+                    rightThreshold={40}
+                    friction={2}
+                    overshootRight={false}
+                  >
+                    <Pressable 
+                      style={styles.noteCard}
+                      onPress={() => handleNotePress(note)}
+                      onLongPress={() => handleLongPress(note)}
+                      delayLongPress={300}
+                    >
+                      <SyncBadge isSynced={note.isSynced || false} theme={theme} styles={styles} />
+                      <View style={[styles.noteHeader]}>
+                        <View>
+                          <View style={styles.categoryContainer}>
+                            <Text 
+                              style={[
+                                styles.tagLabel, 
+                                { color: note.color ? TAG_COLORS[note.color as TagColor] : theme.placeholderColor }
+                              ]}
+                            >
+                              {note.color ? TAG_LABELS[note.color as TagColor] : ''}
+                            </Text>
+                            {!note.color && (
+                              <TouchableOpacity 
+                                style={styles.addCategoryButton}
+                                onPress={() => {
+                                  setSelectedNote(note);
+                                  setShowActionMenu(true);
+                                }}
+                              >
+                                <Ionicons 
+                                  name="add-circle-outline" 
+                                  size={normalize(16)} 
+                                  color={theme.placeholderColor} 
+                                />
+                                <Text style={[styles.tagLabel, { color: theme.placeholderColor }]}>
+                                  {t('addTag')}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
                           </View>
+                          <Text style={styles.noteDate}>
+                            {new Date(note.createdAt || new Date().toISOString()).toLocaleDateString('en-US', { 
+                              day: 'numeric', 
+                              month: 'short' 
+                            })}
+                          </Text>
                         </View>
+                        <View style={[styles.headerActions]}>
+                          <TouchableOpacity onPress={() => handleFavorite(note)}>
+                            <Ionicons 
+                              name={note.isFavorite ? "heart" : "heart-outline"}
+                              size={normalize(24)}
+                              color={note.isFavorite ? "#FF4E4E" : theme.placeholderColor} 
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              setSelectedNote(note);
+                              setShowActionMenu(true);
+                            }}
+                          >
+                            <Ionicons 
+                              name="ellipsis-vertical" 
+                              size={normalize(24)}
+                              color={theme.placeholderColor} 
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
 
-                        <View style={styles.noteContent}>
-                          <Text 
+                      <View style={styles.noteContent}>
+                        <Text 
+                          style={[styles.noteTitle]}
+                          numberOfLines={2}
+                        >
+                          <HighlightText 
+                            text={note.title}
+                            highlight={searchQuery}
                             style={[styles.noteTitle]}
-                            numberOfLines={2}
+                          />
+                        </Text>
+
+                        {note.description && (
+                          <Text 
+                            style={[styles.noteDescription]}
+                            numberOfLines={3}
                           >
                             <HighlightText 
-                              text={note.title}
+                              text={note.description}
                               highlight={searchQuery}
-                              style={[styles.noteTitle]}
+                              style={[styles.noteDescription]}
                             />
                           </Text>
+                        )}
+                      </View>
 
-                          {note.description && (
-                            <Text 
-                              style={[styles.noteDescription]}
-                              numberOfLines={3}
-                            >
-                              <HighlightText 
-                                text={note.description}
-                                highlight={searchQuery}
-                                style={[styles.noteDescription]}
-                              />
-                            </Text>
-                          )}
+                      <View style={styles.noteFooter}>
+                        <View style={styles.statusContainer}>
+                          <View style={styles.statusDot} />
+                          <Text style={[styles.statusText]}>
+                            {getTimeAgo(note.createdAt || new Date().toISOString())}
+                          </Text>
                         </View>
-
-                        <View style={styles.noteFooter}>
-                          <View style={styles.statusContainer}>
-                            <View style={styles.statusDot} />
-                            <Text style={[styles.statusText]}>
-                              {getTimeAgo(note.createdAt || new Date().toISOString())}
-                            </Text>
-                          </View>
-                        </View>
-                      </Pressable>
-                    </Swipeable>
-                  </MotiView>
-                  </Reanimated.View>
-                ))
-              )}
-              </AnimatePresence>
-            </View>
-          ) : null}
-        </Animated.ScrollView>
+                      </View>
+                    </Pressable>
+                  </Swipeable>
+                </MotiView>
+              </Reanimated.View>
+            )
+          )}
+          ListEmptyComponent={() => (
+            isLoading ? (
+              <View style={isGridView ? styles.notesGrid : null}>
+                {Array.from({ length: isGridView ? 6 : 5 }).map((_, idx) => (
+                  isGridView ? (
+                    <Animated.View
+                      key={`skeleton-grid-${idx}`}
+                      style={[styles.skeletonCardGrid, { opacity: skeletonPulse }]}
+                    >
+                      <View style={styles.skeletonHeaderRow}>
+                        <View style={styles.skeletonTag} />
+                        <View style={styles.skeletonFavDot} />
+                      </View>
+                      <View>
+                        <View style={styles.skeletonTitle} />
+                        <View style={styles.skeletonLine} />
+                        <View style={styles.skeletonLineShort} />
+                      </View>
+                    </Animated.View>
+                  ) : (
+                    <Animated.View
+                      key={`skeleton-list-${idx}`}
+                      style={[styles.skeletonCardList, { opacity: skeletonPulse }]}
+                    >
+                      <View style={styles.skeletonHeaderRow}>
+                        <View style={styles.skeletonTag} />
+                        <View style={styles.skeletonFavDot} />
+                      </View>
+                      <View>
+                        <View style={styles.skeletonTitle} />
+                        <View style={styles.skeletonLine} />
+                        <View style={styles.skeletonLine} />
+                        <View style={styles.skeletonLineShort} />
+                      </View>
+                    </Animated.View>
+                  )
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyStateIcon}>
+                  <Ionicons 
+                    name="document-text-outline" 
+                    size={normalize(48)} 
+                    color={theme.accentColor} 
+                  />
+                </View>
+                {searchQuery.length > 0 || hasActiveFiltersMemo ? (
+                  <>
+                    <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
+                      {t('noResults')}
+                    </Text>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      style={styles.emptyCtaSecondary}
+                      onPress={() => {
+                        setSearchQuery('');
+                        setCurrentFilters({
+                          tags: [],
+                          favorites: null,
+                          dateRange: 'all',
+                          sortBy: 'date',
+                          sortOrder: 'desc',
+                        });
+                      }}
+                    >
+                      <Text style={styles.emptyCtaSecondaryText}>{t('clearFilters')}</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <Text style={[styles.emptyStateText, { color: theme.placeholderColor }]}>
+                      {t('noNotes')}
+                    </Text>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      style={styles.emptyCtaPrimary}
+                      onPress={() => setIsModalVisible(true)}
+                    >
+                      <Text style={styles.emptyCtaPrimaryText}>{t('addNote')}</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            )
+          )}
+        />
 
         <NavigationMenu 
           onAddPress={() => setIsModalVisible(true)}

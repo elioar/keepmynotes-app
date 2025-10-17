@@ -37,11 +37,11 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigation } from '@react-navigation/native';
 import NavigationMenu from './NavigationMenu';
-import AddNoteModal from './AddNoteModal';
+import FloatingActionMenu from './FloatingActionMenu';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HighlightText from './HighlightText';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = 120;
 const CARD_MARGIN = 16;
 
@@ -725,10 +725,11 @@ export default function FavoritesScreen() {
             onAddPress={() => setIsModalVisible(true)}
           />
 
-          <AddNoteModal
+          <FloatingActionMenu
             visible={isModalVisible}
             onClose={() => setIsModalVisible(false)}
             onSelectOption={handleOptionSelect}
+            buttonPosition={{ x: SCREEN_WIDTH / 2, y: SCREEN_HEIGHT - 100 }}
           />
         </View>
         </TouchableWithoutFeedback>

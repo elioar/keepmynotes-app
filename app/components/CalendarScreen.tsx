@@ -22,7 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { TAG_COLORS, TagColor } from '../constants/tags';
 import type { MarkedDates } from 'react-native-calendars/src/types';
-import AddNoteModal from './AddNoteModal';
+import FloatingActionMenu from './FloatingActionMenu';
 import * as Notifications from 'expo-notifications';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -1102,10 +1102,11 @@ export default function CalendarScreen() {
 
       <NavigationMenu onAddPress={() => setShowAddMenu(true)} />
 
-      <AddNoteModal
+      <FloatingActionMenu
         visible={showAddMenu}
         onClose={() => setShowAddMenu(false)}
         onSelectOption={handleOptionSelect}
+        buttonPosition={{ x: SCREEN_WIDTH / 2, y: SCREEN_HEIGHT - 100 }}
       />
     </View>
   );

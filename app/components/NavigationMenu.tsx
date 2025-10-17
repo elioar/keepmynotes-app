@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import FloatingActionMenu from './FloatingActionMenu';
 
 type RootStackParamList = {
   Home: undefined;
@@ -48,12 +49,14 @@ export default function NavigationMenu({ onAddPress }: Props) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const addButtonAnim = useRef(new Animated.Value(1)).current;
+  const [isFloatingMenuVisible, setIsFloatingMenuVisible] = useState(false);
+  const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
   
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   
   const isActive = (screenName: string) => currentRoute === screenName;
 
-  const handleAddPress = () => {
+  const handleAddPress = (event: any) => {
     Animated.sequence([
       Animated.timing(addButtonAnim, {
         toValue: 0.8,
@@ -71,7 +74,22 @@ export default function NavigationMenu({ onAddPress }: Props) {
     if (onAddPress) {
       onAddPress();
     } else {
-      navigation.navigate('AddEditNote');
+      // Calculate button position relative to screen
+      const { pageX, pageY } = event.nativeEvent;
+      setButtonPosition({ x: pageX, y: pageY });
+      setIsFloatingMenuVisible(true);
+    }
+  };
+
+  const handleFloatingMenuClose = () => {
+    setIsFloatingMenuVisible(false);
+  };
+
+  const handleSelectOption = (type: string) => {
+    if (type === 'note') {
+      navigation.navigate('AddEditNote' as any);
+    } else if (type === 'task') {
+      navigation.navigate('Task' as any);
     }
   };
 
@@ -125,75 +143,84 @@ export default function NavigationMenu({ onAddPress }: Props) {
   });
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('Home')}
-      >
-        <Ionicons 
-          name={isActive('Home') ? "home" : "home-outline"} 
-          size={24} 
-          color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
-        />
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('Favorites')}
-      >
-        <Ionicons 
-          name={isActive('Favorites') ? "heart" : "heart-outline"} 
-          size={24} 
-          color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
-        />
-      </TouchableOpacity>
-      
-      <Animated.View style={{
-        transform: [{ scale: addButtonAnim }]
-      }}>
+    <>
+      <View style={styles.container}>
         <TouchableOpacity 
-          style={styles.addButton}
-          onPress={handleAddPress}
-          activeOpacity={1}
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Home')}
         >
-          <LinearGradient
-            colors={themeGradients[appTheme].colors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              width: '100%',
-              height: '100%',
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderRadius: 15,
-            }}
-          >
-            <Ionicons name="add" size={24} color="#fff" />
-          </LinearGradient>
+          <Ionicons 
+            name={isActive('Home') ? "home" : "home-outline"} 
+            size={24} 
+            color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
+          />
         </TouchableOpacity>
-      </Animated.View>
+        
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Favorites')}
+        >
+          <Ionicons 
+            name={isActive('Favorites') ? "heart" : "heart-outline"} 
+            size={24} 
+            color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
+          />
+        </TouchableOpacity>
+        
+        <Animated.View style={{
+          transform: [{ scale: addButtonAnim }]
+        }}>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={handleAddPress}
+            activeOpacity={1}
+          >
+            <LinearGradient
+              colors={themeGradients[appTheme].colors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 15,
+              }}
+            >
+              <Ionicons name="add" size={24} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+        
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Tasks')}
+        >
+          <Ionicons 
+            name={isActive('Tasks') ? "checkbox" : "checkbox-outline"} 
+            size={24} 
+            color={isActive('Tasks') ? theme.textColor : theme.placeholderColor} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Ionicons 
+            name={isActive('Settings') ? "settings" : "settings-outline"} 
+            size={24} 
+            color={isActive('Settings') ? theme.textColor : theme.placeholderColor} 
+          />
+        </TouchableOpacity>
+      </View>
       
-      <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('Tasks')}
-      >
-        <Ionicons 
-          name={isActive('Tasks') ? "checkbox" : "checkbox-outline"} 
-          size={24} 
-          color={isActive('Tasks') ? theme.textColor : theme.placeholderColor} 
-        />
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.navItem}
-        onPress={() => navigation.navigate('Settings')}
-      >
-        <Ionicons 
-          name={isActive('Settings') ? "settings" : "settings-outline"} 
-          size={24} 
-          color={isActive('Settings') ? theme.textColor : theme.placeholderColor} 
-        />
-      </TouchableOpacity>
-    </View>
+      <FloatingActionMenu
+        visible={isFloatingMenuVisible}
+        onClose={handleFloatingMenuClose}
+        onSelectOption={handleSelectOption}
+        buttonPosition={buttonPosition}
+      />
+    </>
   );
 } 

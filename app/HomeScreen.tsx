@@ -32,7 +32,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNotes } from './NotesContext';
 import HighlightText from './components/HighlightText';
 import { Swipeable } from 'react-native-gesture-handler';
-import AddNoteModal from './components/AddNoteModal';
+import FloatingActionMenu from './components/FloatingActionMenu';
 import type { TaskItem } from './NotesContext';
 import SettingsModal from './components/SettingsModal';
 import { useTheme } from './context/ThemeContext';
@@ -2055,10 +2055,11 @@ export default function HomeScreen() {
           onAddPress={() => setIsModalVisible(true)}
         />
 
-        <AddNoteModal
+        <FloatingActionMenu
           visible={isModalVisible}
           onClose={() => setIsModalVisible(false)}
           onSelectOption={handleOptionSelect}
+          buttonPosition={{ x: SCREEN_WIDTH / 2, y: SCREEN_HEIGHT - 100 }}
         />
 
         <FilterModal

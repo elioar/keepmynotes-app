@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTasks, Task } from '../context/TaskContext';
@@ -40,6 +41,30 @@ const normalize = (size: number) => {
   const scale = SCREEN_WIDTH / 375;
   const newSize = size * scale;
   return Math.round(newSize);
+};
+
+// Gradient definitions για κάθε theme
+const themeGradients = {
+  purple: {
+    dark: ['#8B45FF', '#FF4E4E', '#FF6B9D'] as const,
+    light: ['#9F5FFF', '#FF5E7E', '#FF88A8'] as const
+  },
+  blue: {
+    dark: ['#2196F3', '#00BCD4', '#4DD0E1'] as const,
+    light: ['#42A5F5', '#26C6DA', '#4DD0E1'] as const
+  },
+  green: {
+    dark: ['#4CAF50', '#8BC34A', '#CDDC39'] as const,
+    light: ['#66BB6A', '#9CCC65', '#D4E157'] as const
+  },
+  orange: {
+    dark: ['#FF9800', '#FF5722', '#FF6F00'] as const,
+    light: ['#FFA726', '#FF7043', '#FFA000'] as const
+  },
+  pink: {
+    dark: ['#E91E63', '#9C27B0', '#673AB7'] as const,
+    light: ['#EC407A', '#AB47BC', '#7E57C2'] as const
+  }
 };
 
 type RootStackParamList = {
@@ -186,7 +211,7 @@ export async function scheduleTaskNotification(
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, appTheme } = useTheme();
   const { t } = useLanguage();
   const { tasks, updateTask } = useTasks();
   const navigation = useNavigation<NavigationProp>();
@@ -323,24 +348,44 @@ export default function CalendarScreen() {
   
   // Enhanced empty state component
   const EmptyState = () => (
-    <View style={emptyStateStyles.noTasksContainer}>
-      <View style={emptyStateStyles.emptyIcon}>
+    <View style={styles.minimalEmptyState}>
+      <LinearGradient
+        colors={
+          theme.isDarkMode
+            ? themeGradients[appTheme as keyof typeof themeGradients].dark
+            : themeGradients[appTheme as keyof typeof themeGradients].light
+        }
+        style={styles.minimalIconContainer}
+      >
         <Ionicons 
           name="calendar-outline" 
-          size={32} 
-          color={theme.accentColor} 
+          size={normalize(48)} 
+          color="#FFFFFF" 
         />
-      </View>
-      <Text style={emptyStateStyles.noTasksText}>
+      </LinearGradient>
+      
+      <Text style={styles.minimalTitle}>
         {t('noTasksForDate')}
       </Text>
-      <TouchableOpacity 
-        style={emptyStateStyles.addTaskButton}
+      
+      <Text style={styles.minimalSubtitle}>
+        {t('addFirstTask')}
+      </Text>
+      
+      <TouchableOpacity
+        style={styles.minimalButton}
         onPress={() => navigation.navigate('QuickTask', { task: undefined })}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
-        <Ionicons name="add-circle-outline" size={16} color="#FFFFFF" />
-        <Text style={emptyStateStyles.addTaskButtonText}>Add Task</Text>
+        <LinearGradient
+          colors={theme.isDarkMode 
+            ? ['#4A4A4A', '#2A2A2A'] 
+            : ['#6B6B6B', '#4A4A4A']
+          }
+          style={styles.minimalButtonGradient}
+        >
+          <Text style={styles.minimalButtonText}>{t('addTask')}</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -752,6 +797,65 @@ export default function CalendarScreen() {
       fontSize: normalize(12),
       fontWeight: '500',
       color: theme.isDarkMode ? '#ffffff' : '#222222',
+    },
+    
+    // Minimal Empty State Styles
+    minimalEmptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: wp(8),
+      paddingVertical: hp(8),
+      minHeight: hp(50),
+    },
+    minimalIconContainer: {
+      width: wp(20),
+      height: wp(20),
+      borderRadius: wp(10),
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: hp(3),
+    },
+    minimalTitle: {
+      fontSize: normalize(22),
+      fontWeight: '700',
+      color: theme.textColor,
+      textAlign: 'center',
+      marginBottom: hp(1),
+      letterSpacing: 0.3,
+    },
+    minimalSubtitle: {
+      fontSize: normalize(15),
+      color: theme.placeholderColor,
+      textAlign: 'center',
+      marginBottom: hp(4),
+      lineHeight: normalize(20),
+      opacity: 0.7,
+      maxWidth: '80%',
+    },
+    minimalButton: {
+      borderRadius: 20,
+      overflow: 'hidden',
+      shadowColor: theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    minimalButtonGradient: {
+      paddingVertical: hp(1.2),
+      paddingHorizontal: wp(8),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    minimalButtonText: {
+      color: '#FFFFFF',
+      fontSize: normalize(15),
+      fontWeight: '600',
+      letterSpacing: 0.2,
     },
   });
 

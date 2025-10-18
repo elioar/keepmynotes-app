@@ -566,6 +566,18 @@ set: 'Ορισμός',
   newestFirst: 'Νεότερα Πρώτα',
   oldestFirst: 'Παλαιότερα Πρώτα',
   apply: 'Εφαρμογή',
+
+  // Enhanced Empty State
+  welcomeToNotes: 'Καλώς ήρθατε στις Σημειώσεις',
+  startCreatingNotes: 'Ξεκινήστε να δημιουργείτε τις πρώτες σας σημειώσεις',
+  createFirstNote: 'Δημιουργία Πρώτης Σημείωσης',
+  tryDifferentSearch: 'Δοκιμάστε διαφορετικούς όρους αναζήτησης',
+  organizeWithColors: 'Οργάνωση με χρώματα',
+  markFavorites: 'Σήμανση αγαπημένων',
+  searchInstantly: 'Άμεση αναζήτηση',
+  addFirstTask: 'Προσθέστε την πρώτη σας εργασία για αυτή την ημερομηνία',
+  addFirstFavorite: 'Προσθέστε την πρώτη σας αγαπημένη σημείωση',
+  noFavoritesYet: 'Δεν έχετε αγαπημένες ακόμα',
 } as const;
 
 export default el; 

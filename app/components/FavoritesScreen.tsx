@@ -45,6 +45,21 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CARD_HEIGHT = 120;
 const CARD_MARGIN = 16;
 
+// Responsive sizing utilities
+const wp = (percentage: number) => {
+  return (SCREEN_WIDTH * percentage) / 100;
+};
+
+const hp = (percentage: number) => {
+  return (SCREEN_HEIGHT * percentage) / 100;
+};
+
+const normalize = (size: number) => {
+  const scale = SCREEN_WIDTH / 375;
+  const newSize = size * scale;
+  return Math.round(newSize);
+};
+
 // Gradient definitions για κάθε theme
 const themeGradients = {
   purple: {
@@ -528,6 +543,69 @@ export default function FavoritesScreen() {
       fontWeight: '500',
       opacity: 0.6,
     },
+    
+    // Minimal Empty State Styles
+    minimalEmptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: wp(8),
+      paddingVertical: hp(8),
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    minimalIconContainer: {
+      width: wp(20),
+      height: wp(20),
+      borderRadius: wp(10),
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: hp(3),
+    },
+    minimalTitle: {
+      fontSize: normalize(22),
+      fontWeight: '700',
+      color: theme.textColor,
+      textAlign: 'center',
+      marginBottom: hp(1),
+      letterSpacing: 0.3,
+    },
+    minimalSubtitle: {
+      fontSize: normalize(15),
+      color: theme.placeholderColor,
+      textAlign: 'center',
+      marginBottom: hp(4),
+      lineHeight: normalize(20),
+      opacity: 0.7,
+      maxWidth: '80%',
+    },
+    minimalButton: {
+      borderRadius: 20,
+      overflow: 'hidden',
+      shadowColor: theme.accentColor,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    minimalButtonGradient: {
+      paddingVertical: hp(1.2),
+      paddingHorizontal: wp(8),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    minimalButtonText: {
+      color: '#FFFFFF',
+      fontSize: normalize(15),
+      fontWeight: '600',
+      letterSpacing: 0.2,
+    },
   });
 
   return (
@@ -670,55 +748,26 @@ export default function FavoritesScreen() {
               ))}
             </Reanimated.ScrollView>
           ) : (
-            <MotiView
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 200 }}
-              style={styles.emptyState}
-            >
-              <MotiView
-                from={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ 
-                  type: 'spring', 
-                  damping: 12, 
-                  stiffness: 200,
-                  delay: 100,
-                }}
+            <View style={styles.minimalEmptyState}>
+              <LinearGradient
+                colors={
+                  theme.isDarkMode
+                    ? themeGradients[appTheme as keyof typeof themeGradients].dark
+                    : themeGradients[appTheme as keyof typeof themeGradients].light
+                }
+                style={styles.minimalIconContainer}
               >
-                <LinearGradient
-                  colors={['rgba(255, 78, 78, 0.2)', 'rgba(255, 107, 157, 0.2)']}
-                  style={styles.emptyStateIcon}
-                >
-                  <MotiView
-                    animate={{
-                      scale: [1, 1.1, 1],
-                    }}
-                    transition={{
-                      type: 'timing',
-                      duration: 2000,
-                      loop: true,
-                    }}
-                  >
-                    <Ionicons 
-                      name="heart-outline" 
-                      size={50} 
-                      color="#FF4E4E"
-                    />
-                  </MotiView>
-                </LinearGradient>
-              </MotiView>
+                <Ionicons 
+                  name="heart-outline" 
+                  size={normalize(48)} 
+                  color="#FFFFFF" 
+                />
+              </LinearGradient>
               
-              <MotiView
-                from={{ opacity: 0, translateY: 10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                transition={{ type: 'spring', damping: 20, delay: 300 }}
-              >
-                <Text style={styles.emptyStateText}>
-                  {searchQuery ? 'Δεν βρέθηκαν αποτελέσματα' : t('noFavorites')}
-                </Text>
-              </MotiView>
-            </MotiView>
+              <Text style={styles.minimalTitle}>
+                {searchQuery ? t('noResults') : t('noFavorites')}
+              </Text>
+            </View>
           )}
 
           <NavigationMenu 

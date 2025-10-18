@@ -584,6 +584,18 @@ export const en: Translations = {
   tooManyAttempts: 'Too many attempts',
   networkError: 'Network error',
   accountCreated: 'Account created successfully',
+
+  // Enhanced Empty State
+  welcomeToNotes: 'Welcome to Notes',
+  startCreatingNotes: 'Start creating your first notes',
+  createFirstNote: 'Create First Note',
+  tryDifferentSearch: 'Try different search terms',
+  organizeWithColors: 'Organize with colors',
+  markFavorites: 'Mark favorites',
+  searchInstantly: 'Search instantly',
+  addFirstTask: 'Add your first task for this date',
+  addFirstFavorite: 'Add your first favorite note',
+  noFavoritesYet: 'No favorites yet',
 };
 
 export default en; 

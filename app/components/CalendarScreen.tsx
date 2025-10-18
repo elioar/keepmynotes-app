@@ -396,11 +396,13 @@ export default function CalendarScreen() {
       backgroundColor: theme.backgroundColor,
     },
     weekContainer: {
-      backgroundColor: theme.secondaryBackground,
-      borderRadius: 20,
-      margin: 10,
-      marginTop: Platform.OS === 'ios' ? 60 : 20,
-      padding: 16,
+      paddingHorizontal: 24,
+      paddingTop: 50,
+      paddingBottom: 32,
+      borderBottomLeftRadius: 32,
+      borderBottomRightRadius: 32,
+      margin: 0,
+      marginTop: 0,
       shadowColor: theme.isDarkMode ? '#000' : theme.accentColor,
       shadowOffset: {
         width: 0,
@@ -424,23 +426,27 @@ export default function CalendarScreen() {
     monthTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: theme.textColor,
+      color: '#FFFFFF',
     },
     weekNavButton: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     expandButton: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+      backgroundColor: 'rgba(255, 255, 255, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
     },
     weekDays: {
       flexDirection: 'row',
@@ -454,7 +460,7 @@ export default function CalendarScreen() {
     },
     dayLabel: {
       fontSize: 13,
-      color: theme.placeholderColor,
+      color: 'rgba(255, 255, 255, 0.8)',
       marginBottom: 8,
       fontWeight: '500',
     },
@@ -467,15 +473,24 @@ export default function CalendarScreen() {
       marginBottom: 4,
     },
     dayButtonSelected: {
-      backgroundColor: theme.accentColor,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 3,
     },
     dayNumber: {
       fontSize: 15,
       fontWeight: '600',
-      color: theme.textColor,
+      color: '#FFFFFF',
     },
     dayNumberSelected: {
-      color: '#FFFFFF',
+      color: '#000000',
+      fontWeight: '700',
     },
     dotContainer: {
       height: 8,
@@ -889,14 +904,23 @@ export default function CalendarScreen() {
       />
       
       <ScrollView>
-        <View style={styles.weekContainer}>
+        <LinearGradient
+          colors={
+            theme.isDarkMode
+              ? themeGradients[appTheme as keyof typeof themeGradients].dark
+              : themeGradients[appTheme as keyof typeof themeGradients].light
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.weekContainer}
+        >
           <View style={styles.weekHeader}>
             <View style={styles.weekNavContainer}>
               <TouchableOpacity 
                 style={styles.weekNavButton}
                 onPress={handlePrevWeek}
               >
-                <Ionicons name="chevron-back" size={20} color={theme.textColor} />
+                <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
               </TouchableOpacity>
 
               <Text style={styles.monthTitle}>
@@ -907,7 +931,7 @@ export default function CalendarScreen() {
                 style={styles.weekNavButton}
                 onPress={handleNextWeek}
               >
-                <Ionicons name="chevron-forward" size={20} color={theme.textColor} />
+                <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -915,7 +939,7 @@ export default function CalendarScreen() {
               style={styles.expandButton}
               onPress={() => setShowMonthView(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color={theme.textColor} />
+              <Ionicons name="calendar-outline" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -953,7 +977,7 @@ export default function CalendarScreen() {
               );
             })}
           </View>
-        </View>
+        </LinearGradient>
 
         <View style={styles.tasksContainer}>
           <View style={styles.dateHeader}>

@@ -117,8 +117,8 @@ interface SyncBadgeProps {
   styles: any;
 }
 
-const SyncBadge = ({ isSynced, theme, styles }: SyncBadgeProps) => {
-  const getSyncStatus = () => {
+const SyncBadge = memo(({ isSynced, theme, styles }: SyncBadgeProps) => {
+  const getSyncStatus = useCallback(() => {
     if (isSynced) {
       return {
         icon: 'cloud-done',
@@ -135,15 +135,12 @@ const SyncBadge = ({ isSynced, theme, styles }: SyncBadgeProps) => {
       bgColor: theme.isDarkMode ? 'rgba(255, 152, 0, 0.2)' : 'rgba(255, 152, 0, 0.1)',
       borderColor: '#FF9800',
     };
-  };
+  }, [isSynced, theme.isDarkMode]);
 
   const status = getSyncStatus();
 
   return (
-    <MotiView
-      from={{ opacity: 0, scale: 0.8, translateY: 10 }}
-      animate={{ opacity: 1, scale: 1, translateY: 0 }}
-      transition={{ type: 'spring', damping: 15, stiffness: 300, delay: 100 }}
+    <View
       style={[
         styles.syncBadge, 
         { 
@@ -153,24 +150,14 @@ const SyncBadge = ({ isSynced, theme, styles }: SyncBadgeProps) => {
         }
       ]}
     >
-      <MotiView
-        animate={{
-          scale: isSynced ? [1, 1.15, 1] : 1,
-        }}
-        transition={{
-          type: 'timing',
-          duration: isSynced ? 600 : 0,
-        }}
-      >
-        <Ionicons 
-          name={status.icon as any}
-          size={14} 
-          color={status.color}
-        />
-      </MotiView>
-    </MotiView>
+      <Ionicons 
+        name={status.icon as any}
+        size={14} 
+        color={status.color}
+      />
+    </View>
   );
-};
+});
 
 
 // Gradient definitions για κάθε theme
@@ -1739,18 +1726,7 @@ export default function HomeScreen() {
 
     return (
       <Reanimated.View layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
-        <MotiView
-          from={{ opacity: 0, translateY: 20, scale: 0.95 }}
-          animate={{ opacity: 1, translateY: 0, scale: 1 }}
-          exit={{ opacity: 0, translateY: -15, scale: 0.9 }}
-          transition={{ 
-            type: 'spring', 
-            damping: 15, 
-            stiffness: 200, 
-            mass: 0.8,
-            delay: 0
-          }}
-        >
+        <View>
           <Swipeable
             renderRightActions={(progress, dragX) => {
               const scale = progress.interpolate({
@@ -1879,7 +1855,7 @@ export default function HomeScreen() {
               </View>
             </Pressable>
           </Swipeable>
-        </MotiView>
+        </View>
       </Reanimated.View>
     );
   });
@@ -1924,12 +1900,7 @@ export default function HomeScreen() {
 
     return (
       <Reanimated.View layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          exit={{ opacity: 0, translateY: -10, scale: 0.98 }}
-          transition={{ type: 'spring', damping: 12, stiffness: 260, mass: 0.6 }}
-        >
+        <View>
           <Pressable 
             style={styles.gridCard}
             onPress={handlePress}
@@ -1984,7 +1955,7 @@ export default function HomeScreen() {
               )}
             </View>
           </Pressable>
-        </MotiView>
+        </View>
       </Reanimated.View>
     );
   });
@@ -2046,12 +2017,7 @@ export default function HomeScreen() {
   const ListHeaderComponent = useMemo(() => {
     return () => (
       <>
-        <MotiView
-          from={{ opacity: 0, translateY: -10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'spring', damping: 20, delay: 200 }}
-        >
-          <View style={styles.searchContainer}>
+        <View style={styles.searchContainer}>
             <Ionicons 
               name="search-outline" 
               size={22} 
@@ -2069,35 +2035,22 @@ export default function HomeScreen() {
               onBlur={() => setIsSearchFocused(false)}
             />
             {searchQuery.length > 0 && (
-              <MotiView
-                from={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                transition={{ type: 'spring', damping: 15 }}
+              <TouchableOpacity 
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <TouchableOpacity 
-                  onPress={() => setSearchQuery('')}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons 
-                    name="close-circle" 
-                    size={22} 
-                    color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-                  />
-                </TouchableOpacity>
-              </MotiView>
+                <Ionicons 
+                  name="close-circle" 
+                  size={22} 
+                  color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                />
+              </TouchableOpacity>
             )}
           </View>
-        </MotiView>
 
         {/* Simple Clear Filters Text */}
         {hasActiveFiltersMemo && (
-          <MotiView
-            from={{ opacity: 0, translateY: -10 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 250 }}
-            style={styles.clearFiltersTextContainer}
-          >
+          <View style={styles.clearFiltersTextContainer}>
             <TouchableOpacity 
               onPress={() => {
                 setCurrentFilters({
@@ -2119,7 +2072,7 @@ export default function HomeScreen() {
                 style={styles.clearFiltersIcon}
               />
             </TouchableOpacity>
-          </MotiView>
+          </View>
         )}
       </>
     );
@@ -2158,96 +2111,49 @@ export default function HomeScreen() {
           >
             <View style={styles.header}>
               <View style={styles.headerLeft}>
-                <MotiView
-                  from={{ opacity: 0, translateX: -20 }}
-                  animate={{ opacity: 1, translateX: 0 }}
-                  transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                >
+                <View>
                   <Text style={styles.headerGreeting}>{t('hello')},</Text>
                   <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                     {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
                   </Text>
-                </MotiView>
+                </View>
               </View>
               <View style={styles.headerButtons}>
-                <MotiView
-                  from={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ 
-                    type: 'spring', 
-                    damping: 20, 
-                    stiffness: 300,
-                    delay: 50,
-                  }}
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={toggleViewMode}
                 >
-                  <TouchableOpacity 
-                    style={styles.iconButton}
-                    onPress={toggleViewMode}
-                  >
+                  <Ionicons 
+                    name={isGridView ? "grid-outline" : "list-outline"} 
+                    size={20} 
+                    color="#FFF" 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.iconButton}
+                  onPress={() => setIsFilterModalVisible(true)}
+                >
+                  <View style={styles.filterIconContainer}>
                     <Ionicons 
-                      name={isGridView ? "grid-outline" : "list-outline"} 
+                      name="funnel-outline" 
                       size={20} 
-                      color="#FFF" 
+                      color={hasActiveFiltersMemo ? '#FFD700' : '#FFF'} 
                     />
-                  </TouchableOpacity>
-                </MotiView>
-                <MotiView
-                  from={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ 
-                    type: 'spring', 
-                    damping: 20, 
-                    stiffness: 300,
-                    delay: 100,
-                  }}
+                    {hasActiveFiltersMemo && (
+                      <View style={styles.filterDot} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.iconButton, styles.burgerButton]}
+                  onPress={toggleSideMenu}
                 >
-                  <TouchableOpacity 
-                    style={styles.iconButton}
-                    onPress={() => setIsFilterModalVisible(true)}
-                  >
-                    <View style={styles.filterIconContainer}>
-                      <Ionicons 
-                        name="funnel-outline" 
-                        size={20} 
-                        color={hasActiveFiltersMemo ? '#FFD700' : '#FFF'} 
-                      />
-                      {hasActiveFiltersMemo && (
-                        <MotiView
-                          from={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ 
-                            type: 'spring', 
-                            damping: 12,
-                            stiffness: 200,
-                            delay: 100
-                          }}
-                          style={styles.filterDot}
-                        />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                </MotiView>
-                <MotiView
-                  from={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ 
-                    type: 'spring', 
-                    damping: 20, 
-                    stiffness: 300,
-                    delay: 200,
-                  }}
-                >
-                  <TouchableOpacity 
-                    style={[styles.iconButton, styles.burgerButton]}
-                    onPress={toggleSideMenu}
-                  >
-                    <Ionicons 
-                      name="menu" 
-                      size={22} 
-                      color="#FFF" 
-                    />
-                  </TouchableOpacity>
-                </MotiView>
+                  <Ionicons 
+                    name="menu" 
+                    size={22} 
+                    color="#FFF" 
+                  />
+                </TouchableOpacity>
               </View>
             </View>
           </LinearGradient>
@@ -2391,12 +2297,7 @@ export default function HomeScreen() {
           ]}
         >
           {/* Profile section */}
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 100 }}
-          >
-            <View style={styles.profileSection}>
+          <View style={styles.profileSection}>
               <TouchableOpacity 
                 style={styles.profileImageContainer}
                 onPress={() => {
@@ -2424,216 +2325,155 @@ export default function HomeScreen() {
                 </Text>
               </View>
             </View>
-          </MotiView>
           
           {/* Menu Items */}
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 150 }}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed
+            ]}
+            onPress={() => {
+              navigation.navigate({ name: 'Tasks', params: undefined });
+              toggleSideMenu();
+            }}
           >
-            <Pressable 
-              style={({ pressed }) => [
-                styles.menuItem,
-                pressed && styles.menuItemPressed
-              ]}
-              onPress={() => {
-                navigation.navigate({ name: 'Tasks', params: undefined });
-                toggleSideMenu();
-              }}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="checkbox-outline" size={20} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('tasks')}</Text>
-            </Pressable>
-          </MotiView>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="checkbox-outline" size={20} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('tasks')}</Text>
+          </Pressable>
           
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 200 }}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed
+            ]}
+            onPress={() => {
+              navigation.navigate({ name: 'Favorites', params: undefined });
+              toggleSideMenu();
+            }}
           >
-            <Pressable 
-              style={({ pressed }) => [
-                styles.menuItem,
-                pressed && styles.menuItemPressed
-              ]}
-              onPress={() => {
-                navigation.navigate({ name: 'Favorites', params: undefined });
-                toggleSideMenu();
-              }}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="heart-outline" size={20} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('favorites')}</Text>
-            </Pressable>
-          </MotiView>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="heart-outline" size={20} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('favorites')}</Text>
+          </Pressable>
           
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 250 }}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed
+            ]}
+            onPress={() => {
+              navigation.navigate({ name: 'Settings', params: undefined });
+              toggleSideMenu();
+            }}
           >
-            <Pressable 
-              style={({ pressed }) => [
-                styles.menuItem,
-                pressed && styles.menuItemPressed
-              ]}
-              onPress={() => {
-                navigation.navigate({ name: 'Settings', params: undefined });
-                toggleSideMenu();
-              }}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="settings-outline" size={20} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('settings')}</Text>
-            </Pressable>
-          </MotiView>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="settings-outline" size={20} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('settings')}</Text>
+          </Pressable>
           
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 300 }}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed
+            ]}
+            onPress={() => {
+              navigation.navigate({ name: 'SecurityCheck', params: undefined });
+              toggleSideMenu();
+            }}
           >
-            <Pressable 
-              style={({ pressed }) => [
-                styles.menuItem,
-                pressed && styles.menuItemPressed
-              ]}
-              onPress={() => {
-                navigation.navigate({ name: 'SecurityCheck', params: undefined });
-                toggleSideMenu();
-              }}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="eye-off-outline" size={20} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('hiddenNotes')}</Text>
-            </Pressable>
-          </MotiView>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="eye-off-outline" size={20} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('hiddenNotes')}</Text>
+          </Pressable>
           
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 350 }}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed
+            ]}
+            onPress={() => {
+              navigation.navigate({ name: 'Trash', params: undefined });
+              toggleSideMenu();
+            }}
           >
-            <Pressable 
-              style={({ pressed }) => [
-                styles.menuItem,
-                pressed && styles.menuItemPressed
-              ]}
-              onPress={() => {
-                navigation.navigate({ name: 'Trash', params: undefined });
-                toggleSideMenu();
-              }}
-            >
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="trash-outline" size={20} color={theme.accentColor} />
-              </View>
-              <Text style={styles.menuItemText}>{t('trash')}</Text>
-            </Pressable>
-          </MotiView>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="trash-outline" size={20} color={theme.accentColor} />
+            </View>
+            <Text style={styles.menuItemText}>{t('trash')}</Text>
+          </Pressable>
           
           {isUserLoggedIn && (
-            <MotiView
-              from={{ opacity: 0, translateX: -50 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: 'spring', damping: 20, delay: 400 }}
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'Profile', params: undefined });
+                toggleSideMenu();
+              }}
             >
-              <Pressable 
-                style={({ pressed }) => [
-                  styles.menuItem,
-                  pressed && styles.menuItemPressed
-                ]}
-                onPress={() => {
-                  navigation.navigate({ name: 'Profile', params: undefined });
-                  toggleSideMenu();
-                }}
-              >
-                <View style={styles.menuItemIcon}>
-                  <Ionicons name="person-outline" size={20} color={theme.accentColor} />
-                </View>
-                <Text style={styles.menuItemText}>{t('profile')}</Text>
-              </Pressable>
-            </MotiView>
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="person-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('profile')}</Text>
+            </Pressable>
           )}
           
-          <MotiView
-            from={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ type: 'timing', duration: 300, delay: 450 }}
-          >
-            <View style={styles.menuDivider} />
-          </MotiView>
+          <View style={styles.menuDivider} />
           
           {isUserLoggedIn ? (
-            <MotiView
-              from={{ opacity: 0, translateX: -50 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: 'spring', damping: 20, delay: 500 }}
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={handleSignOut}
             >
-              <Pressable 
-                style={({ pressed }) => [
-                  styles.menuItem,
-                  pressed && styles.menuItemPressed
-                ]}
-                onPress={handleSignOut}
-              >
-                <View style={styles.menuItemIcon}>
-                  <Ionicons name="log-out-outline" size={20} color={theme.accentColor} />
-                </View>
-                <Text style={styles.menuItemText}>{t('signOut')}</Text>
-              </Pressable>
-            </MotiView>
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="log-out-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('signOut')}</Text>
+            </Pressable>
           ) : (
-            <MotiView
-              from={{ opacity: 0, translateX: -50 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: 'spring', damping: 20, delay: 500 }}
+            <Pressable 
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed
+              ]}
+              onPress={() => {
+                navigation.navigate({ name: 'Login', params: undefined });
+                toggleSideMenu();
+              }}
             >
-              <Pressable 
-                style={({ pressed }) => [
-                  styles.menuItem,
-                  pressed && styles.menuItemPressed
-                ]}
-                onPress={() => {
-                  navigation.navigate({ name: 'Login', params: undefined });
-                  toggleSideMenu();
-                }}
-              >
-                <View style={styles.menuItemIcon}>
-                  <Ionicons name="log-in-outline" size={20} color={theme.accentColor} />
-                </View>
-                <Text style={styles.menuItemText}>{t('signIn')}</Text>
-              </Pressable>
-            </MotiView>
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="log-in-outline" size={20} color={theme.accentColor} />
+              </View>
+              <Text style={styles.menuItemText}>{t('signIn')}</Text>
+            </Pressable>
           )}
 
           {/* Guest mode removed */}
           
-          <MotiView
-            from={{ opacity: 0, translateX: -50 }}
-            animate={{ opacity: 1, translateX: 0 }}
-            transition={{ type: 'spring', damping: 20, delay: 550 }}
-          >
-            <View style={styles.darkModeContainer}>
-              <View style={styles.menuItemIcon}>
-                <Ionicons name="moon-outline" size={18} color={theme.accentColor} />
-              </View>
-              <Text style={styles.darkModeText}>{t('darkMode')}</Text>
-              <Switch
-                trackColor={{ false: '#767577', true: theme.accentColor }}
-                thumbColor={theme.isDarkMode ? '#FFFFFF' : '#f4f3f4'}
-                ios_backgroundColor="#3e3e3e"
-                onValueChange={toggleColorScheme}
-                value={theme.isDarkMode}
-                style={styles.toggleSwitch}
-              />
+          <View style={styles.darkModeContainer}>
+            <View style={styles.menuItemIcon}>
+              <Ionicons name="moon-outline" size={18} color={theme.accentColor} />
             </View>
-          </MotiView>
+            <Text style={styles.darkModeText}>{t('darkMode')}</Text>
+            <Switch
+              trackColor={{ false: '#767577', true: theme.accentColor }}
+              thumbColor={theme.isDarkMode ? '#FFFFFF' : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={toggleColorScheme}
+              value={theme.isDarkMode}
+              style={styles.toggleSwitch}
+            />
+          </View>
           
           <View style={styles.spacer} />
         </Animated.View>

@@ -88,7 +88,7 @@ export default function BackupRestoreScreen() {
                   color === 'red' ? t('important') : t('noTag'),
             color: color
           })),
-        version: '1.0.9',
+        version: '1.1.0',
         backupDate: new Date().toISOString()
       };
 

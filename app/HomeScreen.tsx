@@ -1317,18 +1317,23 @@ export default function HomeScreen() {
     notesGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      justifyContent: 'flex-start',
-      gap: wp(4),
-      rowGap: hp(2),
+      justifyContent: 'center',
+      paddingHorizontal: wp(4),
+    },
+    gridRow: {
+      justifyContent: 'center',
+      paddingHorizontal: wp(4),
     },
     gridCard: {
-      width: (SCREEN_WIDTH - (wp(5) * 2) - wp(4)) / 2,
+      width: (SCREEN_WIDTH - wp(4) * 3) / 2,
       height: 160,
       backgroundColor: theme.secondaryBackground,
       borderRadius: 20,
       padding: 14,
-      marginBottom: 14,
       justifyContent: 'space-between',
+      paddingHorizontal: wp(4),
+      marginBottom: 16,
+      marginHorizontal: wp(2),
       shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
         width: 0,
@@ -2178,6 +2183,7 @@ export default function HomeScreen() {
           data={isLoading ? [] : getFilteredNotes()}
           keyExtractor={(item) => item.id}
           numColumns={isGridView ? 2 : 1}
+          columnWrapperStyle={isGridView ? styles.gridRow : undefined}
           key={isGridView ? 'grid' : 'list'}
           ListHeaderComponent={ListHeaderComponent}
           renderItem={renderItem}

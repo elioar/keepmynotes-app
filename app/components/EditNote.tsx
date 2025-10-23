@@ -300,21 +300,19 @@ export default function EditNote({ route }: { route: any }) {
 
           .toolbar {
             position: fixed;
-            bottom: ${isKeyboardVisible ? '0px' : `${insets.bottom}px`};
+            bottom: -10px;
             left: 0;
             right: 0;
             padding: 10px;
             background: ${theme.isDarkMode ? theme.backgroundColor + 'E6' : theme.backgroundColor + 'F5'};
-            border-top: 0.5px solid ${theme.borderColor}30;
             display: ${isViewMode ? 'none' : 'flex'};
             flex-direction: column;
             gap: 8px;
             max-width: 100%;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 -4px 16px ${theme.isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.06)'};
             z-index: 1000;
-            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: bottom 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           }
 
           .toolbar-main {
@@ -368,7 +366,7 @@ export default function EditNote({ route }: { route: any }) {
             height: 0;
             opacity: 0;
             pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             margin-bottom: -8px;
             overflow: hidden;
             display: flex;
@@ -400,16 +398,22 @@ export default function EditNote({ route }: { route: any }) {
             min-width: 44px;
             height: 44px;
             padding: 8px 12px;
-            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground} !important;
-            border: 1px solid ${theme.borderColor}20;
-            border-radius: 12px;
+            background: transparent !important;
+            border: ${theme.isDarkMode 
+              ? '1px solid rgba(255, 255, 255, 0.1)' 
+              : '1px solid rgba(0, 0, 0, 0.05)'};
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
             gap: 6px;
+            backdrop-filter: blur(10px);
+            box-shadow: ${theme.isDarkMode 
+              ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)'};
           }
 
           .plus-option:active {
@@ -417,10 +421,8 @@ export default function EditNote({ route }: { route: any }) {
           }
 
           .plus-option:hover {
-            background: ${theme.isDarkMode ? '#333333' : theme.backgroundColor} !important;
-            border-color: ${theme.accentColor}40;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px ${theme.accentColor}20;
+            transform: scale(1.05);
+            border-color: ${theme.accentColor};
           }
 
           .plus-option-icon {
@@ -538,15 +540,21 @@ export default function EditNote({ route }: { route: any }) {
             width: 44px;
             height: 44px;
             padding: 0;
-            background: ${theme.isDarkMode ? '#2A2A2A' : theme.secondaryBackground} !important;
-            border: none;
-            border-radius: 10px;
+            background: transparent !important;
+            border: ${theme.isDarkMode 
+              ? '1px solid rgba(255, 255, 255, 0.1)' 
+              : '1px solid rgba(0, 0, 0, 0.05)'};
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: ${theme.isDarkMode 
+              ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)'};
           }
 
           .color-button::before {
@@ -569,11 +577,18 @@ export default function EditNote({ route }: { route: any }) {
 
           .color-button:active {
             transform: scale(0.96);
+            box-shadow: ${theme.isDarkMode 
+              ? '0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)' 
+              : '0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)'};
+          }
+
+          .color-button:hover {
+            transform: scale(1.05);
           }
 
           .color-button.selected {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+            border-color: ${theme.accentColor};
           }
 
           .color-button.selected::after {
@@ -590,17 +605,23 @@ export default function EditNote({ route }: { route: any }) {
             min-width: 44px;
             height: 44px;
             padding: 0;
-            background: ${theme.isDarkMode ? '#2C2C2E' : theme.secondaryBackground};
-            border: none;
-            border-radius: 12px;
+            background: transparent;
+            border: ${theme.isDarkMode 
+              ? '1px solid rgba(255, 255, 255, 0.1)' 
+              : '1px solid rgba(0, 0, 0, 0.05)'};
+            border-radius: 16px;
             color: ${theme.textColor};
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             font-weight: 600;
             position: relative;
             overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: ${theme.isDarkMode 
+              ? '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)' 
+              : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)'};
           }
 
           .toolbar button::after {
@@ -610,7 +631,6 @@ export default function EditNote({ route }: { route: any }) {
             left: 0;
             right: 0;
             bottom: 0;
-            background: ${theme.accentColor};
             opacity: 0;
             transition: opacity 0.25s ease;
             z-index: 1;
@@ -623,17 +643,24 @@ export default function EditNote({ route }: { route: any }) {
           }
 
           .toolbar button:active {
-            transform: scale(0.94);
+            transform: scale(0.96);
+            box-shadow: ${theme.isDarkMode 
+              ? '0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)' 
+              : '0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.6)'};
           }
 
-          .toolbar button.active::after {
-            opacity: 1;
+          .toolbar button:hover {
+            transform: scale(1.05);
           }
+
 
           .toolbar button.active {
-            box-shadow: 0 3px 12px ${theme.accentColor}35;
-            transform: translateY(-1.5px);
+            box-shadow: ${theme.isDarkMode 
+              ? `inset 0 0 0 2px ${theme.accentColor}` 
+              : `inset 0 0 0 2px ${theme.accentColor}80`};
+            transform: scale(1.05);
           }
+
 
 
           .format-icon {
@@ -665,9 +692,17 @@ export default function EditNote({ route }: { route: any }) {
             transition: all 0.3s ease;
           }
 
-          .bold-icon:hover {
+          .bold-icon:hover,
+          .italic-icon:hover,
+          .underline-icon:hover {
             color: ${theme.accentColor};
             transform: scale(1.1);
+          }
+
+          .bold-icon:hover path,
+          .italic-icon:hover path,
+          .underline-icon:hover path {
+            stroke: ${theme.accentColor};
           }
 
           .underline-icon {
@@ -875,40 +910,6 @@ export default function EditNote({ route }: { route: any }) {
           }
 
 
-          .toolbar button.active .format-icon {
-            transform: scale(1.1);
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            color: #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon::before,
-          .toolbar button.active .format-icon::after {
-            background: #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon.list-ul::before {
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon.list-ul::after {
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon.align::before {
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon.align-left::before {
-            box-shadow: 0 6px 0 #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon.align-center::before {
-            box-shadow: 0 6px 0 #FFFFFF, 0 12px 0 #FFFFFF;
-          }
-
-          .toolbar button.active .format-icon.align-right::before {
-            box-shadow: 0 6px 0 #FFFFFF;
-          }
 
           .highlight-icon {
             position: relative;
@@ -941,9 +942,6 @@ export default function EditNote({ route }: { route: any }) {
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
           }
 
-          .toolbar button.active .highlight-icon::after {
-            background: #FFFFFF;
-          }
 
           .no-color-icon {
             position: relative;
@@ -1149,7 +1147,7 @@ export default function EditNote({ route }: { route: any }) {
             font-size: 24px;
             font-weight: 300;
             color: ${theme.accentColor};
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
           }
 

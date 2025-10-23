@@ -1022,7 +1022,7 @@ export default function HomeScreen() {
       borderRadius: 20,
       padding: 16,
       marginBottom: 14,
-      height: 200,
+      height: 180,
       flexDirection: 'column',
       shadowColor: theme.isDarkMode ? '#000' : 'transparent',
       shadowOffset: {
@@ -1323,7 +1323,7 @@ export default function HomeScreen() {
     },
     gridCard: {
       width: (SCREEN_WIDTH - (wp(5) * 2) - wp(4)) / 2,
-      height: 180,
+      height: 160,
       backgroundColor: theme.secondaryBackground,
       borderRadius: 20,
       padding: 14,

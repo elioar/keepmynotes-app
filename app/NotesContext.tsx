@@ -38,6 +38,7 @@ export interface Note {
   tasks?: TaskItem[];
   color?: string;
   tags?: string[];
+  category?: string;
   isSynced?: boolean;
 }
 
@@ -284,6 +285,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
           tasks: d.tasks ?? [],
           color: d.color ?? '',
           tags: d.tags ?? [],
+          category: d.category ?? '',
           isSynced: !doc.metadata.hasPendingWrites
         };
       });
@@ -343,6 +345,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
             const notesArray = snapshot.docs.map(doc => ({
               ...doc.data(),
               id: doc.id,
+              category: doc.data().category ?? '',
               isSynced: !doc.metadata.hasPendingWrites
             })) as Note[];
 
@@ -761,6 +764,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
         })) : [],
         color: note.color,
         tags: Array.isArray(note.tags) ? note.tags : [],
+        category: note.category || '',
         createdAt: note.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isSynced: false

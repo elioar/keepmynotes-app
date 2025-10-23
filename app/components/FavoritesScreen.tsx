@@ -117,8 +117,11 @@ const DraggableNoteCard = ({
   const scale = useSharedValue(1);
   const zIndex = useSharedValue(0);
   const opacity = useSharedValue(1);
-  const shadowOpacity = useSharedValue(theme.isDarkMode ? 0.1 : 0);
+  const shadowOpacity = useSharedValue(theme.isDarkMode ? 0.15 : 0.05);
   const rotateZ = useSharedValue('0deg');
+  const cardElevation = useSharedValue(theme.isDarkMode ? 4 : 2);
+  const favoriteScale = useSharedValue(1);
+  const favoriteOpacity = useSharedValue(1);
   
   const triggerHaptic = () => {
     if (Platform.OS === 'ios') {
@@ -130,10 +133,11 @@ const DraggableNoteCard = ({
     .activateAfterLongPress(300)
     .onStart(() => {
       runOnJS(triggerHaptic)();
-      scale.value = withSpring(1.05, { damping: 15, stiffness: 300 });
+      scale.value = withSpring(1.08, { damping: 12, stiffness: 200 });
       zIndex.value = 1000;
-      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.3 : 0, { duration: 200 });
-      rotateZ.value = withSpring('1deg', { damping: 15 });
+      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.4 : 0.15, { duration: 200 });
+      rotateZ.value = withSpring('2deg', { damping: 12 });
+      cardElevation.value = withTiming(12, { duration: 200 });
     })
     .onUpdate((event) => {
       translateY.value = event.translationY;
@@ -147,18 +151,20 @@ const DraggableNoteCard = ({
         runOnJS(onDragEnd)(index, clampedToIndex);
       }
       
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+      translateY.value = withSpring(0, { damping: 15, stiffness: 200 });
+      scale.value = withSpring(1, { damping: 12, stiffness: 200 });
       zIndex.value = 0;
-      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.1 : 0, { duration: 200 });
-      rotateZ.value = withSpring('0deg', { damping: 15 });
+      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.15 : 0.05, { duration: 200 });
+      rotateZ.value = withSpring('0deg', { damping: 12 });
+      cardElevation.value = withTiming(theme.isDarkMode ? 4 : 2, { duration: 200 });
     })
     .onFinalize(() => {
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+      translateY.value = withSpring(0, { damping: 15, stiffness: 200 });
+      scale.value = withSpring(1, { damping: 12, stiffness: 200 });
       zIndex.value = 0;
-      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.1 : 0, { duration: 200 });
-      rotateZ.value = withSpring('0deg', { damping: 15 });
+      shadowOpacity.value = withTiming(theme.isDarkMode ? 0.15 : 0.05, { duration: 200 });
+      rotateZ.value = withSpring('0deg', { damping: 12 });
+      cardElevation.value = withTiming(theme.isDarkMode ? 4 : 2, { duration: 200 });
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -170,93 +176,185 @@ const DraggableNoteCard = ({
     zIndex: zIndex.value,
     shadowOpacity: shadowOpacity.value,
     opacity: opacity.value,
+    elevation: cardElevation.value,
   }));
+
+  const favoriteAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: favoriteScale.value }],
+    opacity: favoriteOpacity.value,
+  }));
+
+  // Υπολογισμός προτεραιότητας και status
+  const getPriorityColor = () => {
+    if (note.priority === 'high') return '#FF4E4E';
+    if (note.priority === 'medium') return '#FFA726';
+    if (note.priority === 'low') return '#4CAF50';
+    return theme.accentColor;
+  };
+
+  const getTaskCompletionPercentage = () => {
+    if (!note.tasks || note.tasks.length === 0) return 0;
+    const completed = note.tasks.filter((t: any) => t.isCompleted).length;
+    return (completed / note.tasks.length) * 100;
+  };
 
   const cardStyles = StyleSheet.create({
     noteCardContainer: {
       marginBottom: CARD_MARGIN,
+      marginHorizontal: 4,
     },
     noteCardGradient: {
-      borderRadius: 20,
-      padding: 1.5,
+      borderRadius: 24,
+      padding: 2,
     },
     noteCard: {
       borderRadius: 18,
       padding: 16,
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      height: CARD_HEIGHT,
-      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
+      flexDirection: 'column',
+      minHeight: CARD_HEIGHT,
+      shadowColor: theme.isDarkMode ? '#000' : '#000',
       shadowOffset: {
         width: 0,
-        height: theme.isDarkMode ? 2 : 0,
+        height: theme.isDarkMode ? 4 : 2,
       },
-      shadowOpacity: theme.isDarkMode ? 0.08 : 0,
-      shadowRadius: theme.isDarkMode ? 8 : 0,
-      elevation: theme.isDarkMode ? 3 : 0,
+      shadowOpacity: theme.isDarkMode ? 0.15 : 0.05,
+      shadowRadius: theme.isDarkMode ? 12 : 8,
+      elevation: theme.isDarkMode ? 4 : 2,
       borderWidth: 1,
-      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
     },
-    dragHandle: {
-      width: 20,
-      marginRight: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 2.5,
-      paddingVertical: 8,
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      marginBottom: 8,
     },
-    dragLine: {
-      width: 3,
-      height: 14,
-      borderRadius: 2,
-      opacity: 0.3,
+    cardLeft: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    categoryBadge: {
+      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
+      marginRight: 10,
+    },
+    categoryText: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
     },
     noteContent: {
       flex: 1,
-      marginRight: 12,
     },
     noteTitleRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 4,
-    },
-    noteIcon: {
-      marginRight: 6,
+      marginBottom: 6,
     },
     noteTitle: {
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 18,
+      fontWeight: '700',
       flex: 1,
-      letterSpacing: 0.1,
+      letterSpacing: 0.2,
+      lineHeight: 24,
+    },
+    priorityIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginLeft: 8,
     },
     noteDescription: {
-      fontSize: 13,
-      lineHeight: 18,
-      marginTop: 4,
-      opacity: 0.65,
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 6,
+      opacity: 0.75,
     },
-    taskPreview: {
+    cardFooter: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 6,
-      gap: 5,
+      justifyContent: 'space-between',
+      marginTop: 'auto',
+    },
+    leftFooterContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    taskProgressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    taskProgressBar: {
+      width: 60,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      overflow: 'hidden',
+    },
+    taskProgressFill: {
+      height: '100%',
+      borderRadius: 2,
     },
     taskCount: {
+      fontSize: 12,
+      fontWeight: '600',
+      opacity: 0.8,
+    },
+    cardActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    tagContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginBottom: 6,
+    },
+    tag: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    tagText: {
       fontSize: 11,
-      fontWeight: '500',
-      opacity: 0.7,
+      fontWeight: '600',
+      opacity: 0.8,
     },
     favoriteButton: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      overflow: 'hidden',
+      backgroundColor: theme.isDarkMode ? 'rgba(255, 78, 78, 0.1)' : 'rgba(255, 78, 78, 0.08)',
+      borderWidth: 1.5,
+      borderColor: theme.isDarkMode ? 'rgba(255, 78, 78, 0.3)' : 'rgba(255, 78, 78, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    favoriteGradient: {
+    favoriteButtonInner: {
       width: '100%',
       height: '100%',
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    dateContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    dateText: {
+      fontSize: 11,
+      fontWeight: '500',
+      opacity: 0.6,
     },
   });
 
@@ -280,76 +378,136 @@ const DraggableNoteCard = ({
             <View style={cardStyles.noteCardContainer}>
               <TouchableOpacity 
                 onPress={() => onPress(note)}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <View style={[cardStyles.noteCard, { backgroundColor: theme.secondaryBackground }]}>
-                  {/* Drag Handle - vertical bars */}
-                  <View style={cardStyles.dragHandle}>
-                    <View style={[cardStyles.dragLine, { backgroundColor: theme.placeholderColor }]} />
-                    <View style={[cardStyles.dragLine, { backgroundColor: theme.placeholderColor }]} />
-                  </View>
-                  
-                  {/* Note Content */}
-                  <View style={cardStyles.noteContent}>
-                    <View style={cardStyles.noteTitleRow}>
-                      <Ionicons 
-                        name={note.type === 'task' ? 'checkbox-outline' : 'document-text-outline'} 
-                        size={18} 
-                        color={theme.accentColor}
-                        style={cardStyles.noteIcon}
-                      />
-                      <Text style={[cardStyles.noteTitle, { color: theme.textColor }]} numberOfLines={1}>
-                        <HighlightText 
-                          text={note.title}
-                          highlight={searchQuery}
-                          style={cardStyles.noteTitle}
-                        />
-                      </Text>
+                  {/* Card Header */}
+                  <View style={cardStyles.cardHeader}>
+                    <View style={cardStyles.cardLeft}>
+                      {/* Note Content */}
+                      <View style={cardStyles.noteContent}>
+                        <View style={cardStyles.noteTitleRow}>
+                          <Text style={[cardStyles.noteTitle, { color: theme.textColor }]} numberOfLines={1}>
+                            <HighlightText 
+                              text={note.title}
+                              highlight={searchQuery}
+                              style={cardStyles.noteTitle}
+                            />
+                          </Text>
+                          {note.priority && (
+                            <View style={[cardStyles.priorityIndicator, { backgroundColor: getPriorityColor() }]} />
+                          )}
+                        </View>
+                        
+                        {note.description && (
+                          <Text style={[cardStyles.noteDescription, { color: theme.placeholderColor }]} numberOfLines={2}>
+                            <HighlightText 
+                              text={note.description}
+                              highlight={searchQuery}
+                              style={cardStyles.noteDescription}
+                            />
+                          </Text>
+                        )}
+                      </View>
                     </View>
                     
-                    {note.description && (
-                      <Text style={[cardStyles.noteDescription, { color: theme.placeholderColor }]} numberOfLines={2}>
-                        <HighlightText 
-                          text={note.description}
-                          highlight={searchQuery}
-                          style={cardStyles.noteDescription}
-                        />
-                      </Text>
-                    )}
-                    
-                    {note.tasks && note.tasks.length > 0 && (
-                      <View style={cardStyles.taskPreview}>
+                    {/* Favorite Button */}
+                    <TouchableOpacity 
+                      style={cardStyles.favoriteButton}
+                      onPress={() => {
+                        favoriteScale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
+                        favoriteOpacity.value = withTiming(0.7, { duration: 100 });
+                        setTimeout(() => {
+                          favoriteScale.value = withSpring(1, { damping: 15, stiffness: 300 });
+                          favoriteOpacity.value = withTiming(1, { duration: 100 });
+                        }, 100);
+                        onFavorite(note);
+                      }}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      activeOpacity={1}
+                    >
+                      <Reanimated.View style={[cardStyles.favoriteButtonInner, favoriteAnimatedStyle]}>
                         <Ionicons 
-                          name="checkmark-circle-outline" 
-                          size={12} 
-                          color={theme.accentColor}
+                          name="heart"
+                          size={18} 
+                          color="#FF4E4E"
                         />
-                        <Text style={[cardStyles.taskCount, { color: theme.placeholderColor }]}>
-                          {note.tasks.filter((t: any) => t.isCompleted).length}/{note.tasks.length} tasks
+                      </Reanimated.View>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Tags */}
+                  {note.tags && note.tags.length > 0 && (
+                    <View style={cardStyles.tagContainer}>
+                      {note.tags.slice(0, 3).map((tag: string, tagIndex: number) => (
+                        <View key={tagIndex} style={cardStyles.tag}>
+                          <Text style={[cardStyles.tagText, { color: theme.textColor }]}>
+                            #{tag}
+                          </Text>
+                        </View>
+                      ))}
+                      {note.tags.length > 3 && (
+                        <View style={cardStyles.tag}>
+                          <Text style={[cardStyles.tagText, { color: theme.textColor }]}>
+                            +{note.tags.length - 3}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  
+                  {/* Card Footer */}
+                  <View style={cardStyles.cardFooter}>
+                    <View style={cardStyles.leftFooterContainer}>
+                      {/* Category */}
+                      <View style={cardStyles.categoryBadge}>
+                        <Text style={[cardStyles.categoryText, { color: theme.textColor }]}>
+                          {note.category || 
+                           (note.tags && note.tags.length > 0 ? note.tags[0] : 
+                            note.type === 'task' ? 'Task' : 
+                            note.type === 'checklist' ? 'Checklist' : 
+                            'Note')}
                         </Text>
                       </View>
-                    )}
+                      
+                      {/* Task Progress */}
+                      {note.tasks && note.tasks.length > 0 && (
+                        <View style={cardStyles.taskProgressContainer}>
+                          <View style={cardStyles.taskProgressBar}>
+                            <View 
+                              style={[
+                                cardStyles.taskProgressFill, 
+                                { 
+                                  width: `${getTaskCompletionPercentage()}%`,
+                                  backgroundColor: getTaskCompletionPercentage() === 100 ? '#4CAF50' : theme.accentColor
+                                }
+                              ]} 
+                            />
+                          </View>
+                          <Text style={[cardStyles.taskCount, { color: theme.placeholderColor }]}>
+                            {note.tasks.filter((t: any) => t.isCompleted).length}/{note.tasks.length}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <View style={cardStyles.cardActions}>
+                      {/* Date */}
+                      <View style={cardStyles.dateContainer}>
+                        <Ionicons 
+                          name="time-outline" 
+                          size={12} 
+                          color={theme.placeholderColor}
+                        />
+                        <Text style={[cardStyles.dateText, { color: theme.placeholderColor }]}>
+                          {new Date(note.createdAt).toLocaleDateString('el-GR', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-
-                  {/* Favorite Button */}
-                  <TouchableOpacity 
-                    style={cardStyles.favoriteButton}
-                    onPress={() => onFavorite(note)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <LinearGradient
-                      colors={['#FF4E4E', '#FF6B9D']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={cardStyles.favoriteGradient}
-                    >
-                      <Ionicons 
-                        name="heart"
-                        size={18} 
-                        color="#FFF"
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             </View>
@@ -426,7 +584,7 @@ export default function FavoritesScreen() {
   };
 
   const handleNotePress = (note: any) => {
-    navigation.navigate('Task', { note });
+    navigation.navigate('Task', { noteId: note.id });
   };
 
   const styles = StyleSheet.create({
@@ -531,17 +689,6 @@ export default function FavoritesScreen() {
       fontSize: 17,
       marginLeft: 12,
       fontWeight: '500',
-    },
-    dragHint: {
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      alignItems: 'center',
-    },
-    dragHintText: {
-      color: theme.placeholderColor,
-      fontSize: 13,
-      fontWeight: '500',
-      opacity: 0.6,
     },
     
     // Minimal Empty State Styles
@@ -715,18 +862,6 @@ export default function FavoritesScreen() {
             </View>
           </MotiView>
 
-          {!searchQuery && filteredFavoriteNotes.length > 0 && (
-            <MotiView
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: 'timing', duration: 600, delay: 200 }}
-              style={styles.dragHint}
-            >
-              <Text style={styles.dragHintText}>
-                ↕️ Πατήστε παρατεταμένα μια κάρτα για αναδιάταξη
-              </Text>
-            </MotiView>
-          )}
 
           {filteredFavoriteNotes.length > 0 ? (
             <Reanimated.ScrollView 

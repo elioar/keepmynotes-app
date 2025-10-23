@@ -1286,57 +1286,88 @@ export default function HomeScreen() {
     // Skeleton styles
     skeletonCardList: {
       backgroundColor: theme.secondaryBackground,
-      borderRadius: wp(4),
-      padding: wp(4),
-      marginBottom: hp(2),
-      minHeight: hp(20),
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 14,
+      height: 180,
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
+      shadowOffset: {
+        width: 0,
+        height: theme.isDarkMode ? 2 : 0,
+      },
+      shadowOpacity: theme.isDarkMode ? 0.06 : 0,
+      shadowRadius: theme.isDarkMode ? 8 : 0,
+      elevation: theme.isDarkMode ? 3 : 0,
+      overflow: 'hidden',
     },
     skeletonCardGrid: {
-      width: (SCREEN_WIDTH - (wp(5) * 2) - wp(4)) / 2,
-      minHeight: hp(18),
+      width: (SCREEN_WIDTH - wp(4) * 3) / 2,
+      height: 160,
       backgroundColor: theme.secondaryBackground,
-      borderRadius: wp(4),
-      padding: wp(3),
-      marginBottom: hp(2),
+      borderRadius: 20,
+      padding: 14,
+      marginBottom: 16,
+      marginHorizontal: wp(2),
+      borderWidth: 1,
+      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)',
+      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
+      shadowOffset: {
+        width: 0,
+        height: theme.isDarkMode ? 2 : 0,
+      },
+      shadowOpacity: theme.isDarkMode ? 0.06 : 0,
+      shadowRadius: theme.isDarkMode ? 8 : 0,
+      elevation: theme.isDarkMode ? 3 : 0,
+      overflow: 'hidden',
     },
     skeletonHeaderRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: hp(1),
+      marginBottom: 12,
     },
     skeletonTag: {
-      width: 80,
+      width: 70,
       height: 12,
       borderRadius: 6,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
     },
     skeletonFavDot: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
     },
     skeletonTitle: {
-      width: '70%',
-      height: 16,
-      borderRadius: 8,
+      width: '60%',
+      height: 20,
+      borderRadius: 10,
       backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-      marginBottom: 8,
+      marginBottom: 12,
     },
     skeletonLine: {
       width: '100%',
-      height: 12,
-      borderRadius: 6,
+      height: 16,
+      borderRadius: 8,
       backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-      marginTop: 6,
+      marginBottom: 8,
     },
     skeletonLineShort: {
-      width: '60%',
-      height: 12,
-      borderRadius: 6,
+      width: '70%',
+      height: 16,
+      borderRadius: 8,
       backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-      marginTop: 6,
+    },
+    skeletonSyncBadge: {
+      position: 'absolute',
+      bottom: 8,
+      right: 8,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: theme.isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
     },
     emptyCtaPrimary: {
       marginTop: 12,
@@ -2474,27 +2505,24 @@ export default function HomeScreen() {
                         <View style={styles.skeletonTag} />
                         <View style={styles.skeletonFavDot} />
                       </View>
-                      <View>
-                        <View style={styles.skeletonTitle} />
-                        <View style={styles.skeletonLine} />
-                        <View style={styles.skeletonLineShort} />
-                      </View>
+                      <View style={styles.skeletonTitle} />
+                      <View style={styles.skeletonLine} />
+                      <View style={styles.skeletonLineShort} />
                     </Animated.View>
                   ) : (
                     <Animated.View
                       key={`skeleton-list-${idx}`}
                       style={styles.skeletonCardList}
                     >
+                      <View style={styles.skeletonSyncBadge} />
                       <View style={styles.skeletonHeaderRow}>
                         <View style={styles.skeletonTag} />
                         <View style={styles.skeletonFavDot} />
                       </View>
-                      <View>
-                        <View style={styles.skeletonTitle} />
-                        <View style={styles.skeletonLine} />
-                        <View style={styles.skeletonLine} />
-                        <View style={styles.skeletonLineShort} />
-                      </View>
+                      <View style={styles.skeletonTitle} />
+                      <View style={styles.skeletonLine} />
+                      <View style={styles.skeletonLine} />
+                      <View style={styles.skeletonLineShort} />
                     </Animated.View>
                   )
                 ))}

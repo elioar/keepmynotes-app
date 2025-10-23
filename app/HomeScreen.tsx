@@ -22,7 +22,7 @@ import {
   Switch,
   FlatList,
 } from 'react-native';
-import Reanimated, { Layout } from 'react-native-reanimated';
+import Reanimated, { Layout, FadeIn, FadeOut, ZoomIn, ZoomOut, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { MotiView, AnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -304,7 +304,10 @@ export default function HomeScreen() {
   const { theme, toggleColorScheme, appTheme } = useTheme();
   const { t } = useLanguage();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const searchWidthAnim = useRef(new Animated.Value(48)).current;
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<TagColor | null>(null);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({
     tags: [],
     favorites: null,
@@ -318,6 +321,7 @@ export default function HomeScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [isGridView, setIsGridView] = useState(false);
   const [isViewPreferenceLoaded, setIsViewPreferenceLoaded] = useState(false);
+  const [isSwitchingView, setIsSwitchingView] = useState(false);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
@@ -413,6 +417,34 @@ export default function HomeScreen() {
     setIsSideMenuOpen(!isSideMenuOpen);
   };
 
+  const toggleSearchBar = () => {
+    const toValue = isSearchExpanded ? 48 : SCREEN_WIDTH - wp(10);
+    
+    Animated.spring(searchWidthAnim, {
+      toValue,
+      useNativeDriver: false,
+      tension: 80,
+      friction: 10,
+    }).start();
+
+    if (!isSearchExpanded) {
+      setIsSearchExpanded(true);
+    }
+  };
+
+  const collapseSearchBar = () => {
+    if (searchQuery.length === 0 && isSearchExpanded) {
+      Animated.spring(searchWidthAnim, {
+        toValue: 48,
+        useNativeDriver: false,
+        tension: 80,
+        friction: 10,
+      }).start();
+      setIsSearchExpanded(false);
+      setIsSearchFocused(false);
+    }
+  };
+
   // Add logging to see notes on mount
   useEffect(() => {
     // Απλά φορτώνουμε τις σημειώσεις χωρίς περιττές καταγραφές
@@ -469,12 +501,15 @@ export default function HomeScreen() {
   // Save view preference when it changes
   const toggleViewMode = async () => {
     const newMode = !isGridView;
+    setIsSwitchingView(true);
     try {
       await AsyncStorage.setItem('@view_preference', newMode ? 'grid' : 'list');
       setIsGridView(newMode);
     } catch (error) {
       console.error('Error saving view preference:', error);
       setIsGridView(newMode); // Still update the state even if saving fails
+    } finally {
+      setTimeout(() => setIsSwitchingView(false), 500);
     }
   };
 
@@ -932,6 +967,21 @@ export default function HomeScreen() {
     setShowActionMenu(true);
   }, []);
 
+  const handleCategorySelect = useCallback((category: TagColor | null) => {
+    if (selectedCategory === category) {
+      // Deselect if clicking the same category
+      setSelectedCategory(null);
+      setCurrentFilters(prev => ({ ...prev, tags: [] }));
+    } else {
+      setSelectedCategory(category);
+      setCurrentFilters(prev => ({ 
+        ...prev, 
+        tags: category ? [category] : [] 
+      }));
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [selectedCategory]);
+
   const styles = useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
@@ -985,31 +1035,45 @@ export default function HomeScreen() {
       alignItems: 'center',
       marginTop: hp(1),
     },
+    searchAndCategoriesRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 24,
+      marginBottom: 20,
+      gap: 8,
+      minHeight: 52,
+    },
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: theme.secondaryBackground,
-      marginTop: 24,
-      marginBottom: 20,
-      borderRadius: 20,
-      paddingHorizontal: 18,
-      height: 58,
-      shadowColor: theme.isDarkMode ? '#000' : 'transparent',
+      borderRadius: 24,
+      paddingHorizontal: 14,
+      height: 48,
+      shadowColor: isSearchFocused ? theme.accentColor : '#000',
       shadowOffset: {
         width: 0,
-        height: theme.isDarkMode ? 3 : 0,
+        height: isSearchFocused ? 8 : 3,
       },
-      shadowOpacity: theme.isDarkMode ? (isSearchFocused ? 0.2 : 0.08) : 0,
-      shadowRadius: theme.isDarkMode ? (isSearchFocused ? 10 : 5) : 0,
-      elevation: theme.isDarkMode ? (isSearchFocused ? 8 : 3) : 0,
+      shadowOpacity: isSearchFocused ? 0.6 : 0.1,
+      shadowRadius: isSearchFocused ? 16 : 6,
+      elevation: isSearchFocused ? 12 : 4,
+    },
+    searchInnerBorder: {
+      position: 'absolute',
+      top: 1,
+      left: 1,
+      right: 1,
+      bottom: 1,
+      borderRadius: 23,
       borderWidth: 2,
-      borderColor: isSearchFocused ? theme.accentColor : 'transparent',
+      pointerEvents: 'none',
     },
     searchInput: {
       flex: 1,
       color: theme.textColor,
-      fontSize: 17,
-      marginLeft: 12,
+      fontSize: 15,
+      marginLeft: 10,
       fontWeight: '500',
     },
     notesContainer: {
@@ -1120,7 +1184,7 @@ export default function HomeScreen() {
       width: 80,
       marginLeft: 8,
       marginBottom: 14,
-      height: 200,
+      height: 180,
       borderRadius: 20,
       overflow: 'hidden',
     },
@@ -1676,6 +1740,73 @@ export default function HomeScreen() {
       fontWeight: '600',
       letterSpacing: 0.2,
     },
+    categoriesContainer: {
+      flex: 1,
+      height: 52,
+      justifyContent: 'center',
+    },
+    categoriesScrollView: {
+      paddingLeft: 2,
+      paddingRight: wp(5),
+      paddingVertical: 2,
+    },
+    categoryChip: {
+      paddingHorizontal: 14,
+      height: 44,
+      borderRadius: 22,
+      marginRight: 10,
+      marginVertical: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+    },
+    categoryInnerBorder: {
+      position: 'absolute',
+      top: 1,
+      left: 1,
+      right: 1,
+      bottom: 1,
+      borderRadius: 21,
+      pointerEvents: 'none',
+    },
+    categoryChipGlow: {
+      shadowOffset: {
+        width: 0,
+        height: 6,
+      },
+      shadowOpacity: 0.7,
+      shadowRadius: 16,
+      elevation: 12,
+    },
+    categoryChipNormal: {
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    categoryChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.2,
+    },
+    categoryDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      shadowColor: '#FFF',
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: 0.8,
+      shadowRadius: 4,
+      elevation: 4,
+    },
     
   }), [theme, isSearchFocused, isGridView, isSideMenuOpen, appTheme, isUserLoggedIn]);
 
@@ -1693,6 +1824,8 @@ export default function HomeScreen() {
     onDelete: (noteId: string) => void;
     getTimeAgo: (dateString: string) => string;
     t: (key: any) => string;
+    index?: number;
+    isGridView?: boolean;
   }
 
   const NoteCard = memo(({ 
@@ -1730,7 +1863,11 @@ export default function HomeScreen() {
     }, [note, onAddTag]);
 
     return (
-      <Reanimated.View layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}>
+      <Reanimated.View 
+        layout={Layout.springify().damping(15).stiffness(200).mass(0.8)}
+        entering={isSwitchingView ? FadeIn.duration(200) : undefined}
+        exiting={isSwitchingView ? FadeOut.duration(150) : undefined}
+      >
         <View>
           <Swipeable
             renderRightActions={(progress, dragX) => {
@@ -1875,6 +2012,7 @@ export default function HomeScreen() {
     onFavorite: (note: Note) => void;
     onAddTag: (note: Note) => void;
     t: (key: any) => string;
+    index?: number;
   }
 
   const GridCard = memo(({ 
@@ -1904,7 +2042,11 @@ export default function HomeScreen() {
     }, [note, onAddTag]);
 
     return (
-      <Reanimated.View layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}>
+      <Reanimated.View 
+        layout={Layout.springify().damping(12).stiffness(260).mass(0.6)}
+        entering={isSwitchingView ? ZoomIn.duration(220) : undefined}
+        exiting={isSwitchingView ? ZoomOut.duration(160) : undefined}
+      >
         <View>
           <Pressable 
             style={styles.gridCard}
@@ -1966,7 +2108,7 @@ export default function HomeScreen() {
   });
 
   // Memoized renderItem function
-  const renderItem = useCallback(({ item: note }: { item: Note }) => {
+  const renderItem = useCallback(({ item: note, index }: { item: Note, index: number }) => {
     if (isGridView) {
       return (
         <GridCard
@@ -1978,6 +2120,7 @@ export default function HomeScreen() {
           onFavorite={handleNoteCardFavorite}
           onAddTag={handleNoteCardAddTag}
           t={t}
+          index={index}
         />
       );
     } else {
@@ -1995,6 +2138,8 @@ export default function HomeScreen() {
           onDelete={handleDelete}
           getTimeAgo={getTimeAgo}
           t={t}
+          index={index}
+          isGridView={isGridView}
         />
       );
     }
@@ -2020,38 +2165,159 @@ export default function HomeScreen() {
 
   // Memoized header component to prevent animation restarts
   const ListHeaderComponent = useMemo(() => {
+    const categories: Array<{ key: TagColor; label: string; color: string }> = [
+      { key: 'green', label: TAG_LABELS.green, color: TAG_COLORS.green },
+      { key: 'purple', label: TAG_LABELS.purple, color: TAG_COLORS.purple },
+      { key: 'blue', label: TAG_LABELS.blue, color: TAG_COLORS.blue },
+      { key: 'orange', label: TAG_LABELS.orange, color: TAG_COLORS.orange },
+      { key: 'red', label: TAG_LABELS.red, color: TAG_COLORS.red },
+    ];
+
     return () => (
       <>
-        <View style={styles.searchContainer}>
-            <Ionicons 
-              name="search-outline" 
-              size={22} 
-              color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('searchHere')}
-              placeholderTextColor={theme.placeholderColor}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-              autoCorrect={false}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity 
-                onPress={() => setSearchQuery('')}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
+        <View style={styles.searchAndCategoriesRow}>
+          <Animated.View style={[styles.searchContainer, { width: searchWidthAnim }]}>
+              <View 
+                style={[
+                  styles.searchInnerBorder,
+                  {
+                    borderColor: isSearchFocused 
+                      ? theme.accentColor 
+                      : theme.isDarkMode 
+                        ? 'rgba(255, 255, 255, 0.15)' 
+                        : 'rgba(0, 0, 0, 0.08)',
+                    borderWidth: isSearchFocused ? 2 : 1.5,
+                  }
+                ]}
+              />
+              <TouchableOpacity onPress={toggleSearchBar} style={{ zIndex: 1 }}>
                 <Ionicons 
-                  name="close-circle" 
-                  size={22} 
+                  name="search-outline" 
+                  size={20} 
                   color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
                 />
               </TouchableOpacity>
-            )}
-          </View>
+              {isSearchExpanded && (
+                <>
+                  <TextInput
+                    style={[styles.searchInput, { zIndex: 1 }]}
+                    placeholder={t('searchHere')}
+                    placeholderTextColor={theme.placeholderColor}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onFocus={() => {
+                      setIsSearchFocused(true);
+                      if (!isSearchExpanded) {
+                        toggleSearchBar();
+                      }
+                    }}
+                    onBlur={() => {
+                      setIsSearchFocused(false);
+                      collapseSearchBar();
+                    }}
+                    autoFocus
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setSearchQuery('');
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={{ zIndex: 1 }}
+                    >
+                      <Ionicons 
+                        name="close-circle" 
+                        size={20} 
+                        color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                      />
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </Animated.View>
+
+          {/* Categories ScrollView - Hidden when search is expanded */}
+          {!isSearchExpanded && (
+            <View style={styles.categoriesContainer}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesScrollView}
+              >
+                {categories.map((category) => {
+                  const isSelected = selectedCategory === category.key;
+                  return (
+                    <TouchableOpacity
+                      key={category.key}
+                      onPress={() => handleCategorySelect(category.key)}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        style={[
+                          styles.categoryChip,
+                          isSelected ? styles.categoryChipGlow : styles.categoryChipNormal,
+                          {
+                            backgroundColor: isSelected 
+                              ? theme.isDarkMode
+                                ? category.color + '30'
+                                : category.color + '20'
+                              : theme.secondaryBackground,
+                            shadowColor: isSelected ? category.color : '#000',
+                            transform: isSelected ? [{ scale: 1.05 }] : [{ scale: 1 }],
+                          }
+                        ]}
+                      >
+                        <View 
+                          style={[
+                            styles.categoryInnerBorder,
+                            {
+                              borderColor: isSelected 
+                                ? category.color 
+                                : theme.isDarkMode 
+                                  ? 'rgba(255, 255, 255, 0.15)' 
+                                  : 'rgba(0, 0, 0, 0.1)',
+                              borderWidth: isSelected ? 2 : 1.5,
+                            }
+                          ]}
+                        />
+                        <View 
+                          style={[
+                            styles.categoryDot, 
+                            { 
+                              backgroundColor: category.color,
+                              shadowColor: isSelected ? category.color : '#FFF',
+                              shadowOpacity: isSelected ? 1 : 0.8,
+                              shadowRadius: isSelected ? 6 : 4,
+                              zIndex: 1,
+                            }
+                          ]} 
+                        />
+                        <Text 
+                          style={[
+                            styles.categoryChipText,
+                            { 
+                              color: isSelected 
+                                ? theme.isDarkMode 
+                                  ? '#FFFFFF' 
+                                  : category.color
+                                : theme.textColor,
+                              fontWeight: isSelected ? '700' : '600',
+                              zIndex: 1,
+                            }
+                          ]}
+                        >
+                          {category.label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+        </View>
 
         {/* Simple Clear Filters Text */}
         {hasActiveFiltersMemo && (
@@ -2065,6 +2331,7 @@ export default function HomeScreen() {
                   sortBy: 'date',
                   sortOrder: 'desc',
                 });
+                setSelectedCategory(null);
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               }}
               style={styles.clearFiltersButton}
@@ -2081,12 +2348,13 @@ export default function HomeScreen() {
         )}
       </>
     );
-  }, [searchQuery, isSearchFocused, hasActiveFiltersMemo, theme.accentColor, theme.placeholderColor, t, styles]);
+  }, [searchQuery, isSearchFocused, isSearchExpanded, hasActiveFiltersMemo, selectedCategory, theme.accentColor, theme.placeholderColor, theme.textColor, theme.isDarkMode, t, styles, searchWidthAnim, toggleSearchBar, collapseSearchBar, handleCategorySelect]);
 
   return (
     <TouchableWithoutFeedback onPress={() => {
       Keyboard.dismiss();
       setIsSearchFocused(false);
+      collapseSearchBar();
       if (isSideMenuOpen) {
         toggleSideMenu();
       }
@@ -2164,6 +2432,12 @@ export default function HomeScreen() {
           </LinearGradient>
         </Animated.View>
 
+        <Reanimated.View
+          style={{ flex: 1 }}
+          entering={isSwitchingView ? FadeIn.duration(200) : undefined}
+          exiting={isSwitchingView ? FadeOut.duration(150) : undefined}
+          layout={Layout.springify().damping(14).stiffness(220)}
+        >
         <Animated.FlatList 
           style={styles.notesContainer}
           contentContainerStyle={{ 
@@ -2235,6 +2509,7 @@ export default function HomeScreen() {
                 appTheme={appTheme}
                 onClearFilters={() => {
                   setSearchQuery('');
+                  setSelectedCategory(null);
                   setCurrentFilters({
                     tags: [],
                     favorites: null,
@@ -2248,6 +2523,7 @@ export default function HomeScreen() {
             )
           )}
         />
+        </Reanimated.View>
 
         <NavigationMenu 
           onAddPress={() => setIsModalVisible(true)}

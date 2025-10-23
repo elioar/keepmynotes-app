@@ -47,6 +47,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth, GoogleSignin } from './config/firebase';
 import { signOut } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
+import Svg, { Path } from 'react-native-svg';
 
 const TAG_LABELS: Record<TagColor, string> = {
   none: 'No Category',
@@ -56,6 +57,140 @@ const TAG_LABELS: Record<TagColor, string> = {
   orange: 'Ideas',
   red: 'Important'
 };
+
+// Custom Menu Icon Component
+const MenuAlt05Icon = ({ size = 22, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M5 17H13M5 12H19M11 7H19"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+// Custom X Icon Component
+const XIcon = ({ size = 22, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M18 6L6 18M6 6L18 18"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+// Category Icons
+const WorkIcon = ({ size = 16, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M20 7L4 7M16 3L8 3M16 3L20 7M8 3L4 7M8 3V7M16 3V7M4 7V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V7M4 7H20"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const StudyIcon = ({ size = 16, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2L2 7L12 12L22 7L12 2Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M2 17L12 22L22 17"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M2 12L12 17L22 12"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const IdeasIcon = ({ size = 16, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M9 21C9 21.5523 9.44772 22 10 22H14C14.5523 22 15 21.5523 15 21V20H9V21Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M12 2C8.13401 2 5 5.13401 5 9C5 11.5 6.5 13.5 8.5 14.5V16C8.5 16.5523 8.94772 17 9.5 17H14.5C15.0523 17 15.5 16.5523 15.5 16V14.5C17.5 13.5 19 11.5 19 9C19 5.13401 15.866 2 12 2Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+const ImportantIcon = ({ size = 16, color = "#FFF" }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M12 2L15.09 8.26L22 9L17 14L18.18 21L12 17.77L5.82 21L7 14L2 9L8.91 8.26L12 2Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+  const PersonalIcon = ({ size = 16, color = "#FFF" }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+
+// Function to get category icon
+const getCategoryIcon = (categoryKey: string, size: number = 16, color: string = "#FFF") => {
+  switch (categoryKey) {
+    case 'green':
+      return <WorkIcon size={size} color={color} />;
+    case 'blue':
+      return <StudyIcon size={size} color={color} />;
+    case 'orange':
+      return <IdeasIcon size={size} color={color} />;
+    case 'red':
+      return <ImportantIcon size={size} color={color} />;
+    case 'purple':
+      return <PersonalIcon size={size} color={color} />;
+    default:
+      return <WorkIcon size={size} color={color} />;
+  }
+};
+
 
 type RootStackParamList = {
   Home: undefined;
@@ -325,6 +460,7 @@ export default function HomeScreen() {
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
+
   
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -1540,18 +1676,15 @@ export default function HomeScreen() {
     },
     burgerButton: {
       marginLeft: 10,
-      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-      borderRadius: 14,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderRadius: 16,
       opacity: 1,
-      shadowColor: '#FFF',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.6,
-      shadowRadius: 10,
-      elevation: 8,
-      width: 45,
-      height: 45,
+      width: 48,
+      height: 48,
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     sideMenu: {
       position: 'absolute',
@@ -1825,21 +1958,75 @@ export default function HomeScreen() {
       fontWeight: '600',
       letterSpacing: 0.2,
     },
-    categoryDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      shadowColor: '#FFF',
-      shadowOffset: {
-        width: 0,
-        height: 0,
-      },
-      shadowOpacity: 0.8,
-      shadowRadius: 4,
-      elevation: 4,
+    categoryIconContainer: {
+      width: 20,
+      height: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 6,
     },
     
   }), [theme, isSearchFocused, isGridView, isSideMenuOpen, appTheme, isUserLoggedIn]);
+
+  // Animated Menu Button Component - memoized to prevent re-creation
+  const AnimatedMenuButton = useCallback(({ 
+    isMenuOpen, 
+    onPress, 
+    size = 24, 
+    color = "#FFF" 
+  }: {
+    isMenuOpen: boolean;
+    onPress: () => void;
+    size?: number;
+    color?: string;
+  }) => {
+    const rotation = useRef(new Animated.Value(0)).current;
+    const scale = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(rotation, {
+          toValue: isMenuOpen ? 1 : 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: isMenuOpen ? 0.9 : 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [isMenuOpen, rotation, scale]);
+
+    const rotateInterpolate = rotation.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '180deg'],
+    });
+
+    return (
+      <TouchableOpacity 
+        style={[styles.iconButton, styles.burgerButton]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <Animated.View
+          style={{
+            transform: [
+              { rotate: rotateInterpolate },
+              { scale: scale }
+            ],
+          }}
+        >
+          {isMenuOpen ? (
+            <XIcon size={size} color={color} />
+          ) : (
+            <MenuAlt05Icon size={size} color={color} />
+          )}
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  }, [styles]);
 
   // Memoized NoteCard component for list view
   interface NoteCardProps {
@@ -2313,18 +2500,9 @@ export default function HomeScreen() {
                             }
                           ]}
                         />
-                        <View 
-                          style={[
-                            styles.categoryDot, 
-                            { 
-                              backgroundColor: category.color,
-                              shadowColor: isSelected ? category.color : '#FFF',
-                              shadowOpacity: isSelected ? 1 : 0.8,
-                              shadowRadius: isSelected ? 6 : 4,
-                              zIndex: 1,
-                            }
-                          ]} 
-                        />
+                        <View style={styles.categoryIconContainer}>
+                          {getCategoryIcon(category.key, 16, category.color)}
+                        </View>
                         <Text 
                           style={[
                             styles.categoryChipText,
@@ -2448,16 +2626,12 @@ export default function HomeScreen() {
                     )}
                   </View>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.iconButton, styles.burgerButton]}
+                <AnimatedMenuButton 
+                  isMenuOpen={isSideMenuOpen}
                   onPress={toggleSideMenu}
-                >
-                  <Ionicons 
-                    name="menu" 
-                    size={22} 
-                    color="#FFF" 
-                  />
-                </TouchableOpacity>
+                  size={24}
+                  color="#FFF"
+                />
               </View>
             </View>
           </LinearGradient>

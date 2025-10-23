@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,14 +59,14 @@ export default function NavigationMenu({ onAddPress }: Props) {
   const handleAddPress = (event: any) => {
     Animated.sequence([
       Animated.timing(addButtonAnim, {
-        toValue: 0.8,
+        toValue: 0.9,
         duration: 100,
         useNativeDriver: true,
       }),
       Animated.spring(addButtonAnim, {
         toValue: 1,
-        tension: 40,
-        friction: 7,
+        tension: 60,
+        friction: 8,
         useNativeDriver: true,
       })
     ]).start();
@@ -99,76 +99,138 @@ export default function NavigationMenu({ onAddPress }: Props) {
       bottom: 0,
       left: 0,
       right: 0,
-      height: 70 + insets.bottom,
+      height: 85 + insets.bottom,
       backgroundColor: theme.isDarkMode 
-        ? 'rgba(45, 45, 45, 0.98)'
-        : 'rgba(245, 245, 245, 0.98)',
+        ? 'rgba(25, 25, 25, 0.98)' 
+        : 'rgba(255, 255, 255, 0.98)',
       flexDirection: 'row',
-      justifyContent: 'space-around',
+      justifyContent: 'center',
       alignItems: 'center',
-      borderTopLeftRadius: 25,
-      borderTopRightRadius: 25,
-      shadowColor: '#000',
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingBottom: 15 + insets.bottom,
+      paddingTop: 20,
+      paddingHorizontal: 0,
+      // Enhanced shadow για depth
+      shadowColor: theme.isDarkMode ? '#000' : '#000',
       shadowOffset: {
         width: 0,
-        height: -2,
+        height: 0,
       },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 5,
-      paddingBottom: 10 + insets.bottom,
+      shadowOpacity: theme.isDarkMode ? 0.3 : 0.15,
+      shadowRadius: 12,
+      elevation: 20,
+    },
+    leftSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'flex-start',
+      paddingLeft: 15,
+    },
+    rightSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'flex-end',
+      paddingRight: 15,
     },
     navItem: {
       alignItems: 'center',
       justifyContent: 'center',
-      width: 50,
-      height: 50,
+      width: 55,
+      height: 55,
+      borderRadius: 16,
+      backgroundColor: 'transparent',
+      marginHorizontal: 5, // bigger spacing
     },
+    activeNavItem: {
+      backgroundColor: 'transparent',
+      borderRadius: 16,
+      width: 55,
+      height: 55,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginHorizontal: 5, // bigger spacing
+    },
+    
     addButton: {
-      width: 60,
-      height: 60,
-      borderRadius: 20,
+      width: 52,
+      height: 52,
+      borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
-    
       // Positioning (half outside the bottom bar)
       position: 'absolute',
-      bottom: -5, // half the height (60 / 2)
-      alignSelf: 'center', // centers horizontally
-    
-      // Colors & borders
-      borderWidth: 6,
-      borderColor: theme.isDarkMode ? '#000000' : '#FFFFFF', // Μαύρο για dark mode, λευκό για white mode    
-      // Prevent clipping inside parent view
+      bottom: -20,
+      alignSelf: 'center',
+      // Subtle shadow για minimal look
+      shadowColor: themeGradients[appTheme].colors[0],
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 12,
+      // Minimal border
+      borderWidth: 2,
+      borderColor: theme.isDarkMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.8)',
       zIndex: 10,
+    },
+    navLabel: {
+      fontSize: 9,
+      fontWeight: '500',
+      marginTop: 3,
+      color: theme.placeholderColor,
+      textAlign: 'center',
+    },
+    activeNavLabel: {
+      fontSize: 9,
+      fontWeight: '600',
+      marginTop: 3,
+      color: themeGradients[appTheme].colors[0],
+      textAlign: 'center',
     },
   });
 
   return (
     <>
       <View style={styles.container}>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Ionicons 
-            name={isActive('Home') ? "home" : "home-outline"} 
-            size={24} 
-            color={isActive('Home') ? theme.textColor : theme.placeholderColor} 
-          />
-        </TouchableOpacity>
+        {/* Left section - Home and Favorites */}
+        <View style={styles.leftSection}>
+          <TouchableOpacity 
+            style={isActive('Home') ? styles.activeNavItem : styles.navItem}
+            onPress={() => navigation.navigate('Home')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={isActive('Home') ? "home" : "home-outline"} 
+              size={22} 
+              color={isActive('Home') ? themeGradients[appTheme].colors[0] : theme.placeholderColor} 
+            />
+            <Text style={isActive('Home') ? styles.activeNavLabel : styles.navLabel}>
+              Αρχική
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={isActive('Favorites') ? styles.activeNavItem : styles.navItem}
+            onPress={() => navigation.navigate('Favorites')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={isActive('Favorites') ? "heart" : "heart-outline"} 
+              size={22} 
+              color={isActive('Favorites') ? themeGradients[appTheme].colors[0] : theme.placeholderColor} 
+            />
+            <Text style={isActive('Favorites') ? styles.activeNavLabel : styles.navLabel}>
+              Αγαπημένα
+            </Text>
+          </TouchableOpacity>
+        </View>
         
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Favorites')}
-        >
-          <Ionicons 
-            name={isActive('Favorites') ? "heart" : "heart-outline"} 
-            size={24} 
-            color={isActive('Favorites') ? theme.textColor : theme.placeholderColor} 
-          />
-        </TouchableOpacity>
-        
+        {/* Center - Add Button */}
         <Animated.View style={{
           transform: [{ scale: addButtonAnim }]
         }}>
@@ -186,35 +248,46 @@ export default function NavigationMenu({ onAddPress }: Props) {
                 height: '100%',
                 justifyContent: 'center',
                 alignItems: 'center',
-                borderRadius: 15,
+                borderRadius: 14,
               }}
             >
-              <Ionicons name="add" size={24} color="#fff" />
+              <Ionicons name="add" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
         
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Tasks')}
-        >
-          <Ionicons 
-            name={isActive('Tasks') ? "checkbox" : "checkbox-outline"} 
-            size={24} 
-            color={isActive('Tasks') ? theme.textColor : theme.placeholderColor} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Settings')}
-        >
-          <Ionicons 
-            name={isActive('Settings') ? "settings" : "settings-outline"} 
-            size={24} 
-            color={isActive('Settings') ? theme.textColor : theme.placeholderColor} 
-          />
-        </TouchableOpacity>
+        {/* Right section - Tasks and Settings */}
+        <View style={styles.rightSection}>
+          <TouchableOpacity 
+            style={isActive('Tasks') ? styles.activeNavItem : styles.navItem}
+            onPress={() => navigation.navigate('Tasks')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={isActive('Tasks') ? "checkbox" : "checkbox-outline"} 
+              size={22} 
+              color={isActive('Tasks') ? themeGradients[appTheme].colors[0] : theme.placeholderColor} 
+            />
+            <Text style={isActive('Tasks') ? styles.activeNavLabel : styles.navLabel}>
+              Εργασίες
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={isActive('Settings') ? styles.activeNavItem : styles.navItem}
+            onPress={() => navigation.navigate('Settings')}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={isActive('Settings') ? "settings" : "settings-outline"} 
+              size={22} 
+              color={isActive('Settings') ? themeGradients[appTheme].colors[0] : theme.placeholderColor} 
+            />
+            <Text style={isActive('Settings') ? styles.activeNavLabel : styles.navLabel}>
+              Ρυθμίσεις
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       <FloatingActionMenu

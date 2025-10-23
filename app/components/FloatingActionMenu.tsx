@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -28,58 +28,72 @@ const FloatingActionMenu = ({ visible, onClose, onSelectOption, buttonPosition }
   const { theme } = useTheme();
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const noteSlideX = useRef(new Animated.Value(-200)).current;
-  const taskSlideX = useRef(new Animated.Value(200)).current;
-  const noteScale = useRef(new Animated.Value(0.3)).current;
-  const taskScale = useRef(new Animated.Value(0.3)).current;
+  const noteSlideY = useRef(new Animated.Value(80)).current;
+  const taskSlideY = useRef(new Animated.Value(80)).current;
+  const noteScale = useRef(new Animated.Value(0.5)).current;
+  const taskScale = useRef(new Animated.Value(0.5)).current;
+  const noteOpacity = useRef(new Animated.Value(0)).current;
+  const taskOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       // Reset values
-      noteSlideX.setValue(-200);
-      taskSlideX.setValue(200);
-      noteScale.setValue(0.3);
-      taskScale.setValue(0.3);
+      noteSlideY.setValue(80);
+      taskSlideY.setValue(80);
+      noteScale.setValue(0.5);
+      taskScale.setValue(0.5);
+      noteOpacity.setValue(0);
+      taskOpacity.setValue(0);
       
       Animated.parallel([
         // Background fade in
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 300,
+          duration: 250,
           useNativeDriver: true,
         }),
-        // Note card slide in with bounce
+        // Note card smooth entrance
         Animated.sequence([
           Animated.delay(100),
           Animated.parallel([
-            Animated.spring(noteSlideX, {
+            Animated.timing(noteOpacity, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.spring(noteSlideY, {
               toValue: 0,
-              tension: 50,
-              friction: 8,
+              tension: 80,
+              friction: 10,
               useNativeDriver: true,
             }),
             Animated.spring(noteScale, {
               toValue: 1,
-              tension: 50,
-              friction: 8,
+              tension: 80,
+              friction: 10,
               useNativeDriver: true,
             }),
           ]),
         ]),
-        // Task card slide in with bounce
+        // Task card smooth entrance
         Animated.sequence([
-          Animated.delay(200),
+          Animated.delay(250),
           Animated.parallel([
-            Animated.spring(taskSlideX, {
+            Animated.timing(taskOpacity, {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.spring(taskSlideY, {
               toValue: 0,
-              tension: 50,
-              friction: 8,
+              tension: 80,
+              friction: 10,
               useNativeDriver: true,
             }),
             Animated.spring(taskScale, {
               toValue: 1,
-              tension: 50,
-              friction: 8,
+              tension: 80,
+              friction: 10,
               useNativeDriver: true,
             }),
           ]),
@@ -93,24 +107,34 @@ const FloatingActionMenu = ({ visible, onClose, onSelectOption, buttonPosition }
           useNativeDriver: true,
         }),
         Animated.parallel([
-          Animated.timing(noteSlideX, {
-            toValue: -200,
+          Animated.timing(noteOpacity, {
+            toValue: 0,
             duration: 150,
             useNativeDriver: true,
           }),
-          Animated.timing(taskSlideX, {
-            toValue: 200,
+          Animated.timing(taskOpacity, {
+            toValue: 0,
             duration: 150,
+            useNativeDriver: true,
+          }),
+          Animated.timing(noteSlideY, {
+            toValue: 80,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(taskSlideY, {
+            toValue: 80,
+            duration: 200,
             useNativeDriver: true,
           }),
           Animated.timing(noteScale, {
-            toValue: 0.3,
-            duration: 150,
+            toValue: 0.5,
+            duration: 200,
             useNativeDriver: true,
           }),
           Animated.timing(taskScale, {
-            toValue: 0.3,
-            duration: 150,
+            toValue: 0.5,
+            duration: 200,
             useNativeDriver: true,
           }),
         ]),
@@ -123,82 +147,55 @@ const FloatingActionMenu = ({ visible, onClose, onSelectOption, buttonPosition }
       flex: 1,
       backgroundColor: 'transparent',
     },
-    blurContainer: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
     actionCard: {
       position: 'absolute',
-      width: 120,
-      height: 80,
-      borderRadius: 20,
-      backgroundColor: theme.isDarkMode ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      width: 140,
+      height: 45,
+      borderRadius: 25,
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
-        height: 8,
-      },
-      shadowOpacity: theme.isDarkMode ? 0.4 : 0.15,
-      shadowRadius: 16,
-      elevation: 16,
-      borderWidth: 1,
-      borderColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
-    },
-    iconContainer: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: theme.accentColor,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: 8,
-      shadowColor: theme.accentColor,
-      shadowOffset: {
-        width: 0,
-        height: 4,
+        height: 6,
       },
       shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
+      shadowRadius: 15,
+      elevation: 25,
     },
     actionTitle: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '600',
-      color: theme.isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)',
+      color: '#fff',
       textAlign: 'center',
+      letterSpacing: 0.5,
+      marginLeft: 8,
     },
   });
 
   // Calculate positions for the action cards (horizontal layout)
   const notePosition = {
-    left: buttonPosition.x - 140,
-    top: buttonPosition.y - 50,
+    left: buttonPosition.x - 150,
+    top: buttonPosition.y - 10,
   };
 
   const taskPosition = {
-    left: buttonPosition.x + 20,
-    top: buttonPosition.y - 50,
+    left: buttonPosition.x + 10,
+    top: buttonPosition.y - 10,
   };
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         <TouchableOpacity 
-          style={StyleSheet.absoluteFill} 
+          style={[StyleSheet.absoluteFill, {
+            backgroundColor: theme.isDarkMode 
+              ? 'rgba(0, 0, 0, 0.4)' 
+              : 'rgba(0, 0, 0, 0.2)'
+          }]} 
           onPress={onClose}
           activeOpacity={1}
-        >
-          <BlurView 
-            intensity={theme.isDarkMode ? 30 : 20}
-            tint={theme.isDarkMode ? "dark" : "light"}
-            style={styles.blurContainer}
-          />
-        </TouchableOpacity>
+        />
         
         {/* Note Action Card */}
         <Animated.View
@@ -207,24 +204,37 @@ const FloatingActionMenu = ({ visible, onClose, onSelectOption, buttonPosition }
             notePosition,
             {
               transform: [
-                { translateX: noteSlideX },
+                { translateY: noteSlideY },
                 { scale: noteScale },
               ],
+              opacity: noteOpacity,
             },
           ]}
         >
           <TouchableOpacity
-            style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+            style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}
             onPress={() => {
               onClose();
               onSelectOption('note');
             }}
             activeOpacity={0.8}
           >
-            <View style={styles.iconContainer}>
-              <Ionicons name="document-text" size={22} color="#fff" />
-            </View>
-            <Text style={styles.actionTitle}>{t('addNewNote')}</Text>
+            <LinearGradient
+              colors={['#667eea', '#764ba2']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flexDirection: 'row',
+                borderRadius: 25,
+              }}
+            >
+              <Ionicons name="document-text" size={18} color="#fff" />
+              <Text style={styles.actionTitle}>{t('addNewNote')}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
 
@@ -235,24 +245,37 @@ const FloatingActionMenu = ({ visible, onClose, onSelectOption, buttonPosition }
             taskPosition,
             {
               transform: [
-                { translateX: taskSlideX },
+                { translateY: taskSlideY },
                 { scale: taskScale },
               ],
+              opacity: taskOpacity,
             },
           ]}
         >
           <TouchableOpacity
-            style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+            style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}
             onPress={() => {
               onClose();
               onSelectOption('task');
             }}
             activeOpacity={0.8}
           >
-            <View style={styles.iconContainer}>
-              <Ionicons name="checkbox" size={22} color="#fff" />
-            </View>
-            <Text style={styles.actionTitle}>{t('addNewTask')}</Text>
+            <LinearGradient
+              colors={['#f093fb', '#f5576c']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flexDirection: 'row',
+                borderRadius: 25,
+              }}
+            >
+              <Ionicons name="checkbox" size={18} color="#fff" />
+              <Text style={styles.actionTitle}>{t('addNewTask')}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>

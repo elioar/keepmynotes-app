@@ -1258,6 +1258,7 @@ export default function HomeScreen() {
     noteContent: {
       flex: 1,
       justifyContent: 'flex-start',
+      minHeight: 60,
     },
     noteTitle: {
       color: theme.textColor,
@@ -1272,6 +1273,7 @@ export default function HomeScreen() {
       lineHeight: 20,
       overflow: 'hidden',
       opacity: 0.8,
+      flexShrink: 1,
     },
     noteFooter: {
       flexDirection: 'row',
@@ -1611,6 +1613,7 @@ export default function HomeScreen() {
     gridCardContent: {
       flex: 1,
       marginTop: 6,
+      minHeight: 50,
     },
     gridCardTitle: {
       fontSize: 15,
@@ -1624,6 +1627,7 @@ export default function HomeScreen() {
       color: theme.placeholderColor,
       lineHeight: 18,
       opacity: 0.75,
+      flexShrink: 1,
     },
     gridCardFooter: {
       marginTop: hp(0.5),
@@ -2183,6 +2187,7 @@ export default function HomeScreen() {
                 <Text 
                   style={[styles.noteTitle]}
                   numberOfLines={2}
+                  ellipsizeMode="tail"
                 >
                   <HighlightText 
                     text={note.title}
@@ -2195,6 +2200,7 @@ export default function HomeScreen() {
                   <Text 
                     style={[styles.noteDescription]}
                     numberOfLines={3}
+                    ellipsizeMode="tail"
                   >
                     <HighlightText 
                       text={note.description}
@@ -2310,11 +2316,19 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.gridCardContent}>
-              <Text style={styles.gridCardTitle} numberOfLines={2}>
+              <Text 
+                style={styles.gridCardTitle} 
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
                 {note.title}
               </Text>
               {note.description && (
-                <Text style={styles.gridCardDescription} numberOfLines={4}>
+                <Text 
+                  style={styles.gridCardDescription} 
+                  numberOfLines={3}
+                  ellipsizeMode="tail"
+                >
                   {note.description}
                 </Text>
               )}

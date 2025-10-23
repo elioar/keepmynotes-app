@@ -210,6 +210,7 @@ export default function EditNote({ route }: { route: any }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
         <style>
           * {
             box-sizing: border-box;
@@ -505,6 +506,12 @@ export default function EditNote({ route }: { route: any }) {
             transition: all 0.2s ease;
           }
 
+          .icon-theme {
+            font-size: 16px;
+            color: ${theme.textColor};
+            transition: all 0.2s ease;
+          }
+
           .plus-option:hover .icon-image::before {
             color: ${theme.accentColor};
             transform: scale(1.1);
@@ -516,6 +523,11 @@ export default function EditNote({ route }: { route: any }) {
           }
 
           .plus-option:hover .icon-task::before {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .plus-option:hover .icon-theme {
             color: ${theme.accentColor};
             transform: scale(1.1);
           }
@@ -644,6 +656,102 @@ export default function EditNote({ route }: { route: any }) {
             font-size: 22px;
             letter-spacing: -0.5px;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          .bold-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .bold-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .underline-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .underline-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .italic-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .italic-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .numbered-list-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .numbered-list-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .bullet-list-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .bullet-list-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .align-left-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .align-left-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .align-center-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .align-center-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
+          }
+
+          .align-right-icon {
+            width: 20px;
+            height: 20px;
+            color: ${theme.textColor};
+            transition: all 0.3s ease;
+          }
+
+          .align-right-icon:hover {
+            color: ${theme.accentColor};
+            transform: scale(1.1);
           }
 
           .format-icon.italic {
@@ -1124,37 +1232,57 @@ export default function EditNote({ route }: { route: any }) {
               <span class="icon-task"></span>
               <span class="plus-option-text">Task</span>
             </button>
+            <button id="add-theme" class="plus-option" onclick="addTheme()" aria-label="Add Theme">
+              <span class="material-icons icon-theme">style</span>
+              <span class="plus-option-text">Theme</span>
+            </button>
           </div>
           <div class="toolbar-main">
             <button id="plus" onclick="togglePlusRow()" aria-label="Add Content">
               <span class="format-icon plus-icon">+</span>
             </button>
-            <button id="bold" onclick="format('bold')" aria-label="Bold">
-              <span class="format-icon bold">B</span>
-            </button>
+              <button id="bold" onclick="format('bold')" aria-label="Bold">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="bold-icon">
+                  <path d="M8 12H12.5M8 12V5H12.5C14.433 5 16 6.567 16 8.5C16 10.433 14.433 12 12.5 12M8 12V19H13.5C15.433 19 17 17.433 17 15.5C17 13.567 15.433 12 13.5 12H12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             <button id="italic" onclick="format('italic')" aria-label="Italic">
-              <span class="format-icon italic">I</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="italic-icon">
+                <path d="M8 19H10M10 19H12M10 19L14 5M12 5H14M14 5H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button id="underline" onclick="format('underline')" aria-label="Underline">
-              <span class="format-icon underline">U</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="underline-icon">
+                <path d="M6 19H18M8 5V11C8 13.2091 9.79086 15 12 15C14.2091 15 16 13.2091 16 11V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button id="highlight" onclick="toggleColorRow()" aria-label="Highlight">
               <span class="highlight-icon"></span>
             </button>
             <button id="list-ol" onclick="format('insertOrderedList')" aria-label="Numbered List">
-              <span class="format-icon list-ol">123</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="numbered-list-icon">
+                <path d="M10 17H20M4 15.6853V15.5C4 14.6716 4.67157 14 5.5 14H5.54054C6.34658 14 7.00021 14.6534 7.00021 15.4595C7.00021 15.8103 6.8862 16.1519 6.67568 16.4326L4 20.0002L7 20M10 12H20M10 7H20M4 5L6 4V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button id="list-ul" onclick="format('insertUnorderedList')" aria-label="Bullet List">
-              <span class="format-icon list-ul"></span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="bullet-list-icon">
+                <path d="M9 17H19M9 12H19M9 7H19M5.00195 17V17.002L5 17.002V17H5.00195ZM5.00195 12V12.002L5 12.002V12H5.00195ZM5.00195 7V7.002L5 7.00195V7H5.00195Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button id="align-left" onclick="format('justifyLeft')" aria-label="Align Left">
-              <span class="format-icon align align-left"></span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="align-left-icon">
+                <path d="M4 18H14M4 14H20M4 10H14M4 6H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button id="align-center" onclick="format('justifyCenter')" aria-label="Align Center">
-              <span class="format-icon align align-center"></span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="align-center-icon">
+                <path d="M17 18H7M20 14H4M17 10H7M20 6H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button id="align-right" onclick="format('justifyRight')" aria-label="Align Right">
-              <span class="format-icon align align-right"></span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="align-right-icon">
+                <path d="M20 18H10M20 14H4M20 10H10M20 6H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
           </div>
           <div class="toolbar-colors">
@@ -1614,6 +1742,16 @@ export default function EditNote({ route }: { route: any }) {
             
             span.focus();
             notifyContent();
+          }
+
+          function addTheme() {
+            // Close plus row
+            setTimeout(() => {
+              togglePlusRow();
+            }, 150);
+            
+            // Show theme selection modal or implement theme functionality
+            alert('Η λειτουργία επιλογής θέματος θα είναι διαθέσιμη σύντομα');
           }
 
           // Update the initial setup

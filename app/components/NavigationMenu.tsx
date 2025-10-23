@@ -106,8 +106,8 @@ export default function NavigationMenu({ onAddPress }: Props) {
       flexDirection: 'row',
       justifyContent: 'space-around',
       alignItems: 'center',
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: 25,
+      borderTopRightRadius: 25,
       shadowColor: '#000',
       shadowOffset: {
         width: 0,
@@ -125,20 +125,22 @@ export default function NavigationMenu({ onAddPress }: Props) {
       height: 50,
     },
     addButton: {
-      width: 45,
-      height: 45,
-      borderRadius: 15,
+      width: 60,
+      height: 60,
+      borderRadius: 20,
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: theme.accentColor,
-      shadowOffset: {
-        width: 0,
-        height: 4,
-      },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-      overflow: 'hidden',
+    
+      // Positioning (half outside the bottom bar)
+      position: 'absolute',
+      bottom: -5, // half the height (60 / 2)
+      alignSelf: 'center', // centers horizontally
+    
+      // Colors & borders
+      borderWidth: 6,
+      borderColor: theme.isDarkMode ? '#000000' : '#FFFFFF', // Μαύρο για dark mode, λευκό για white mode    
+      // Prevent clipping inside parent view
+      zIndex: 10,
     },
   });
 

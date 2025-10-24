@@ -461,6 +461,10 @@ export default function HomeScreen() {
   const sideMenuAnim = useRef(new Animated.Value(-300)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
 
+  // Intro animations (run once per screen open)
+  const hasRunIntroAnim = useRef(false);
+  const [showIntroAnim, setShowIntroAnim] = useState(false);
+
   
   const currentRoute = navigation.getState().routes[navigation.getState().index].name;
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -633,6 +637,21 @@ export default function HomeScreen() {
     };
     loadProfileImage();
   }, []);
+
+  // Run header/search intro animations only once when screen first gets focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!hasRunIntroAnim.current) {
+        setShowIntroAnim(true);
+        const timer = setTimeout(() => {
+          setShowIntroAnim(false);
+          hasRunIntroAnim.current = true;
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+      return undefined;
+    }, [])
+  );
 
   // Save view preference when it changes
   const toggleViewMode = async () => {
@@ -2408,7 +2427,76 @@ export default function HomeScreen() {
     return () => (
       <>
         <View style={styles.searchAndCategoriesRow}>
-          <Animated.View style={[styles.searchContainer, { width: searchWidthAnim }]}>
+          {showIntroAnim ? (
+            <MotiView
+              from={{ opacity: 0, translateY: -10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'spring', damping: 20, delay: 150 }}
+            >
+              <Animated.View style={[styles.searchContainer, { width: searchWidthAnim }]}>
+                <View 
+                  style={[
+                    styles.searchInnerBorder,
+                    {
+                      borderColor: isSearchFocused 
+                        ? theme.accentColor 
+                        : theme.isDarkMode 
+                          ? 'rgba(255, 255, 255, 0.15)' 
+                          : 'rgba(0, 0, 0, 0.08)',
+                      borderWidth: isSearchFocused ? 2 : 1.5,
+                    }
+                  ]}
+                />
+                <TouchableOpacity onPress={toggleSearchBar} style={{ zIndex: 1 }}>
+                  <Ionicons 
+                    name="search-outline" 
+                    size={20} 
+                    color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                  />
+                </TouchableOpacity>
+                {isSearchExpanded && (
+                  <>
+                    <TextInput
+                      style={[styles.searchInput, { zIndex: 1 }]}
+                      placeholder={t('searchHere')}
+                      placeholderTextColor={theme.placeholderColor}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      onFocus={() => {
+                        setIsSearchFocused(true);
+                        if (!isSearchExpanded) {
+                          toggleSearchBar();
+                        }
+                      }}
+                      onBlur={() => {
+                        setIsSearchFocused(false);
+                        collapseSearchBar();
+                      }}
+                      autoFocus
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity 
+                        onPress={() => {
+                          setSearchQuery('');
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        style={{ zIndex: 1 }}
+                      >
+                        <Ionicons 
+                          name="close-circle" 
+                          size={20} 
+                          color={isSearchFocused ? theme.accentColor : theme.placeholderColor} 
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </Animated.View>
+            </MotiView>
+          ) : (
+            <Animated.View style={[styles.searchContainer, { width: searchWidthAnim }]}>
               <View 
                 style={[
                   styles.searchInnerBorder,
@@ -2469,15 +2557,90 @@ export default function HomeScreen() {
                 </>
               )}
             </Animated.View>
+          )}
 
           {/* Categories ScrollView - Hidden when search is expanded */}
           {!isSearchExpanded && (
-            <View style={styles.categoriesContainer}>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.categoriesScrollView}
+            showIntroAnim ? (
+              <MotiView
+                from={{ opacity: 0, translateY: -8 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'spring', damping: 20, delay: 220 }}
+                style={styles.categoriesContainer}
               >
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesScrollView}
+                >
+                  {categories.map((category) => {
+                    const isSelected = selectedCategory === category.key;
+                    return (
+                      <TouchableOpacity
+                        key={category.key}
+                        onPress={() => handleCategorySelect(category.key)}
+                        activeOpacity={0.7}
+                      >
+                        <View
+                          style={[
+                            styles.categoryChip,
+                            isSelected ? styles.categoryChipGlow : styles.categoryChipNormal,
+                            {
+                              backgroundColor: isSelected 
+                                ? theme.isDarkMode
+                                  ? category.color + '30'
+                                  : category.color + '20'
+                                : theme.secondaryBackground,
+                              shadowColor: isSelected ? category.color : '#000',
+                              transform: isSelected ? [{ scale: 1.05 }] : [{ scale: 1 }],
+                            }
+                          ]}
+                        >
+                          <View 
+                            style={[
+                              styles.categoryInnerBorder,
+                              {
+                                borderColor: isSelected 
+                                  ? category.color 
+                                  : theme.isDarkMode 
+                                    ? 'rgba(255, 255, 255, 0.15)' 
+                                    : 'rgba(0, 0, 0, 0.1)',
+                                borderWidth: isSelected ? 2 : 1.5,
+                              }
+                            ]}
+                          />
+                          <View style={styles.categoryIconContainer}>
+                            {getCategoryIcon(category.key, 16, category.color)}
+                          </View>
+                          <Text 
+                            style={[
+                              styles.categoryChipText,
+                              { 
+                                color: isSelected 
+                                  ? theme.isDarkMode 
+                                    ? '#FFFFFF' 
+                                    : category.color
+                                  : theme.textColor,
+                                fontWeight: isSelected ? '700' : '600',
+                                zIndex: 1,
+                              }
+                            ]}
+                          >
+                            {category.label}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </MotiView>
+            ) : (
+              <View style={styles.categoriesContainer}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.categoriesScrollView}
+                >
                 {categories.map((category) => {
                   const isSelected = selectedCategory === category.key;
                   return (
@@ -2537,8 +2700,9 @@ export default function HomeScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
-            </View>
+                </ScrollView>
+              </View>
+            )
           )}
         </View>
 
@@ -2571,7 +2735,7 @@ export default function HomeScreen() {
         )}
       </>
     );
-  }, [searchQuery, isSearchFocused, isSearchExpanded, hasActiveFiltersMemo, selectedCategory, theme.accentColor, theme.placeholderColor, theme.textColor, theme.isDarkMode, t, styles, searchWidthAnim, toggleSearchBar, collapseSearchBar, handleCategorySelect]);
+  }, [searchQuery, isSearchFocused, isSearchExpanded, hasActiveFiltersMemo, selectedCategory, theme.accentColor, theme.placeholderColor, theme.textColor, theme.isDarkMode, t, styles, searchWidthAnim, toggleSearchBar, collapseSearchBar, handleCategorySelect, showIntroAnim]);
 
   return (
     <TouchableWithoutFeedback onPress={() => {
@@ -2606,47 +2770,105 @@ export default function HomeScreen() {
             style={styles.headerGradient}
           >
             <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <View>
-                  <Text style={styles.headerGreeting}>{t('hello')},</Text>
-                  <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                    {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.headerButtons}>
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={toggleViewMode}
+              {showIntroAnim ? (
+                <MotiView
+                  from={{ opacity: 0, translateX: -20 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                  style={styles.headerLeft}
                 >
-                  <Ionicons 
-                    name={isGridView ? "grid-outline" : "list-outline"} 
-                    size={20} 
-                    color="#FFF" 
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.iconButton}
-                  onPress={() => setIsFilterModalVisible(true)}
-                >
-                  <View style={styles.filterIconContainer}>
-                    <Ionicons 
-                      name="funnel-outline" 
-                      size={20} 
-                      color={hasActiveFiltersMemo ? '#FFD700' : '#FFF'} 
-                    />
-                    {hasActiveFiltersMemo && (
-                      <View style={styles.filterDot} />
-                    )}
+                  <View>
+                    <Text style={styles.headerGreeting}>{t('hello')},</Text>
+                    <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                      {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
+                    </Text>
                   </View>
-                </TouchableOpacity>
-                <AnimatedMenuButton 
-                  isMenuOpen={isSideMenuOpen}
-                  onPress={toggleSideMenu}
-                  size={24}
-                  color="#FFF"
-                />
-              </View>
+                </MotiView>
+              ) : (
+                <View style={styles.headerLeft}>
+                  <View>
+                    <Text style={styles.headerGreeting}>{t('hello')},</Text>
+                    <Text style={styles.headerName} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                      {(cachedUsername || user?.displayName || user?.email?.split('@')[0] || t('guest'))} 👋
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {showIntroAnim ? (
+                <MotiView
+                  from={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', damping: 20, stiffness: 300, delay: 100 }}
+                  style={styles.headerButtons}
+                >
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={toggleViewMode}
+                  >
+                    <Ionicons 
+                      name={isGridView ? "grid-outline" : "list-outline"} 
+                      size={20} 
+                      color="#FFF" 
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={() => setIsFilterModalVisible(true)}
+                  >
+                    <View style={styles.filterIconContainer}>
+                      <Ionicons 
+                        name="funnel-outline" 
+                        size={20} 
+                        color={hasActiveFiltersMemo ? '#FFD700' : '#FFF'} 
+                      />
+                      {hasActiveFiltersMemo && (
+                        <View style={styles.filterDot} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                  <AnimatedMenuButton 
+                    isMenuOpen={isSideMenuOpen}
+                    onPress={toggleSideMenu}
+                    size={24}
+                    color="#FFF"
+                  />
+                </MotiView>
+              ) : (
+                <View style={styles.headerButtons}>
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={toggleViewMode}
+                  >
+                    <Ionicons 
+                      name={isGridView ? "grid-outline" : "list-outline"} 
+                      size={20} 
+                      color="#FFF" 
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.iconButton}
+                    onPress={() => setIsFilterModalVisible(true)}
+                  >
+                    <View style={styles.filterIconContainer}>
+                      <Ionicons 
+                        name="funnel-outline" 
+                        size={20} 
+                        color={hasActiveFiltersMemo ? '#FFD700' : '#FFF'} 
+                      />
+                      {hasActiveFiltersMemo && (
+                        <View style={styles.filterDot} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                  <AnimatedMenuButton 
+                    isMenuOpen={isSideMenuOpen}
+                    onPress={toggleSideMenu}
+                    size={24}
+                    color="#FFF"
+                  />
+                </View>
+              )}
             </View>
           </LinearGradient>
         </Animated.View>

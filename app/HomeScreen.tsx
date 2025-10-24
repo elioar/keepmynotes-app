@@ -1931,6 +1931,7 @@ export default function HomeScreen() {
       flex: 1,
       height: 52,
       justifyContent: 'center',
+      position: 'relative',
     },
     categoriesScrollView: {
       paddingLeft: 2,
@@ -1987,6 +1988,14 @@ export default function HomeScreen() {
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 6,
+    },
+    categoriesEndLine: {
+      position: 'absolute',
+      right: 0,
+      top: -5,
+      width: 2,
+      height: 65,
+      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
     },
     
   }), [theme, isSearchFocused, isGridView, isSideMenuOpen, appTheme, isUserLoggedIn]);
@@ -2573,7 +2582,7 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.categoriesScrollView}
                 >
-                  {categories.map((category) => {
+                  {categories.map((category, idx) => {
                     const isSelected = selectedCategory === category.key;
                     return (
                       <TouchableOpacity
@@ -2593,6 +2602,7 @@ export default function HomeScreen() {
                                 : theme.secondaryBackground,
                               shadowColor: isSelected ? category.color : '#000',
                               transform: isSelected ? [{ scale: 1.05 }] : [{ scale: 1 }],
+                              marginRight: idx === categories.length - 1 ? 0 : 10,
                             }
                           ]}
                         >
@@ -2633,6 +2643,7 @@ export default function HomeScreen() {
                     );
                   })}
                 </ScrollView>
+                <View style={styles.categoriesEndLine} />
               </MotiView>
             ) : (
               <View style={styles.categoriesContainer}>
@@ -2641,7 +2652,7 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.categoriesScrollView}
                 >
-                {categories.map((category) => {
+                {categories.map((category, idx) => {
                   const isSelected = selectedCategory === category.key;
                   return (
                     <TouchableOpacity
@@ -2661,6 +2672,7 @@ export default function HomeScreen() {
                               : theme.secondaryBackground,
                             shadowColor: isSelected ? category.color : '#000',
                             transform: isSelected ? [{ scale: 1.05 }] : [{ scale: 1 }],
+                            marginRight: idx === categories.length - 1 ? 0 : 10,
                           }
                         ]}
                       >
@@ -2701,6 +2713,7 @@ export default function HomeScreen() {
                   );
                 })}
                 </ScrollView>
+                <View style={styles.categoriesEndLine} />
               </View>
             )
           )}
